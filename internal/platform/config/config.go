@@ -12,13 +12,14 @@ import (
 type Config struct {
 	TrustedProxies                                                                        []netip.Prefix
 	Env, Addr, BaseURL, DatabaseURL, Secret, Issuer, Audience, StorageDir, SMTP, MailFrom string
+	BasicUser, BasicPass                                                                  string
 	Origins                                                                               []string
 	MaxConns                                                                              int32
 	CookieSecure                                                                          bool
 }
 
 func Load() (Config, error) {
-	c := Config{Env: get("APP_ENV", "development"), Addr: get("HTTP_ADDR", ":"+get("PORT", "8080")), BaseURL: get("PUBLIC_API_URL", "http://localhost:8080"), DatabaseURL: os.Getenv("DATABASE_URL"), Secret: os.Getenv("JWT_SECRET"), Issuer: get("JWT_ISSUER", "pmt-api"), Audience: get("JWT_AUDIENCE", "pmt-clients"), StorageDir: get("STORAGE_DIR", "./data/files"), SMTP: get("SMTP_ADDR", "localhost:1025"), MailFrom: get("MAIL_FROM", "lms@localhost")}
+	c := Config{Env: get("APP_ENV", "development"), Addr: get("HTTP_ADDR", ":"+get("PORT", "8080")), BaseURL: get("PUBLIC_API_URL", "http://localhost:8080"), DatabaseURL: os.Getenv("DATABASE_URL"), Secret: os.Getenv("JWT_SECRET"), Issuer: get("JWT_ISSUER", "pmt-api"), Audience: get("JWT_AUDIENCE", "pmt-clients"), StorageDir: get("STORAGE_DIR", "./data/files"), SMTP: get("SMTP_ADDR", "localhost:1025"), MailFrom: get("MAIL_FROM", "lms@localhost"), BasicUser: get("AUTH_BASIC_USER", "admin"), BasicPass: get("AUTH_BASIC_PASS", "admin123")}
 	n, err := strconv.Atoi(get("DB_MAX_CONNS", "5"))
 	if err != nil || n < 1 || n > 100 {
 		return c, fmt.Errorf("invalid DB_MAX_CONNS")

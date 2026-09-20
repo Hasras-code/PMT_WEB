@@ -3,8 +3,19 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"io"
+	"log/slog"
+	"net"
+	"net/http"
+	"net/netip"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
 	"github.com/Hasras-code/PMT_WEB.git/internal/auth"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
@@ -15,15 +26,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"io"
-	"log/slog"
-	"net"
-	"net/http"
-	"net/netip"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 type API struct {
@@ -158,6 +160,17 @@ func (a *API) authenticated(next http.Handler) http.Handler {
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey, c)))
+	})
+}
+func (a *API) authenticatedBasic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		if !ok || subtle.ConstantTimeCompare([]byte(username), []byte(a.Config.BasicUser)) != 1 || subtle.ConstantTimeCompare([]byte(password), []byte(a.Config.BasicPass)) != 1 {
+			w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+			a.fail(w, r, apperror.ErrUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 func (a *API) origin(origin string) bool {

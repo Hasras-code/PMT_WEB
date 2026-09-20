@@ -2,12 +2,13 @@ package httpapi
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
 	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
 	"github.com/Hasras-code/PMT_WEB.git/internal/position"
 	"github.com/go-chi/chi/v5"
-	"net/http"
-	"time"
 )
 
 func (a *API) Router() *chi.Mux {
@@ -20,10 +21,10 @@ func (a *API) Router() *chi.Mux {
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		_ = send(w, 405, map[string]any{"error": map[string]any{"code": "method_not_allowed", "message": "Method not allowed", "request_id": r.Context().Value(requestIDKey)}})
 	})
-	r.Get("/health/live", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
+	r.With(a.authenticatedBasic).Get("/health/live", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
 		return send(w, 200, map[string]string{"status": "ok"})
 	}))
-	r.Get("/health/ready", func(w http.ResponseWriter, r *http.Request) {
+	r.With(a.authenticatedBasic).Get("/health/ready", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 		if e := a.Pool.Ping(ctx); e != nil {

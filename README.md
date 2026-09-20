@@ -22,6 +22,8 @@ make run
 - PostgreSQL: localhost:5432, database/user `lms`, local-only password `lms_local_only`
 - Files when using `make run`: `./data/files`
 
+Health endpoints require HTTP Basic Auth. Configure `AUTH_BASIC_USER` and `AUTH_BASIC_PASS` in `.env`, then provide those credentials when opening either health URL. These credentials are separate from LMS user accounts and platform-admin permissions.
+
 The Compose ports bind to loopback. The database and file contents persist in named Docker volumes when using the containerized API. `docker compose down` preserves volumes; adding `-v` destroys them.
 
 To run the API itself in Docker:

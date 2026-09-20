@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
 	"io"
 	"log/slog"
 	"net/http"
@@ -9,6 +8,8 @@ import (
 	"net/netip"
 	"strings"
 	"testing"
+
+	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
 )
 
 func TestJSONValidation(t *testing.T) {
@@ -24,12 +25,12 @@ func TestJSONValidation(t *testing.T) {
 	}
 }
 func TestPublicMiddleware(t *testing.T) {
-	a := &API{Config: config.Config{BaseURL: "http://localhost:8080", Origins: []string{"http://localhost:3000"}}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	a := &API{Config: config.Config{BaseURL: "http://localhost:8080", Origins: []string{"http://localhost:3000"}, BasicUser: "admin", BasicPass: "secret"}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 	router := a.Router()
 	for _, x := range []struct {
 		path, origin string
 		status       int
-	}{{"/health/live", "", 200}, {"/health/live", "https://evil.example", 403}, {"/v1/batches/00000000-0000-0000-0000-000000000000/gallery", "", 401}, {"/missing", "", 404}} {
+	}{{"/health/live", "", 401}, {"/health/live", "https://evil.example", 403}, {"/v1/batches/00000000-0000-0000-0000-000000000000/gallery", "", 401}, {"/missing", "", 404}} {
 		r := httptest.NewRequest("GET", x.path, nil)
 		r.Header.Set("Origin", x.origin)
 		w := httptest.NewRecorder()
@@ -41,11 +42,21 @@ func TestPublicMiddleware(t *testing.T) {
 			t.Error("missing security header")
 		}
 	}
-	r := httptest.NewRequest("OPTIONS", "/v1/me", nil)
-	r.Header.Set("Origin", "http://localhost:3000")
+	r := httptest.NewRequest("GET", "/health/live", nil)
+	r.SetBasicAuth("admin", "secret")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, r)
-	if w.Code != 204 || w.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+	if w.Code != 200 {
+		t.Fatalf("valid health credentials: %d %s", w.Code, w.Body.String())
+	}
+	if w.Header().Get("WWW-Authenticate") != "" {
+		t.Fatal("successful health request returned an auth challenge")
+	}
+	preflightRequest := httptest.NewRequest("OPTIONS", "/v1/me", nil)
+	preflightRequest.Header.Set("Origin", "http://localhost:3000")
+	preflightResponse := httptest.NewRecorder()
+	router.ServeHTTP(preflightResponse, preflightRequest)
+	if preflightResponse.Code != 204 || preflightResponse.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
 		t.Fatal("CORS preflight")
 	}
 }
