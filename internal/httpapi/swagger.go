@@ -8,24 +8,17 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/openapi"
 	"github.com/go-chi/chi/v5"
 	swaggerFiles "github.com/swaggo/files/v2"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // swaggerRoutes serves bundled assets and the live router contract. It does not
 // depend on the working directory or a separate documentation generation step.
 func (a *API) swaggerRoutes(r chi.Router) {
 	r.Get("/swagger", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, "/swagger/", http.StatusTemporaryRedirect)
+		http.Redirect(w, req, "/swagger/index.html", http.StatusTemporaryRedirect)
 	})
-	index := func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write([]byte(swaggerIndex))
-	}
-	r.Get("/swagger/", index)
-	r.Get("/swagger/index.html", index)
-	r.Get("/swagger/swagger-initializer.js", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		_, _ = w.Write([]byte(swaggerInitializer))
-	})
+	r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL("/swagger/openapi.json")))
+	r.Get("/swagger/index.html", httpSwagger.Handler(httpSwagger.URL("/swagger/openapi.json")))
 	// Generate lazily, after the entire router has been registered, then cache
 	// the immutable JSON. Air restarts the process whenever routes change.
 	var once sync.Once
@@ -52,31 +45,3 @@ func (a *API) swaggerRoutes(r chi.Router) {
 		r.Get("/swagger/"+name, assets.ServeHTTP)
 	}
 }
-
-const swaggerIndex = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PMT LMS API — Swagger UI</title>
-  <link rel="stylesheet" href="/swagger/swagger-ui.css">
-  <link rel="icon" type="image/png" href="/swagger/favicon-32x32.png">
-</head>
-<body>
-  <div id="swagger-ui"></div>
-  <script src="/swagger/swagger-ui-bundle.js"></script>
-  <script src="/swagger/swagger-initializer.js"></script>
-</body>
-</html>`
-
-const swaggerInitializer = `window.onload = function () {
-  window.ui = SwaggerUIBundle({
-    url: "/swagger/openapi.json",
-    dom_id: "#swagger-ui",
-    deepLinking: true,
-    persistAuthorization: false,
-    validatorUrl: null,
-    presets: [SwaggerUIBundle.presets.apis],
-    layout: "BaseLayout"
-  });
-};`

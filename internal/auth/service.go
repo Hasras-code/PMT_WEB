@@ -4,16 +4,18 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
-	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
-	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"golang.org/x/crypto/bcrypt"
 	"log/slog"
 	"net/mail"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
+	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
+	"github.com/Hasras-code/PMT_WEB.git/internal/store"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Mailer interface {
@@ -21,6 +23,7 @@ type Mailer interface {
 }
 type Service struct {
 	Pool   *pgxpool.Pool
+	Store  store.Storage
 	Signer Signer
 	Mail   Mailer
 	Log    *slog.Logger
@@ -341,6 +344,15 @@ func (s *Service) Revoke(ctx context.Context, user, session string) error {
 	return nil
 }
 func (s *Service) Me(ctx context.Context, id string) (User, error) {
+	if s.Store.Users != nil {
+		u, e := s.Store.Users.GetByID(ctx, id)
+		if e == nil {
+			return User{ID: u.ID, StudentNumber: u.StudentNumber, FirstName: u.FirstName, LastName: u.LastName, DisplayName: u.DisplayName, Email: u.Email, PhoneNumber: u.PhoneNumber, Status: u.Status}, nil
+		}
+		if !errors.Is(e, apperror.ErrNotFound) {
+			return User{}, e
+		}
+	}
 	var u User
 	e := s.Pool.QueryRow(ctx, `SELECT id,student_number,first_name,last_name,display_name,email,phone_number,status FROM users WHERE id=$1`, id).Scan(&u.ID, &u.StudentNumber, &u.FirstName, &u.LastName, &u.DisplayName, &u.Email, &u.PhoneNumber, &u.Status)
 	return u, db.Error(e)
