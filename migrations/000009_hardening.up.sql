@@ -1,0 +1,13 @@
+ALTER TABLE roles ADD COLUMN description text NOT NULL DEFAULT '', ADD COLUMN created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE permissions ADD COLUMN description text NOT NULL DEFAULT '';
+ALTER TABLE auth_sessions ADD CONSTRAINT refresh_hash_length CHECK(octet_length(refresh_token_hash)=32);
+ALTER TABLE spent_refresh_tokens ADD CONSTRAINT spent_hash_length CHECK(octet_length(token_hash)=32);
+ALTER TABLE verification_tokens ADD CONSTRAINT verification_hash_length CHECK(octet_length(token_hash)=32);
+ALTER TABLE announcements ADD CONSTRAINT announcement_publication CHECK(status<>'PUBLISHED' OR published_at IS NOT NULL);
+ALTER TABLE resources ADD CONSTRAINT resource_publication CHECK(status<>'PUBLISHED' OR (published_at IS NOT NULL AND current_version_id IS NOT NULL));
+ALTER TABLE recorded_lessons ADD CONSTRAINT lesson_publication CHECK(status<>'PUBLISHED' OR published_at IS NOT NULL);
+ALTER TABLE events ADD CONSTRAINT event_publication CHECK(status<>'PUBLISHED' OR published_at IS NOT NULL);
+CREATE INDEX complaints_owner ON complaints(batch_id,submitted_by,created_at DESC,id DESC) WHERE submitted_by IS NOT NULL;
+CREATE INDEX uploads_cleanup ON upload_intents(expires_at) WHERE state<>'CONSUMED';
+CREATE INDEX notification_pending ON notification_events(created_at) WHERE processed_at IS NULL;
+CREATE INDEX modules_semester ON modules(batch_id,semester_id);

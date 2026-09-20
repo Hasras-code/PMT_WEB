@@ -1,0 +1,7 @@
+.env
+.env.local
+data/
+bin/
+tmp/
+coverage.out
+.DS_Store

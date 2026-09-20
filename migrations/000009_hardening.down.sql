@@ -1,0 +1,13 @@
+DROP INDEX modules_semester;
+DROP INDEX notification_pending;
+DROP INDEX uploads_cleanup;
+DROP INDEX complaints_owner;
+ALTER TABLE events DROP CONSTRAINT event_publication;
+ALTER TABLE recorded_lessons DROP CONSTRAINT lesson_publication;
+ALTER TABLE resources DROP CONSTRAINT resource_publication;
+ALTER TABLE announcements DROP CONSTRAINT announcement_publication;
+ALTER TABLE verification_tokens DROP CONSTRAINT verification_hash_length;
+ALTER TABLE spent_refresh_tokens DROP CONSTRAINT spent_hash_length;
+ALTER TABLE auth_sessions DROP CONSTRAINT refresh_hash_length;
+ALTER TABLE permissions DROP COLUMN description;
+ALTER TABLE roles DROP COLUMN created_at, DROP COLUMN description;

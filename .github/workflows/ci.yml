@@ -1,0 +1,45 @@
+name: backend
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: lms
+          POSTGRES_PASSWORD: integration_only
+          POSTGRES_DB: lms_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lms -d lms_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://lms:integration_only@localhost:5432/lms_test?sslmode=disable
+      DATABASE_URL: postgres://lms:integration_only@localhost:5432/lms_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Format
+        run: test -z "$(gofmt -l cmd internal integration)"
+      - run: go mod verify
+      - run: go vet ./...
+      - run: go run honnef.co/go/tools/cmd/staticcheck@v0.7.0 ./...
+      - run: go run ./cmd/migrate up
+      - run: go test ./...
+      - run: go test -race ./...
+      - run: go build ./...
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+      - name: OpenAPI matches router
+        run: |
+          go run ./cmd/openapi > /tmp/openapi.json
+          diff -u docs/openapi.json /tmp/openapi.json
+      - run: docker build -t pmt-api:ci .

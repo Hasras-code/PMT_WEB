@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS verification_tokens CASCADE;
+DROP TABLE IF EXISTS spent_refresh_tokens CASCADE;
+DROP TABLE IF EXISTS auth_sessions CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
