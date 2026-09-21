@@ -37,7 +37,6 @@ func (a *API) listSemestersHandler(w http.ResponseWriter, r *http.Request) error
 		return e
 	}
 	return send(w, 200, v)
-	return send(w, 200, v)
 }
 
 // createSemesterHandler godoc
@@ -61,7 +60,6 @@ func (a *API) createSemesterHandler(w http.ResponseWriter, r *http.Request) erro
 		return e
 	}
 	return created(w, id)
-	return created(w, id)
 }
 
 // getSemesterHandler godoc
@@ -80,7 +78,6 @@ func (a *API) getSemesterHandler(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	return send(w, 200, v)
 	return send(w, 200, v)
 }
 
@@ -105,7 +102,6 @@ func (a *API) updateSemesterHandler(w http.ResponseWriter, r *http.Request) erro
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // setCurrentSemesterHandler godoc
@@ -122,6 +118,5 @@ func (a *API) setCurrentSemesterHandler(w http.ResponseWriter, r *http.Request) 
 	if e := s.SetCurrent(r.Context(), userID(r), batchID(r), param(r, "semesterID")); e != nil {
 		return e
 	}
-	return send(w, 204, nil)
 	return send(w, 204, nil)
 }

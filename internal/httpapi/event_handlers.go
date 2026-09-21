@@ -38,7 +38,6 @@ func (a *API) listEventsHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 200, v)
-	return send(w, 200, v)
 }
 
 // createEventHandler godoc
@@ -62,7 +61,6 @@ func (a *API) createEventHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return created(w, id)
-	return created(w, id)
 }
 
 // getEventHandler godoc
@@ -81,7 +79,6 @@ func (a *API) getEventHandler(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	return send(w, 200, v)
 	return send(w, 200, v)
 }
 
@@ -106,7 +103,6 @@ func (a *API) updateEventHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // deleteEventHandler godoc
@@ -124,7 +120,6 @@ func (a *API) deleteEventHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // publishEventHandler godoc
@@ -141,6 +136,5 @@ func (a *API) publishEventHandler(w http.ResponseWriter, r *http.Request) error 
 	if e := s.Transition(r.Context(), userID(r), batchID(r), param(r, "eventID"), true); e != nil {
 		return e
 	}
-	return send(w, 204, nil)
 	return send(w, 204, nil)
 }

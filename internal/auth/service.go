@@ -13,6 +13,7 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
 	"github.com/Hasras-code/PMT_WEB.git/internal/store"
+	"github.com/Hasras-code/PMT_WEB.git/internal/student"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -30,22 +31,24 @@ type Service struct {
 	Cost   int
 }
 type RegisterInput struct {
-	StudentNumber string `json:"student_number"`
-	FirstName     string `json:"first_name"`
-	LastName      string `json:"last_name"`
-	DisplayName   string `json:"display_name"`
-	Email         string `json:"email"`
-	Password      string `json:"password"`
+	StudentNumber string              `json:"student_number"`
+	Combination   student.Combination `json:"combination"`
+	FirstName     string              `json:"first_name"`
+	LastName      string              `json:"last_name"`
+	DisplayName   string              `json:"display_name"`
+	Email         string              `json:"email"`
+	Password      string              `json:"password"`
 }
 type User struct {
-	ID            string  `json:"id"`
-	StudentNumber string  `json:"student_number"`
-	FirstName     string  `json:"first_name"`
-	LastName      string  `json:"last_name"`
-	DisplayName   string  `json:"display_name"`
-	Email         string  `json:"email"`
-	PhoneNumber   *string `json:"phone_number"`
-	Status        string  `json:"status"`
+	ID            string               `json:"id"`
+	StudentNumber string               `json:"student_number"`
+	Combination   *student.Combination `json:"combination"`
+	FirstName     string               `json:"first_name"`
+	LastName      string               `json:"last_name"`
+	DisplayName   string               `json:"display_name"`
+	Email         string               `json:"email"`
+	PhoneNumber   *string              `json:"phone_number"`
+	Status        string               `json:"status"`
 }
 type Tokens struct {
 	AccessToken    string    `json:"access_token"`
@@ -74,9 +77,11 @@ func (s *Service) password(p string) (string, error) {
 }
 func (s *Service) Register(ctx context.Context, in RegisterInput) error {
 	in.Email = strings.ToLower(strings.TrimSpace(in.Email))
-	if !EmailValid(in.Email) || len(in.StudentNumber) < 2 || len(in.StudentNumber) > 64 || strings.TrimSpace(in.FirstName) == "" || strings.TrimSpace(in.LastName) == "" || strings.TrimSpace(in.DisplayName) == "" || len(in.FirstName) > 100 || len(in.LastName) > 100 || len(in.DisplayName) > 100 {
+	combination, validCombination := student.ParseCombination(string(in.Combination))
+	if !validCombination || !EmailValid(in.Email) || len(in.StudentNumber) < 2 || len(in.StudentNumber) > 64 || strings.TrimSpace(in.FirstName) == "" || strings.TrimSpace(in.LastName) == "" || strings.TrimSpace(in.DisplayName) == "" || len(in.FirstName) > 100 || len(in.LastName) > 100 || len(in.DisplayName) > 100 {
 		return apperror.ErrInvalid
 	}
+	in.Combination = combination
 	hash, e := s.password(in.Password)
 	if e != nil {
 		return e
@@ -87,7 +92,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) error {
 	}
 	e = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var id string
-		e := tx.QueryRow(ctx, `INSERT INTO users(student_number,first_name,last_name,display_name,email,password_hash) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING id`, in.StudentNumber, in.FirstName, in.LastName, in.DisplayName, in.Email, hash).Scan(&id)
+		e := tx.QueryRow(ctx, `INSERT INTO users(student_number,combination,first_name,last_name,display_name,email,password_hash) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING id`, in.StudentNumber, in.Combination, in.FirstName, in.LastName, in.DisplayName, in.Email, hash).Scan(&id)
 		if errors.Is(e, pgx.ErrNoRows) {
 			return apperror.ErrConflict
 		}
@@ -347,14 +352,14 @@ func (s *Service) Me(ctx context.Context, id string) (User, error) {
 	if s.Store.Users != nil {
 		u, e := s.Store.Users.GetByID(ctx, id)
 		if e == nil {
-			return User{ID: u.ID, StudentNumber: u.StudentNumber, FirstName: u.FirstName, LastName: u.LastName, DisplayName: u.DisplayName, Email: u.Email, PhoneNumber: u.PhoneNumber, Status: u.Status}, nil
+			return User{ID: u.ID, StudentNumber: u.StudentNumber, Combination: u.Combination, FirstName: u.FirstName, LastName: u.LastName, DisplayName: u.DisplayName, Email: u.Email, PhoneNumber: u.PhoneNumber, Status: u.Status}, nil
 		}
 		if !errors.Is(e, apperror.ErrNotFound) {
 			return User{}, e
 		}
 	}
 	var u User
-	e := s.Pool.QueryRow(ctx, `SELECT id,student_number,first_name,last_name,display_name,email,phone_number,status FROM users WHERE id=$1`, id).Scan(&u.ID, &u.StudentNumber, &u.FirstName, &u.LastName, &u.DisplayName, &u.Email, &u.PhoneNumber, &u.Status)
+	e := s.Pool.QueryRow(ctx, `SELECT id,student_number,combination,first_name,last_name,display_name,email,phone_number,status FROM users WHERE id=$1`, id).Scan(&u.ID, &u.StudentNumber, &u.Combination, &u.FirstName, &u.LastName, &u.DisplayName, &u.Email, &u.PhoneNumber, &u.Status)
 	return u, db.Error(e)
 }
 func equalHash(a, b []byte) bool { return subtle.ConstantTimeCompare(a, b) == 1 }

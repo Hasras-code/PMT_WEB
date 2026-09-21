@@ -45,7 +45,7 @@ Stack: Go, Chi v5, PostgreSQL 17, pgx/v5, golang-migrate, jwt/v5, bcrypt and slo
 
 ## Authentication
 
-1. `POST /v1/auth/register` with `student_number`, `first_name`, `last_name`, `display_name`, `email`, `password`.
+1. `POST /v1/auth/register` with `student_number`, `combination`, `first_name`, `last_name`, `display_name`, `email`, `password`. Combination is required and accepts `PMT-ICT` or `PMT-CS` (case-insensitive input is stored canonically).
 2. Read the email in Mailpit. Submit its token to `POST /v1/auth/verify-email` as `{"token":"..."}`.
 3. Log in through `POST /v1/auth/login` with email/password. Verification does not log you in automatically.
 4. Send `Authorization: Bearer ACCESS_TOKEN` to authenticated endpoints.

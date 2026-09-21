@@ -41,7 +41,6 @@ func (a *API) adminCreateBatchHandler(w http.ResponseWriter, r *http.Request) er
 		return e
 	}
 	return created(w, id)
-	return created(w, id)
 }
 
 // adminArchiveBatchHandler godoc
@@ -57,7 +56,6 @@ func (a *API) adminArchiveBatchHandler(w http.ResponseWriter, r *http.Request) e
 	if e := b.Archive(r.Context(), userID(r), batchID(r)); e != nil {
 		return e
 	}
-	return send(w, 204, nil)
 	return send(w, 204, nil)
 }
 
@@ -82,7 +80,6 @@ func (a *API) adminListUsersHandler(w http.ResponseWriter, r *http.Request) erro
 	if e != nil {
 		return e
 	}
-	return send(w, 200, v)
 	return send(w, 200, v)
 }
 
@@ -206,7 +203,6 @@ func (a *API) listNotificationsHandler(w http.ResponseWriter, r *http.Request) e
 		return e
 	}
 	return send(w, 200, v)
-	return send(w, 200, v)
 }
 
 // readNotificationHandler godoc
@@ -237,6 +233,5 @@ func (a *API) readAllNotificationsHandler(w http.ResponseWriter, r *http.Request
 	if e := s.Read(r.Context(), userID(r), ""); e != nil {
 		return e
 	}
-	return send(w, 204, nil)
 	return send(w, 204, nil)
 }

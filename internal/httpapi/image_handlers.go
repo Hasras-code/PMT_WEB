@@ -38,7 +38,6 @@ func (a *API) setEventImageHandler(w http.ResponseWriter, r *http.Request) error
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // getEventImageHandler godoc
@@ -61,7 +60,6 @@ func (a *API) getEventImageHandler(w http.ResponseWriter, r *http.Request) error
 	if e != nil {
 		return e
 	}
-	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
 	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
 }
 func (a *API) profileImageRoutes(r chi.Router) {
@@ -86,7 +84,6 @@ func (a *API) getProfileImageHandler(w http.ResponseWriter, r *http.Request) err
 	if e != nil {
 		return e
 	}
-	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
 	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
 }
 func (a *API) publicImageRoutes(r chi.Router) {
@@ -124,6 +121,5 @@ func (a *API) servePublicImage(w http.ResponseWriter, r *http.Request, s batch.S
 	if e != nil {
 		return e
 	}
-	return a.serveFile(w, r, o.Key, o.MIME, o.Name, true)
 	return a.serveFile(w, r, o.Key, o.MIME, o.Name, true)
 }

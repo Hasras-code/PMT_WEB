@@ -150,7 +150,7 @@ func (s Service) List(ctx context.Context, actor, batch, id string, limit, offse
 		return nil, e
 	}
 	var b []byte
-	e := s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM (SELECT m.id,m.user_id,m.status,m.joined_at,u.display_name,COALESCE((SELECT json_agg(r.code ORDER BY r.code) FROM membership_roles mr JOIN roles r ON r.id=mr.role_id WHERE mr.membership_id=m.id),'[]') AS roles FROM batch_memberships m JOIN users u ON u.id=m.user_id WHERE m.batch_id=$1 AND ($2='' OR m.id=NULLIF($2,'')::uuid) ORDER BY m.joined_at,m.id LIMIT $3 OFFSET $4) t`, batch, id, limit, offset).Scan(&b)
+	e := s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM (SELECT m.id,m.user_id,m.status,m.joined_at,u.display_name,u.combination,COALESCE((SELECT json_agg(r.code ORDER BY r.code) FROM membership_roles mr JOIN roles r ON r.id=mr.role_id WHERE mr.membership_id=m.id),'[]') AS roles FROM batch_memberships m JOIN users u ON u.id=m.user_id WHERE m.batch_id=$1 AND ($2='' OR m.id=NULLIF($2,'')::uuid) ORDER BY m.joined_at,m.id LIMIT $3 OFFSET $4) t`, batch, id, limit, offset).Scan(&b)
 	if id != "" {
 		return db.One(b, e)
 	}

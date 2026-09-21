@@ -23,6 +23,7 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/position"
 	"github.com/Hasras-code/PMT_WEB.git/internal/resource"
 	"github.com/Hasras-code/PMT_WEB.git/internal/semester"
+	"github.com/Hasras-code/PMT_WEB.git/internal/student"
 	"github.com/Hasras-code/PMT_WEB.git/internal/upload"
 	"github.com/Hasras-code/PMT_WEB.git/internal/user"
 	"github.com/go-chi/chi/v5"
@@ -36,6 +37,9 @@ func schema(t reflect.Type) M {
 	}
 	if t == reflect.TypeFor[time.Time]() {
 		return M{"type": "string", "format": "date-time"}
+	}
+	if t == reflect.TypeFor[student.Combination]() {
+		return M{"type": "string", "enum": student.CombinationValues()}
 	}
 	switch t.Kind() {
 	case reflect.String:
@@ -344,7 +348,7 @@ func requiredFields(method, path string) []string {
 	case strings.HasSuffix(path, "/uploads"):
 		return []string{"file_name", "mime_type", "size_bytes"}
 	case path == "/v1/auth/register":
-		return []string{"student_number", "first_name", "last_name", "display_name", "email", "password"}
+		return []string{"student_number", "combination", "first_name", "last_name", "display_name", "email", "password"}
 	case path == "/v1/auth/login":
 		return []string{"email", "password"}
 	case path == "/v1/auth/verify-email":

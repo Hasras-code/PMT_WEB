@@ -54,7 +54,7 @@ func (s Service) AdminList(ctx context.Context, actor, id string, limit, offset 
 	if e := authorization.RequirePlatform(ctx, s.Pool, actor, "platform_user.manage"); e != nil {
 		return nil, e
 	}
-	b, e := db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT id,student_number,first_name,last_name,display_name,email,status,created_at FROM users WHERE ($1='' OR id=NULLIF($1,'')::uuid) ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $3)t`, id, limit, offset))
+	b, e := db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT id,student_number,combination,first_name,last_name,display_name,email,status,created_at FROM users WHERE ($1='' OR id=NULLIF($1,'')::uuid) ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $3)t`, id, limit, offset))
 	if id != "" {
 		return db.One(b, e)
 	}

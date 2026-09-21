@@ -38,7 +38,6 @@ func (a *API) listLinksHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 200, v)
-	return send(w, 200, v)
 }
 
 // createLinkHandler godoc
@@ -62,7 +61,6 @@ func (a *API) createLinkHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return created(w, id)
-	return created(w, id)
 }
 
 // getLinkHandler godoc
@@ -81,7 +79,6 @@ func (a *API) getLinkHandler(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	return send(w, 200, v)
 	return send(w, 200, v)
 }
 
@@ -106,7 +103,6 @@ func (a *API) updateLinkHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // deleteLinkHandler godoc
@@ -124,7 +120,6 @@ func (a *API) deleteLinkHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // publishLinkHandler godoc
@@ -141,6 +136,5 @@ func (a *API) publishLinkHandler(w http.ResponseWriter, r *http.Request) error {
 	if e := s.Transition(r.Context(), userID(r), batchID(r), param(r, "linkID"), true); e != nil {
 		return e
 	}
-	return send(w, 204, nil)
 	return send(w, 204, nil)
 }

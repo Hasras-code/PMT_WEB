@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/Hasras-code/PMT_WEB.git/internal/student"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -11,6 +12,7 @@ import (
 type User struct {
 	ID            string
 	StudentNumber string
+	Combination   *student.Combination
 	FirstName     string
 	LastName      string
 	DisplayName   string

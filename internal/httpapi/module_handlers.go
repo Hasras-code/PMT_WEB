@@ -37,7 +37,6 @@ func (a *API) listModulesHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 200, v)
-	return send(w, 200, v)
 }
 
 // createModuleHandler godoc
@@ -61,7 +60,6 @@ func (a *API) createModuleHandler(w http.ResponseWriter, r *http.Request) error 
 		return e
 	}
 	return created(w, id)
-	return created(w, id)
 }
 
 // getModuleHandler godoc
@@ -80,7 +78,6 @@ func (a *API) getModuleHandler(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	return send(w, 200, v)
 	return send(w, 200, v)
 }
 
@@ -105,7 +102,6 @@ func (a *API) updateModuleHandler(w http.ResponseWriter, r *http.Request) error 
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // deleteModuleHandler godoc
@@ -122,6 +118,5 @@ func (a *API) deleteModuleHandler(w http.ResponseWriter, r *http.Request) error 
 	if e := s.Transition(r.Context(), userID(r), batchID(r), param(r, "moduleID"), false); e != nil {
 		return e
 	}
-	return send(w, 204, nil)
 	return send(w, 204, nil)
 }

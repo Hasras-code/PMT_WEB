@@ -32,7 +32,6 @@ func (a *API) publicBatchHandler(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	return send(w, http.StatusOK, value)
-	return send(w, http.StatusOK, value)
 }
 
 // publicBatchEventsHandler godoc
@@ -74,7 +73,6 @@ func (a *API) publicBatchEvents(w http.ResponseWriter, r *http.Request, batches 
 		return err
 	}
 	return send(w, http.StatusOK, value)
-	return send(w, http.StatusOK, value)
 }
 
 // publicBatchPositionsHandler godoc
@@ -97,7 +95,6 @@ func (a *API) publicBatchPositionsHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
-	return send(w, http.StatusOK, value)
 	return send(w, http.StatusOK, value)
 }
 

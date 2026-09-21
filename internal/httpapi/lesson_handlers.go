@@ -38,7 +38,6 @@ func (a *API) listLessonsHandler(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 200, v)
-	return send(w, 200, v)
 }
 
 // createLessonHandler godoc
@@ -62,7 +61,6 @@ func (a *API) createLessonHandler(w http.ResponseWriter, r *http.Request) error 
 		return e
 	}
 	return created(w, id)
-	return created(w, id)
 }
 
 // getLessonHandler godoc
@@ -81,7 +79,6 @@ func (a *API) getLessonHandler(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	return send(w, 200, v)
 	return send(w, 200, v)
 }
 
@@ -106,7 +103,6 @@ func (a *API) updateLessonHandler(w http.ResponseWriter, r *http.Request) error 
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // deleteLessonHandler godoc
@@ -124,7 +120,6 @@ func (a *API) deleteLessonHandler(w http.ResponseWriter, r *http.Request) error 
 		return e
 	}
 	return send(w, 204, nil)
-	return send(w, 204, nil)
 }
 
 // publishLessonHandler godoc
@@ -141,6 +136,5 @@ func (a *API) publishLessonHandler(w http.ResponseWriter, r *http.Request) error
 	if e := s.Transition(r.Context(), userID(r), batchID(r), param(r, "lessonID"), true); e != nil {
 		return e
 	}
-	return send(w, 204, nil)
 	return send(w, 204, nil)
 }

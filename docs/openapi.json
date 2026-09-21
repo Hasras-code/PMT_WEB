@@ -2983,6 +2983,13 @@
               "schema": {
                 "additionalProperties": false,
                 "properties": {
+                  "combination": {
+                    "enum": [
+                      "PMT-ICT",
+                      "PMT-CS"
+                    ],
+                    "type": "string"
+                  },
                   "display_name": {
                     "type": "string"
                   },
@@ -3004,6 +3011,7 @@
                 },
                 "required": [
                   "student_number",
+                  "combination",
                   "first_name",
                   "last_name",
                   "display_name",
@@ -17436,6 +17444,13 @@
                 "schema": {
                   "additionalProperties": false,
                   "properties": {
+                    "combination": {
+                      "enum": [
+                        "PMT-ICT",
+                        "PMT-CS"
+                      ],
+                      "type": "string"
+                    },
                     "display_name": {
                       "type": "string"
                     },

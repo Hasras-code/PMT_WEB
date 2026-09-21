@@ -11,6 +11,7 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/notification"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/storage"
+	appstore "github.com/Hasras-code/PMT_WEB.git/internal/store"
 	"github.com/Hasras-code/PMT_WEB.git/internal/upload"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -114,7 +115,7 @@ func setup(t *testing.T) *fixture {
 	t.Cleanup(func() { _ = store.Close() })
 	mail := &mailbox{tokens: map[string]string{}}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	as := &auth.Service{Pool: p, Signer: auth.Signer{Secret: []byte(secret), Issuer: "test", Audience: "test"}, Mail: mail, Log: log, Cost: 4}
+	as := &auth.Service{Pool: p, Store: appstore.NewStorage(p), Signer: auth.Signer{Secret: []byte(secret), Issuer: "test", Audience: "test"}, Mail: mail, Log: log, Cost: 4}
 	a := &app{
 		cfg:     config.Config{BaseURL: "http://api.test", Secret: secret, Origins: []string{"http://client.test"}},
 		pool:    p,
@@ -163,7 +164,7 @@ func (f *fixture) newUser(label string) (string, string, string) {
 	f.t.Helper()
 	ctx := context.Background()
 	email := strings.ToLower(label) + "@example.test"
-	in := auth.RegisterInput{StudentNumber: label, FirstName: "Test", LastName: "User", DisplayName: label, Email: email, Password: "correct horse battery"}
+	in := auth.RegisterInput{StudentNumber: label, Combination: "PMT-ICT", FirstName: "Test", LastName: "User", DisplayName: label, Email: email, Password: "correct horse battery"}
 	if e := f.as.Register(ctx, in); e != nil {
 		f.t.Fatal(e)
 	}
@@ -221,7 +222,9 @@ func (f *fixture) upload(path, token, name, mime string, b []byte) string {
 func TestAuthLifecycle(t *testing.T) {
 	f := setup(t)
 	ctx := context.Background()
-	body := map[string]any{"student_number": "ST001", "first_name": "A", "last_name": "B", "display_name": "AB", "email": "User@Example.test", "password": "correct horse battery"}
+	f.request("POST", "/v1/auth/register", "", map[string]any{"student_number": "ST-MISSING", "first_name": "A", "last_name": "B", "display_name": "AB", "email": "missing-combination@example.test", "password": "correct horse battery"}, 422)
+	f.request("POST", "/v1/auth/register", "", map[string]any{"student_number": "ST-INVALID", "combination": "PMT-MATH", "first_name": "A", "last_name": "B", "display_name": "AB", "email": "invalid-combination@example.test", "password": "correct horse battery"}, 422)
+	body := map[string]any{"student_number": "ST001", "combination": "pmt-ict", "first_name": "A", "last_name": "B", "display_name": "AB", "email": "User@Example.test", "password": "correct horse battery"}
 	b := f.request("POST", "/v1/auth/register", "", body, 202)
 	if bytes.Contains(b, []byte("token")) {
 		t.Fatal("verification token exposed")
@@ -237,7 +240,10 @@ func TestAuthLifecycle(t *testing.T) {
 	login := object(t, f.request("POST", "/v1/auth/login", "", map[string]any{"email": "user@example.test", "password": "correct horse battery"}, 200))
 	access := login["access_token"].(string)
 	refresh := login["refresh_token"].(string)
-	f.request("GET", "/v1/me", access, nil, 200)
+	me := object(t, f.request("GET", "/v1/me", access, nil, 200))
+	if me["combination"] != "PMT-ICT" {
+		t.Fatalf("combination = %v, want PMT-ICT", me["combination"])
+	}
 	f.request("POST", "/v1/auth/login", "", map[string]any{"email": "user@example.test", "password": "wrong password"}, 401)
 	rotated := object(t, f.request("POST", "/v1/auth/refresh", "", map[string]any{"refresh_token": refresh}, 200))
 	f.request("POST", "/v1/auth/refresh", "", map[string]any{"refresh_token": refresh}, 401)
@@ -258,12 +264,18 @@ func TestAuthLifecycle(t *testing.T) {
 	f.request("POST", "/v1/auth/logout", "", map[string]any{"refresh_token": tok.RefreshToken}, 204)
 	f.request("GET", "/v1/me", tok.AccessToken, nil, 401)
 	f.mail.fail = true
-	if e = f.as.Register(ctx, auth.RegisterInput{StudentNumber: "MAILFAIL", FirstName: "A", LastName: "B", DisplayName: "AB", Email: "failure@example.test", Password: "correct horse battery"}); e != nil {
+	if e = f.as.Register(ctx, auth.RegisterInput{StudentNumber: "MAILFAIL", Combination: "PMT-CS", FirstName: "A", LastName: "B", DisplayName: "AB", Email: "failure@example.test", Password: "correct horse battery"}); e != nil {
 		t.Fatal(e)
 	}
 	var status string
 	if e = f.p.QueryRow(ctx, `SELECT status FROM users WHERE email='failure@example.test'`).Scan(&status); e != nil || status != "PENDING_VERIFICATION" {
 		t.Fatalf("mail failure rollback %s %v", status, e)
+	}
+	if _, e = f.p.Exec(ctx, `INSERT INTO users(student_number,combination,first_name,last_name,display_name,email,password_hash) VALUES('BAD-COMBINATION','PMT-MATH','A','B','AB','bad-combination@example.test','hash')`); e == nil {
+		t.Fatal("database accepted an unsupported student combination")
+	}
+	if _, e = f.p.Exec(ctx, `INSERT INTO users(student_number,first_name,last_name,display_name,email,password_hash) VALUES('MISSING-COMBINATION','A','B','AB','missing-db-combination@example.test','hash')`); e == nil {
+		t.Fatal("database accepted a new user without a student combination")
 	}
 }
 func TestTenantRolesAndContent(t *testing.T) {
@@ -558,9 +570,12 @@ func TestConstraintsAndSessionRevocation(t *testing.T) {
 
 func TestMigrationRoundTrip(t *testing.T) {
 	f := setup(t)
-	files, e := filepath.Glob("../migrations/*.down.sql")
+	files, e := filepath.Glob("../../migrations/*.down.sql")
 	if e != nil {
 		t.Fatal(e)
+	}
+	if len(files) == 0 {
+		t.Fatal("no down migrations found")
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(files)))
 	for _, path := range files {
@@ -572,9 +587,12 @@ func TestMigrationRoundTrip(t *testing.T) {
 			t.Fatalf("down migration %s: %v", path, e)
 		}
 	}
-	files, e = filepath.Glob("../migrations/*.up.sql")
+	files, e = filepath.Glob("../../migrations/*.up.sql")
 	if e != nil {
 		t.Fatal(e)
+	}
+	if len(files) == 0 {
+		t.Fatal("no up migrations found")
 	}
 	sort.Strings(files)
 	for _, path := range files {
@@ -590,7 +608,7 @@ func TestMigrationRoundTrip(t *testing.T) {
 func TestExpiredVerificationAndInactiveAccounts(t *testing.T) {
 	f := setup(t)
 	ctx := context.Background()
-	if e := f.as.Register(ctx, auth.RegisterInput{StudentNumber: "EXPIRED", FirstName: "A", LastName: "B", DisplayName: "AB", Email: "expired@example.test", Password: "correct horse battery"}); e != nil {
+	if e := f.as.Register(ctx, auth.RegisterInput{StudentNumber: "EXPIRED", Combination: "PMT-CS", FirstName: "A", LastName: "B", DisplayName: "AB", Email: "expired@example.test", Password: "correct horse battery"}); e != nil {
 		t.Fatal(e)
 	}
 	raw := f.mail.token("expired@example.test", "EMAIL_VERIFY")

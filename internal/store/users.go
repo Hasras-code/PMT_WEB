@@ -16,9 +16,10 @@ type UserRepository struct {
 
 func (r *UserRepository) GetByID(ctx context.Context, id string) (User, error) {
 	var u User
-	err := r.Pool.QueryRow(ctx, `SELECT id, student_number, first_name, last_name, display_name, email, phone_number, status, created_at, updated_at FROM users WHERE id=$1`, id).Scan(
+	err := r.Pool.QueryRow(ctx, `SELECT id, student_number, combination, first_name, last_name, display_name, email, phone_number, status, created_at, updated_at FROM users WHERE id=$1`, id).Scan(
 		&u.ID,
 		&u.StudentNumber,
+		&u.Combination,
 		&u.FirstName,
 		&u.LastName,
 		&u.DisplayName,
@@ -36,9 +37,10 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (User, error) {
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (User, error) {
 	var u User
-	err := r.Pool.QueryRow(ctx, `SELECT id, student_number, first_name, last_name, display_name, email, phone_number, status, password_hash, email_verified_at, created_at, updated_at FROM users WHERE lower(email)=$1`, email).Scan(
+	err := r.Pool.QueryRow(ctx, `SELECT id, student_number, combination, first_name, last_name, display_name, email, phone_number, status, password_hash, email_verified_at, created_at, updated_at FROM users WHERE lower(email)=$1`, email).Scan(
 		&u.ID,
 		&u.StudentNumber,
+		&u.Combination,
 		&u.FirstName,
 		&u.LastName,
 		&u.DisplayName,
@@ -79,7 +81,7 @@ func (r *UserRepository) LoginData(ctx context.Context, email string) (id, hash,
 
 func (r *UserRepository) Create(ctx context.Context, u User, hash string) (string, error) {
 	var id string
-	err := r.Pool.QueryRow(ctx, `INSERT INTO users(student_number,first_name,last_name,display_name,email,password_hash) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING id`, u.StudentNumber, u.FirstName, u.LastName, u.DisplayName, u.Email, hash).Scan(&id)
+	err := r.Pool.QueryRow(ctx, `INSERT INTO users(student_number,combination,first_name,last_name,display_name,email,password_hash) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING id`, u.StudentNumber, u.Combination, u.FirstName, u.LastName, u.DisplayName, u.Email, hash).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", apperror.ErrConflict
 	}
