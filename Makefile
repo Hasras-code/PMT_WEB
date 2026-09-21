@@ -3,11 +3,14 @@ include .env
 export
 endif
 
-.PHONY: run dev build test test-race audit fmt db-up migrate-up migrate-down migration seed docs jobs
+.PHONY: run dev build test test-race audit fmt db-up migrate-up migrate-down migration seed docs jobs frontend dev-all
 run:
 	go run ./cmd/api
 dev:
 	go run github.com/air-verse/air@v1.67.4 -c .air.toml
+frontend:
+	cd frontend && npm run dev
+dev-all: frontend dev
 build:
 	go build ./...
 test:

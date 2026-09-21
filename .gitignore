@@ -5,3 +5,6 @@ bin/
 tmp/
 coverage.out
 .DS_Store
+.vite/
+*.log
+*.exe
