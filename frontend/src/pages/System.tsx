@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CheckCircleIcon, XCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
-import { api, toList, basicAuthHeader } from '../api/client';
+import { api, basicAuthHeader } from '../api/client';
 import { useAppStore } from '../store/app';
 import { Card, CardTitle, Field, inputCls } from '../components/ui';
 
@@ -13,13 +13,13 @@ export default function System() {
   const [basicPass, setBasicPass] = useState(sessionStorage.getItem('basic_pass') || '');
   const [counts, setCounts] = useState({ members: '—', resources: '—', announcements: '—', events: '—' });
 
-  const check = async () => {
+  const check = useCallback(async () => {
     setLive(null);
     setReady(null);
     setProtectedHealth(false);
     const headers = basicAuthHeader();
     try {
-      await api.get('/health/live', { headers } as object);
+      await api.get('/health/live', undefined, { headers });
       setLive(true);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
@@ -27,26 +27,23 @@ export default function System() {
       setLive(false);
     }
     try {
-      await api.get('/health/ready', { headers } as object);
+      await api.get('/health/ready', undefined, { headers });
       setReady(true);
     } catch {
       setReady(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     check();
     if (!currentBatchID) return;
-    const jobs: [string, (v: string) => void][] = [
-      [`/v1/batches/${currentBatchID}/members`, (v) => setCounts((c) => ({ ...c, members: v }))],
-      [`/v1/batches/${currentBatchID}/resources`, (v) => setCounts((c) => ({ ...c, resources: v }))],
-      [`/v1/batches/${currentBatchID}/announcements`, (v) => setCounts((c) => ({ ...c, announcements: v }))],
-      [`/v1/batches/${currentBatchID}/events`, (v) => setCounts((c) => ({ ...c, events: v }))],
-    ];
-    jobs.forEach(([url, set]) =>
-      api.get(url, { limit: 1 }).then((res) => set(String(toList(res.data).length))).catch(() => {}),
-    );
-  }, [currentBatchID]);
+    api.get(`/v1/batches/${currentBatchID}/summary`).then((response) => setCounts({
+      members: String(response.data.members),
+      resources: String(response.data.resources),
+      announcements: String(response.data.announcements),
+      events: String(response.data.events),
+    })).catch(() => {});
+  }, [check, currentBatchID]);
 
   const services = [
     { name: 'API service', ok: live, detail: 'HTTP liveness probe' },

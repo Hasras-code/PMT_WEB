@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { api, toList, errMsg } from '../api/client';
+import { api, toList, errMsg, uploadFile } from '../api/client';
 import toast from 'react-hot-toast';
 import type { AdminUser, GalleryImage } from '../types';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate } from '../components/ui';
+import { useCan } from '../hooks/useRole';
 
 export default function Administration() {
+  const canUsers = useCan('platform_user.manage');
+  const canGallery = useCan('gallery.manage');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [tab, setTab] = useState<'users' | 'gallery'>('users');
@@ -17,16 +20,17 @@ export default function Administration() {
   const loadUsers = () => api.get('/v1/admin/users', { limit: 100 }).then((res) => setUsers(toList<AdminUser>(res.data))).catch(() => {});
   const loadGallery = () => api.get('/v1/admin/gallery', { limit: 100 }).then((res) => setGallery(toList<GalleryImage>(res.data))).catch(() => {});
   useEffect(() => {
-    loadUsers();
-    loadGallery();
-  }, []);
+    if (canUsers) loadUsers();
+    if (canGallery) loadGallery();
+    if (!canUsers && canGallery) setTab('gallery');
+  }, [canGallery, canUsers]);
 
   const userStatus = (id: string, action: 'suspend' | 'reactivate' | 'archive') =>
     api.post(`/v1/admin/users/${id}/${action}`).then(() => { toast.success(`User ${action}d`); loadUsers(); }).catch((e) => toast.error(errMsg(e, 'Action failed')));
 
   const authorizeImage = async (f: File) => {
     const init = await api.post('/v1/admin/gallery/uploads', { file_name: f.name, mime_type: f.type, size_bytes: f.size });
-    await fetch(init.data.upload_url, { method: 'PUT', body: f, headers: { 'Content-Type': f.type } });
+    await uploadFile(init.data.upload_url, f);
     return init.data.upload_id as string;
   };
 
@@ -49,10 +53,28 @@ export default function Administration() {
     }
   };
 
+  const editGallery = async (image: GalleryImage) => {
+    const title = window.prompt('Image title', image.title || '');
+    if (title === null) return;
+    const caption = window.prompt('Caption', image.caption || '');
+    if (caption === null) return;
+    const altText = window.prompt('Alternative text', image.alt_text);
+    if (altText === null || !altText.trim()) return;
+    try {
+      await api.patch(`/v1/admin/gallery/${image.id}`, { title, caption, alt_text: altText });
+      toast.success('Gallery image updated');
+      loadGallery();
+    } catch (err) {
+      toast.error(errMsg(err, 'Update failed'));
+    }
+  };
+
+  if (canUsers === false && canGallery === false) return <Card className="p-8"><Empty message="You do not have platform administration permission." /></Card>;
+
   return (
     <div className="space-y-6">
       <Card className="px-4 pt-2 flex gap-1">
-        {(['users', 'gallery'] as const).map((t) => (
+        {(['users', 'gallery'] as const).filter((item) => item === 'users' ? canUsers : canGallery).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -137,6 +159,7 @@ export default function Administration() {
                       {g.status && <Badge tone={statusTone(g.status)}>{g.status}</Badge>}
                     </div>
                     <div className="mt-2 flex gap-3 text-xs font-medium">
+                      <button onClick={() => editGallery(g)} className="text-primary hover:underline">Edit</button>
                       <button onClick={() => api.post(`/v1/admin/gallery/${g.id}/publish`).then(() => { toast.success('Published'); loadGallery(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-emerald-600 hover:underline">Publish</button>
                       <button onClick={() => api.delete(`/v1/admin/gallery/${g.id}`).then(() => { toast.success('Archived'); loadGallery(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-red-600 hover:underline">Archive</button>
                     </div>

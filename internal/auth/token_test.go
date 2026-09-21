@@ -58,7 +58,7 @@ func TestPasswordLimits(t *testing.T) {
 	for _, x := range []struct {
 		p     string
 		valid bool
-	}{{"1234567", false}, {"12345678", true}, {string(make([]byte, 73)), false}, {"界界界界界界界界界界界界", true}} {
+	}{{"12345678901", false}, {"123456789012", true}, {string(make([]byte, 73)), false}, {"界界界界界界界界界界界界", true}} {
 		if PasswordValid(x.p) != x.valid {
 			t.Errorf("password length %d", len(x.p))
 		}

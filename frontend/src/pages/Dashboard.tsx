@@ -7,6 +7,7 @@ import { useAppStore } from '../store/app';
 import type { AuditLog, Batch } from '../types';
 import { Card, CardTitle, PrimaryButton, OutlineButton, timeAgo } from '../components/ui';
 import CreateCourse from '../components/CreateCourse';
+import { useCan } from '../hooks/useRole';
 
 const DOTS = ['bg-primary', 'bg-orange-500', 'bg-emerald-500', 'bg-purple-500'];
 
@@ -18,17 +19,21 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ users: '—', courses: '—', assessments: '—', uptime: '—' });
   const [activity, setActivity] = useState<AuditLog[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const canCreateBatch = useCan('batch.create');
+  const canManageMembers = useCan('membership.manage', currentBatchID);
+  const canViewBatchAudit = useCan('audit.view', currentBatchID);
+  const canViewPlatformAudit = useCan('platform_audit.view');
 
   useEffect(() => {
     api.get('/v1/batches').then((res) => setBatches(res.data as Batch[])).catch(() => {});
-  }, []);
+  }, [setBatches]);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       const next = { users: '—', courses: String(batches.length) || '—', assessments: '—', uptime: '—' };
       try {
-        await api.get('/health/ready', { headers: basicAuthHeader() } as object);
+        await api.get('/health/ready', undefined, { headers: basicAuthHeader() });
         next.uptime = 'Operational';
       } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response?.status;
@@ -36,14 +41,9 @@ export default function Dashboard() {
       }
       if (currentBatchID) {
         try {
-          const m = await api.get(`/v1/batches/${currentBatchID}/members`, { limit: 100 });
-          next.users = String(toList(m.data).length);
-        } catch {
-          /* no membership.view permission */
-        }
-        try {
-          const r = await api.get(`/v1/batches/${currentBatchID}/resources`, { limit: 100 });
-          next.assessments = String(toList(r.data).length);
+          const summary = await api.get(`/v1/batches/${currentBatchID}/summary`);
+          next.users = String(summary.data.members ?? '—');
+          next.assessments = String(summary.data.resources ?? '—');
         } catch {
           /* ignore */
         }
@@ -109,9 +109,9 @@ export default function Dashboard() {
         <Card className="p-7">
           <CardTitle>Quick Actions</CardTitle>
           <div className="mt-5 space-y-4">
-            <PrimaryButton onClick={() => navigate('/admin/users')}>Add New User</PrimaryButton>
-            <OutlineButton onClick={() => setShowCreate(true)}>Create Course</OutlineButton>
-            <OutlineButton onClick={() => navigate('/admin/monitoring')}>View System Logs</OutlineButton>
+            {canManageMembers && <PrimaryButton onClick={() => navigate('/admin/users')}>Add New User</PrimaryButton>}
+            {canCreateBatch && <OutlineButton onClick={() => setShowCreate(true)}>Create Course</OutlineButton>}
+            {(canViewBatchAudit || canViewPlatformAudit) && <OutlineButton onClick={() => navigate('/admin/monitoring')}>View System Logs</OutlineButton>}
           </div>
         </Card>
       </div>

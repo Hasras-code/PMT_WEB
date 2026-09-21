@@ -59,6 +59,30 @@ func (s Service) Get(ctx context.Context, user, id string) (json.RawMessage, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(t) FROM(SELECT id,name,slug,entry_year,graduation_year,description,status FROM batches WHERE id=$1)t`, id))
 }
+
+func (s Service) Summary(ctx context.Context, user, id string) (json.RawMessage, error) {
+	if e := authorization.Require(ctx, s.Pool, user, id, "batch.view"); e != nil {
+		return nil, e
+	}
+	resourceManage, e := authorization.Can(ctx, s.Pool, user, id, "resource.update")
+	if e != nil {
+		return nil, e
+	}
+	announcementManage, e := authorization.Can(ctx, s.Pool, user, id, "announcement.update")
+	if e != nil {
+		return nil, e
+	}
+	eventManage, e := authorization.Can(ctx, s.Pool, user, id, "event.manage")
+	if e != nil {
+		return nil, e
+	}
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT json_build_object(
+		'members',(SELECT count(*) FROM batch_memberships WHERE batch_id=$1 AND status='ACTIVE'),
+		'resources',(SELECT count(*) FROM resources WHERE batch_id=$1 AND status<>'ARCHIVED' AND (status='PUBLISHED' OR $2)),
+		'announcements',(SELECT count(*) FROM announcements WHERE batch_id=$1 AND status<>'ARCHIVED' AND (status='PUBLISHED' OR $3) AND (expires_at IS NULL OR expires_at>now() OR $3)),
+		'events',(SELECT count(*) FROM events WHERE batch_id=$1 AND status<>'ARCHIVED' AND (status='PUBLISHED' OR $4))
+	)`, id, resourceManage, announcementManage, eventManage))
+}
 func (s Service) Update(ctx context.Context, user, id string, name, description *string) error {
 	if name != nil && (*name == "" || len(*name) > 200) {
 		return apperror.ErrInvalid

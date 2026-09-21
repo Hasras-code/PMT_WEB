@@ -291,6 +291,20 @@ func TestTenantRolesAndContent(t *testing.T) {
 	otherMid := f.member(rep, bid2, other, "BATCH_REP")
 	f.member(rep, bid2, student, "")
 	base := "/v1/batches/" + bid
+	access := object(t, f.request("GET", "/v1/me/access", studentToken, nil, 200))
+	if memberships, ok := access["memberships"].([]any); !ok || len(memberships) != 2 {
+		t.Fatalf("access memberships = %#v", access["memberships"])
+	}
+	candidates := f.request("GET", base+"/members/candidates?query=OTHER", repToken, nil, 200)
+	if !bytes.Contains(candidates, []byte(other)) {
+		t.Fatalf("candidate search did not return eligible account: %s", candidates)
+	}
+	f.request("GET", base+"/members/candidates?query=O", repToken, nil, 422)
+	f.request("GET", base+"/members/candidates?query=OTHER", studentToken, nil, 403)
+	summary := object(t, f.request("GET", base+"/summary", studentToken, nil, 200))
+	if summary["members"].(float64) != 2 {
+		t.Fatalf("summary members = %#v", summary["members"])
+	}
 	f.request("POST", base+"/members/"+mid+"/roles", studentToken, map[string]any{"role": "BATCH_REP"}, 403)
 	f.request("POST", base+"/members/"+mid+"/roles", repToken, map[string]any{"role": "BATCH_REP"}, 200)
 	f.request("POST", base+"/members/"+mid+"/roles", repToken, map[string]any{"role": "BATCH_REP"}, 200)

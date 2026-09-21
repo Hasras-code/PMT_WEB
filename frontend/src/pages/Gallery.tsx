@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api, errMsg } from '../api/client';
 import toast from 'react-hot-toast';
 import type { GalleryImage } from '../types';
@@ -20,25 +20,25 @@ export default function Gallery() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(true);
 
-  const load = async (reset: boolean, cur?: string) => {
+  const load = useCallback(async (reset: boolean, cur?: string) => {
     setLoading(true);
     try {
       const params: Record<string, unknown> = { month, limit: 12 };
       if (cur) params.cursor = cur;
       const res = await api.get('/v1/public/gallery', params);
       const data: GalleryImage[] = Array.isArray(res.data?.data) ? res.data.data : [];
-      setImages(reset ? data : [...images, ...data]);
+      setImages((current) => reset ? data : [...current, ...data]);
       setCursor(res.data?.next_cursor || '');
     } catch (err) {
       toast.error(errMsg(err, 'Could not load gallery'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [month]);
 
   useEffect(() => {
     load(true);
-  }, [month]);
+  }, [load]);
 
   return (
     <div className="space-y-6">

@@ -7,6 +7,7 @@ import { Field, inputCls, PrimaryButton } from '../components/ui';
 export default function Verify() {
   const navigate = useNavigate();
   const [token, setToken] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,6 +19,19 @@ export default function Verify() {
       navigate('/login');
     } catch (err) {
       toast.error(errMsg(err, 'Verification failed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resend = async () => {
+    if (!email) return;
+    setLoading(true);
+    try {
+      await api.post('/v1/auth/resend-verification', { email });
+      toast.success('If eligible, a new verification email was sent.');
+    } catch (err) {
+      toast.error(errMsg(err, 'Could not request another email'));
     } finally {
       setLoading(false);
     }
@@ -37,6 +51,14 @@ export default function Verify() {
             {loading ? 'Verifying…' : 'Verify email'}
           </PrimaryButton>
         </form>
+        <div className="mt-6 pt-6 border-t border-line space-y-3">
+          <Field label="Need another email?">
+            <input type="email" placeholder="Your registration email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          <button type="button" disabled={loading || !email} onClick={resend} className="text-sm text-primary font-medium hover:underline disabled:opacity-50">
+            Resend verification email
+          </button>
+        </div>
         <p className="mt-5 text-sm text-muted">
           <Link to="/login" className="text-primary font-medium hover:underline">
             Back to sign in

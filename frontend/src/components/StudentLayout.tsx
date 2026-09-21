@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
-import { api, toList } from '../api/client';
+import { api, clearSession, toList } from '../api/client';
 import type { Batch, NotificationItem } from '../types';
 
 const NAV = [
@@ -41,7 +41,7 @@ export default function StudentLayout() {
     api.get('/v1/me/notifications', { limit: 100 })
       .then((res) => setUnread(toList<NotificationItem>(res.data).filter((n) => !n.read_at).length))
       .catch(() => {});
-  }, []);
+  }, [setBatches]);
 
   const activeTitle =
     NAV.find((n) => location.pathname === n.to || location.pathname.startsWith(n.to + '/'))?.title ||
@@ -50,13 +50,13 @@ export default function StudentLayout() {
 
   const handleLogout = async () => {
     try {
-      await api.post('/v1/auth/logout');
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) await api.post('/v1/auth/logout', { refresh_token: refreshToken });
     } catch {
       /* ignore */
     }
     setUser(null);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    clearSession();
     navigate('/login');
   };
 

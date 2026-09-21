@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { api, toList, errMsg } from '../api/client';
+import { useCallback, useEffect, useState } from 'react';
+import { api, toList, errMsg, uploadFile } from '../api/client';
 import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
-import type { Announcement, Complaint, FeedbackItem } from '../types';
-import { useElevated } from '../hooks/useRole';
+import type { Announcement, Complaint, FeedbackItem, Member } from '../types';
+import { useCan } from '../hooks/useRole';
 import { Card, Badge, statusTone, Empty, Field, inputCls, timeAgo } from '../components/ui';
 
 const TABS = ['Announcements', 'Complaints', 'Feedback'] as const;
@@ -46,13 +46,14 @@ export default function Communication() {
 function AnnouncementsTab({ batchID }: { batchID: string }) {
   const [items, setItems] = useState<Announcement[]>([]);
   const [form, setForm] = useState({ title: '', body: '', priority: 'NORMAL' });
-  const elevated = useElevated();
+  const elevated = useCan('announcement.create', batchID);
   const [show, setShow] = useState(false);
+  const [attachments, setAttachments] = useState<Record<string, { id: string; file_name: string; size_bytes: number }[]>>({});
 
-  const load = () => api.get(`/v1/batches/${batchID}/announcements`, { limit: 100 }).then((res) => setItems(toList<Announcement>(res.data))).catch(() => {});
+  const load = useCallback(() => api.get(`/v1/batches/${batchID}/announcements`, { limit: 100 }).then((res) => setItems(toList<Announcement>(res.data))).catch(() => {}), [batchID]);
   useEffect(() => {
     load();
-  }, [batchID]);
+  }, [load]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +65,64 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    }
+  };
+
+  const toggleAttachments = async (announcementID: string) => {
+    if (attachments[announcementID]) {
+      setAttachments((current) => {
+        const next = { ...current };
+        delete next[announcementID];
+        return next;
+      });
+      return;
+    }
+    try {
+      const response = await api.get(`/v1/batches/${batchID}/announcements/${announcementID}/attachments`);
+      setAttachments((current) => ({ ...current, [announcementID]: toList(response.data) }));
+    } catch (err) {
+      toast.error(errMsg(err, 'Could not load attachments'));
+    }
+  };
+
+  const addAttachment = async (announcementID: string, file?: File) => {
+    if (!file) return;
+    try {
+      const init = await api.post(`/v1/batches/${batchID}/announcements/${announcementID}/attachments/uploads`, {
+        file_name: file.name,
+        mime_type: file.type || 'application/octet-stream',
+        size_bytes: file.size,
+      });
+      await uploadFile(init.data.upload_url, file);
+      await api.post(`/v1/batches/${batchID}/announcements/${announcementID}/attachments`, { upload_id: init.data.upload_id });
+      const response = await api.get(`/v1/batches/${batchID}/announcements/${announcementID}/attachments`);
+      setAttachments((current) => ({ ...current, [announcementID]: toList(response.data) }));
+      toast.success('Attachment added');
+    } catch (err) {
+      toast.error(errMsg(err, 'Attachment upload failed'));
+    }
+  };
+
+  const downloadAttachment = async (announcementID: string, attachmentID: string) => {
+    try {
+      const response = await api.get(`/v1/batches/${batchID}/announcements/${announcementID}/attachments/${attachmentID}/download`);
+      window.open(response.data.url, '_blank');
+    } catch (err) {
+      toast.error(errMsg(err, 'Download failed'));
+    }
+  };
+
+  const editAnnouncement = async (item: Announcement) => {
+    const title = window.prompt('Announcement title', item.title);
+    if (title === null || !title.trim()) return;
+    const body = window.prompt('Announcement body', item.body);
+    if (body === null || !body.trim()) return;
+    try {
+      await api.patch(`/v1/batches/${batchID}/announcements/${item.id}`, { title, body });
+      toast.success('Announcement updated');
+      load();
+    } catch (err) {
+      toast.error(errMsg(err, 'Update failed'));
     }
   };
 
@@ -109,9 +168,32 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
               {elevated && a.status !== 'PUBLISHED' && (
                 <button onClick={() => api.post(`/v1/batches/${batchID}/announcements/${a.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-emerald-600 font-medium hover:underline">Publish</button>
               )}
+              {elevated && <button onClick={() => editAnnouncement(a)} className="text-xs text-primary hover:underline">Edit</button>}
               {elevated && (<button onClick={() => api.delete(`/v1/batches/${batchID}/announcements/${a.id}`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
+              <button onClick={() => toggleAttachments(a.id)} className="text-xs text-primary hover:underline">Attachments</button>
+              {elevated && (
+                <label className="text-xs text-primary cursor-pointer hover:underline">
+                  Add file
+                  <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => addAttachment(a.id, event.target.files?.[0])} />
+                </label>
+              )}
             </div>
           </div>
+          {attachments[a.id] && (
+            <div className="mt-4 rounded-xl bg-surface p-4 space-y-2">
+              {attachments[a.id].length === 0 && <p className="text-sm text-muted">No attachments.</p>}
+              {attachments[a.id].map((attachment) => (
+                <div key={attachment.id} className="flex items-center justify-between gap-3 text-sm">
+                  <button onClick={() => downloadAttachment(a.id, attachment.id)} className="text-primary hover:underline">{attachment.file_name}</button>
+                  {elevated && <button onClick={() => api.delete(`/v1/batches/${batchID}/announcements/${a.id}/attachments/${attachment.id}`).then(async () => {
+                    const response = await api.get(`/v1/batches/${batchID}/announcements/${a.id}/attachments`);
+                    setAttachments((current) => ({ ...current, [a.id]: toList(response.data) }));
+                    toast.success('Attachment removed');
+                  }).catch((err) => toast.error(errMsg(err, 'Remove failed')))} className="text-red-600 text-xs">Remove</button>}
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       ))}
     </div>
@@ -124,17 +206,25 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
   const [show, setShow] = useState(false);
   const [thread, setThread] = useState<{ id: string; messages: { message: string; created_at: string }[] } | null>(null);
   const [reply, setReply] = useState('');
+  const canManage = useCan('complaint.view_all', batchID);
+  const canResolve = useCan('complaint.resolve', batchID);
+  const [managers, setManagers] = useState<Member[]>([]);
 
-  const load = () => api.get(`/v1/batches/${batchID}/complaints/mine`, { limit: 100 }).then((res) => setItems(toList<Complaint>(res.data))).catch(() => {});
+  const load = useCallback(() => api.get(`/v1/batches/${batchID}/complaints${canManage ? '' : '/mine'}`, { limit: 100 }).then((res) => setItems(toList<Complaint>(res.data))).catch(() => {}), [batchID, canManage]);
   useEffect(() => {
     load();
-  }, [batchID]);
+    if (canManage) {
+      api.get(`/v1/batches/${batchID}/members`, { limit: 100 }).then((response) => {
+        setManagers(toList<Member>(response.data).filter((member) => member.roles.includes('COMPLAINT_MANAGER')));
+      }).catch(() => {});
+    }
+  }, [batchID, canManage, load]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await api.post(`/v1/batches/${batchID}/complaints`, form);
-      toast.success('Complaint submitted');
+      toast.success(form.is_anonymous ? 'Anonymous complaint submitted. It will not appear in your personal history.' : 'Complaint submitted');
       setShow(false);
       setForm({ category: '', subject: '', message: '', is_anonymous: false });
       load();
@@ -160,6 +250,27 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
       openThread(thread.id);
     } catch (err) {
       toast.error(errMsg(err, 'Reply failed'));
+    }
+  };
+
+  const setComplaintStatus = async (id: string, status: string) => {
+    try {
+      await api.patch(`/v1/batches/${batchID}/complaints/${id}/status`, { status });
+      toast.success(`Complaint marked ${status.replaceAll('_', ' ').toLowerCase()}`);
+      load();
+    } catch (err) {
+      toast.error(errMsg(err, 'Status change failed'));
+    }
+  };
+
+  const assignComplaint = async (id: string, userID: string) => {
+    if (!userID) return;
+    try {
+      await api.patch(`/v1/batches/${batchID}/complaints/${id}/assignee`, { user_id: userID });
+      toast.success('Complaint assigned');
+      load();
+    } catch (err) {
+      toast.error(errMsg(err, 'Assignment failed'));
     }
   };
 
@@ -200,6 +311,18 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
               <button onClick={() => openThread(c.id)} className="text-xs text-primary font-medium hover:underline">Conversation</button>
             </div>
           </div>
+          {canManage && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <select value={c.assigned_to || ''} onChange={(event) => assignComplaint(c.id, event.target.value)} className="px-2 py-1.5 rounded-lg border border-line bg-white">
+                <option value="">Assign manager…</option>
+                {managers.map((manager) => <option key={manager.user_id} value={manager.user_id}>{manager.display_name}</option>)}
+              </select>
+              {c.status === 'OPEN' && <button onClick={() => setComplaintStatus(c.id, 'IN_REVIEW')} className="text-primary font-medium">Start review</button>}
+              {c.status === 'IN_REVIEW' && canResolve && <button onClick={() => setComplaintStatus(c.id, 'RESOLVED')} className="text-emerald-700 font-medium">Resolve</button>}
+              {c.status === 'RESOLVED' && <button onClick={() => setComplaintStatus(c.id, 'IN_REVIEW')} className="text-primary font-medium">Reopen</button>}
+              {c.status === 'RESOLVED' && canResolve && <button onClick={() => setComplaintStatus(c.id, 'CLOSED')} className="text-muted font-medium">Close</button>}
+            </div>
+          )}
           {thread?.id === c.id && (
             <div className="mt-4 rounded-xl bg-surface p-4 space-y-2">
               {thread.messages.map((m, i) => (
@@ -221,13 +344,16 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
 function FeedbackTab({ batchID }: { batchID: string }) {
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [form, setForm] = useState({ category: '', message: '', rating: '', is_anonymous: false });
-  const elevated = useElevated();
+  const elevated = useCan('feedback.view', batchID);
   const [show, setShow] = useState(false);
 
-  const load = () => api.get(`/v1/batches/${batchID}/feedback`, { limit: 100 }).then((res) => setItems(toList<FeedbackItem>(res.data))).catch(() => {});
+  const load = useCallback(() => {
+    if (!elevated) return;
+    api.get(`/v1/batches/${batchID}/feedback`, { limit: 100 }).then((res) => setItems(toList<FeedbackItem>(res.data))).catch(() => {});
+  }, [batchID, elevated]);
   useEffect(() => {
     load();
-  }, [batchID]);
+  }, [load]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,7 +400,8 @@ function FeedbackTab({ batchID }: { batchID: string }) {
           </form>
         </Card>
       )}
-      {items.length === 0 && <Card className="p-8"><Empty message="No feedback yet." /></Card>}
+      {!elevated && <Card className="p-6"><p className="text-sm text-muted">Feedback submissions are private. Representatives can review them without exposing anonymous authors.</p></Card>}
+      {elevated && items.length === 0 && <Card className="p-8"><Empty message="No feedback yet." /></Card>}
       {items.map((f) => (
         <Card key={f.id} className="p-6">
           <div className="flex items-start justify-between gap-4">

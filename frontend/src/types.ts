@@ -15,6 +15,23 @@ export interface AuthTokens {
   refresh_token: string;
 }
 
+export interface AccessMembership {
+  membership_id: string;
+  batch_id: string;
+  batch_name: string;
+  batch_slug: string;
+  entry_year: number;
+  status: string;
+  roles: string[];
+  permissions: string[];
+}
+
+export interface AccessContext {
+  platform_roles: string[];
+  platform_permissions: string[];
+  memberships: AccessMembership[];
+}
+
 export interface Batch {
   id: string;
   name: string;
@@ -212,11 +229,14 @@ export interface GalleryImage {
 
 export interface Complaint {
   id: string;
+  submitted_by: string | null;
   category: string;
   subject: string;
   message: string;
   is_anonymous: boolean;
   status: string;
+  assigned_to: string | null;
+  resolved_at: string | null;
   created_at: string;
 }
 
@@ -244,8 +264,12 @@ export interface PublicBatch {
   slug: string;
   description: string;
   hero_image_url: string | null;
-  year: number;
-  public: boolean;
+  entry_year: number;
+  graduation_year: number | null;
+  headline: string | null;
+  about_text: string | null;
+  mission_text: string | null;
+  contact_email: string | null;
 }
 
 export interface Session {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { AxiosRequestConfig } from 'axios';
 import type { AuthTokens } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -19,7 +20,7 @@ function tokenExpiresIn(token: string): number | null {
 
 client.interceptors.request.use(async (config) => {
   const url = config.url || '';
-  const isAuthCall = url.includes('/v1/auth/login') || url.includes('/v1/auth/refresh');
+  const isAuthCall = url.includes('/v1/auth/login') || url.includes('/v1/auth/refresh') || url.includes('/health/');
   let token = localStorage.getItem('access_token');
   if (token && !isAuthCall) {
     const ttl = tokenExpiresIn(token);
@@ -39,13 +40,13 @@ client.interceptors.request.use(async (config) => {
       }
     }
   }
-  if (token && config.headers) {
+  if (token && config.headers && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-function clearSession() {
+export function clearSession() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('user');
@@ -74,7 +75,7 @@ client.interceptors.response.use(
   async (error) => {
     const original = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
     const url: string = original?.url || '';
-    const isAuthCall = url.includes('/v1/auth/login') || url.includes('/v1/auth/refresh');
+    const isAuthCall = url.includes('/v1/auth/login') || url.includes('/v1/auth/refresh') || url.includes('/health/');
     // Never auto-refresh the login/refresh calls themselves, and never retry twice:
     // their 401s are real errors the UI must show (otherwise this recurses forever).
     if (error.response?.status !== 401 || !original || original._retry || isAuthCall) {
@@ -104,12 +105,21 @@ client.interceptors.response.use(
 );
 
 export const api = {
-  get: (url: string, params?: object) => client.get(url, { params }),
+  get: (url: string, params?: object, options?: AxiosRequestConfig) => client.get(url, { ...options, params }),
   post: (url: string, data?: object, options?: object) => client.post(url, data, options),
   patch: (url: string, data?: object) => client.patch(url, data),
   put: (url: string, data?: object, options?: object) => client.put(url, data, options),
   delete: (url: string) => client.delete(url),
 };
+
+export async function uploadFile(uploadURL: string, file: File): Promise<void> {
+  const response = await fetch(uploadURL, {
+    method: 'PUT',
+    body: file,
+    headers: file.type ? { 'Content-Type': file.type } : undefined,
+  });
+  if (!response.ok) throw new Error(`File upload failed (${response.status})`);
+}
 
 /** Normalize list responses: plain arrays, {items}, or {data} (gallery). */
 export function toList<T>(payload: unknown): T[] {

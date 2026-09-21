@@ -50,6 +50,39 @@ func (s Service) Sessions(ctx context.Context, user string, limit, offset int) (
 func (s Service) Bookmarks(ctx context.Context, user string, limit, offset int) (json.RawMessage, error) {
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT r.id,r.batch_id,r.title,r.type,b.created_at FROM bookmarks b JOIN resources r ON r.id=b.resource_id AND r.batch_id=b.batch_id JOIN batch_memberships m ON m.batch_id=r.batch_id AND m.user_id=b.user_id JOIN batches cohort ON cohort.id=r.batch_id WHERE b.user_id=$1 AND m.status='ACTIVE' AND cohort.status<>'ARCHIVED' AND r.status='PUBLISHED' ORDER BY b.created_at DESC,r.id DESC LIMIT $2 OFFSET $3)t`, user, limit, offset))
 }
+
+// Access returns the current platform and batch authorization context used by
+// clients to render only actions the user can actually perform. Authorization
+// remains enforced independently by every domain operation.
+func (s Service) Access(ctx context.Context, user string) (json.RawMessage, error) {
+	return db.JSON(s.Pool.QueryRow(ctx, `
+		SELECT json_build_object(
+			'platform_roles', COALESCE((
+				SELECT json_agg(DISTINCT r.code ORDER BY r.code)
+				FROM user_platform_roles upr
+				JOIN roles r ON r.id=upr.role_id
+				WHERE upr.user_id=$1
+			), '[]'::json),
+			'platform_permissions', COALESCE((
+				SELECT json_agg(DISTINCT p.code ORDER BY p.code)
+				FROM user_platform_roles upr
+				JOIN role_permissions rp ON rp.role_id=upr.role_id
+				JOIN permissions p ON p.id=rp.permission_id AND p.scope='PLATFORM'
+				WHERE upr.user_id=$1
+			), '[]'::json),
+			'memberships', COALESCE((
+				SELECT json_agg(row_to_json(membership) ORDER BY membership.entry_year DESC, membership.batch_id)
+				FROM (
+					SELECT m.id AS membership_id,m.batch_id,b.name AS batch_name,b.slug AS batch_slug,b.entry_year,m.status,
+						COALESCE((SELECT json_agg(DISTINCT r.code ORDER BY r.code) FROM membership_roles mr JOIN roles r ON r.id=mr.role_id WHERE mr.membership_id=m.id),'[]'::json) AS roles,
+						COALESCE((SELECT json_agg(DISTINCT p.code ORDER BY p.code) FROM membership_roles mr JOIN role_permissions rp ON rp.role_id=mr.role_id JOIN permissions p ON p.id=rp.permission_id AND p.scope='BATCH' WHERE mr.membership_id=m.id),'[]'::json) AS permissions
+					FROM batch_memberships m
+					JOIN batches b ON b.id=m.batch_id
+					WHERE m.user_id=$1 AND m.status='ACTIVE' AND b.status<>'ARCHIVED'
+				) membership
+			), '[]'::json)
+		)`, user))
+}
 func (s Service) AdminList(ctx context.Context, actor, id string, limit, offset int) (json.RawMessage, error) {
 	if e := authorization.RequirePlatform(ctx, s.Pool, actor, "platform_user.manage"); e != nil {
 		return nil, e

@@ -14,8 +14,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
-import { api, toList } from '../api/client';
+import { api, clearSession, toList } from '../api/client';
 import type { Batch, NotificationItem } from '../types';
+import { useAccess } from '../hooks/useRole';
 
 const NAV = [
   { to: '/admin/dashboard', label: 'Dashboard', Icon: ChartBarIcon, title: 'Dashboard' },
@@ -42,6 +43,18 @@ export default function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const access = useAccess();
+
+  const has = (permission: string) => Boolean(access?.platform_permissions.includes(permission) || access?.memberships.some((membership) => membership.permissions.includes(permission)));
+  const visibleNav = NAV.filter((item) => {
+    if (item.to.endsWith('/users')) return has('membership.manage');
+    if (item.to.endsWith('/assessments')) return has('resource.create');
+    if (item.to.endsWith('/communication')) return has('announcement.create') || has('feedback.view') || has('complaint.view_all');
+    if (item.to.endsWith('/meetings')) return has('event.manage');
+    if (item.to.endsWith('/monitoring')) return has('audit.view') || has('platform_audit.view');
+    if (item.to.endsWith('/administration')) return has('platform_user.manage') || has('gallery.manage');
+    return true;
+  });
 
   useEffect(() => {
     api
@@ -52,22 +65,22 @@ export default function Layout() {
       .get('/v1/me/notifications', { limit: 100 })
       .then((res) => setUnread(toList<NotificationItem>(res.data).filter((n) => !n.read_at).length))
       .catch(() => {});
-  }, []);
+  }, [setBatches]);
 
   const activeTitle =
-    NAV.find((n) => location.pathname === n.to || location.pathname.startsWith(n.to + '/'))?.title ||
+    visibleNav.find((n) => location.pathname === n.to || location.pathname.startsWith(n.to + '/'))?.title ||
     TITLES[location.pathname] ||
     'Dashboard';
 
   const handleLogout = async () => {
     try {
-      await api.post('/v1/auth/logout');
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) await api.post('/v1/auth/logout', { refresh_token: refreshToken });
     } catch {
       /* ignore */
     }
     setUser(null);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    clearSession();
     navigate('/login');
   };
 
@@ -88,7 +101,7 @@ export default function Layout() {
           </p>
         </div>
         <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-1">
-          {NAV.map(({ to, label, Icon }) => (
+          {visibleNav.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
               to={to}

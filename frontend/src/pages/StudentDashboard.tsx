@@ -71,7 +71,7 @@ export default function StudentDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [batches.length]);
+  }, [batches]);
 
   const tiles = [
     { label: 'My Courses', value: String(batches.length), Icon: BookOpenIcon, tile: 'bg-blue-50 text-primary' },

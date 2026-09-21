@@ -1,12 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, toList, errMsg } from '../api/client';
+import { api, toList, errMsg, uploadFile } from '../api/client';
 import toast from 'react-hot-toast';
-import type { Batch, BatchProfile, Semester, Module, Lesson, LinkItem } from '../types';
-import { useElevated } from '../hooks/useRole';
+import type { Batch, BatchProfile, Semester, Module, Lesson, LinkItem, Member, Position } from '../types';
+import { useCan } from '../hooks/useRole';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate, coverColor, initials } from '../components/ui';
 
-const TABS = ['Overview', 'Semesters', 'Modules', 'Lessons', 'Links'] as const;
+const TABS = ['Overview', 'Semesters', 'Modules', 'Lessons', 'Links', 'Committee'] as const;
+
+async function promptEdit(url: string, fields: { key: string; label: string; value: string }[], reload: () => void) {
+  const body: Record<string, string> = {};
+  for (const field of fields) {
+    const value = window.prompt(field.label, field.value);
+    if (value === null) return;
+    body[field.key] = value;
+  }
+  try {
+    await api.patch(url, body);
+    toast.success('Updated');
+    reload();
+  } catch (err) {
+    toast.error(errMsg(err, 'Update failed'));
+  }
+}
 
 export default function CourseDetail() {
   const { batchID = '' } = useParams();
@@ -53,14 +69,20 @@ export default function CourseDetail() {
       {tab === 'Modules' && <ModulesTab batchID={batchID} />}
       {tab === 'Lessons' && <LessonsTab batchID={batchID} />}
       {tab === 'Links' && <LinksTab batchID={batchID} />}
+      {tab === 'Committee' && <CommitteeTab batchID={batchID} />}
     </div>
   );
 }
 
 function Overview({ batchID, batch, onUpdate }: { batchID: string; batch: Batch; onUpdate: (b: Batch) => void }) {
   const [profile, setProfile] = useState<BatchProfile>({ headline: '', about_text: '', mission_text: '', contact_email: '' });
-  const elevated = useElevated();
+  const canManageBatch = useCan('batch.manage', batchID);
+  const canManageProfile = useCan('batch.profile.manage', batchID);
+  const elevated = canManageBatch || canManageProfile;
   const [edit, setEdit] = useState({ name: batch.name, description: batch.description });
+  const [heroBusy, setHeroBusy] = useState(false);
+  const [heroAvailable, setHeroAvailable] = useState(true);
+  const [heroVersion, setHeroVersion] = useState(0);
 
   useEffect(() => {
     api.get(`/v1/batches/${batchID}/profile`).then((res) => setProfile(res.data)).catch(() => {});
@@ -90,6 +112,23 @@ function Overview({ batchID, batch, onUpdate }: { batchID: string; batch: Batch;
     }
   };
 
+  const setHeroImage = async (file?: File) => {
+    if (!file) return;
+    setHeroBusy(true);
+    try {
+      const init = await api.post(`/v1/batches/${batchID}/profile/uploads`, { file_name: file.name, mime_type: file.type, size_bytes: file.size });
+      await uploadFile(init.data.upload_url, file);
+      await api.patch(`/v1/batches/${batchID}/profile`, { upload_id: init.data.upload_id });
+      setHeroAvailable(true);
+      setHeroVersion((version) => version + 1);
+      toast.success('Public cover image updated');
+    } catch (err) {
+      toast.error(errMsg(err, 'Cover image upload failed'));
+    } finally {
+      setHeroBusy(false);
+    }
+  };
+
   const set = (k: keyof BatchProfile) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setProfile({ ...profile, [k]: e.target.value });
 
@@ -108,7 +147,7 @@ function Overview({ batchID, batch, onUpdate }: { batchID: string; batch: Batch;
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      <Card className="p-7 space-y-4">
+      {canManageBatch && <Card className="p-7 space-y-4">
         <h2 className="text-lg font-semibold text-ink">Course details</h2>
         <Field label="Name">
           <input className={inputCls} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
@@ -119,9 +158,10 @@ function Overview({ batchID, batch, onUpdate }: { batchID: string; batch: Batch;
         <button onClick={saveBatch} className="px-5 py-2.5 rounded-xl bg-primary text-white text-[15px] font-medium hover:bg-primary-dark">
           Save changes
         </button>
-      </Card>
-      <Card className="p-7 space-y-4">
+      </Card>}
+      {canManageProfile && <Card className="p-7 space-y-4">
         <h2 className="text-lg font-semibold text-ink">Public profile</h2>
+        {heroAvailable && <img src={`/v1/public/batches/${batch.slug}/image?v=${heroVersion}`} alt="Public course cover" className="w-full h-32 rounded-xl object-cover bg-surface" onError={() => setHeroAvailable(false)} />}
         <Field label="Headline">
           <input className={inputCls} value={profile.headline || ''} onChange={set('headline')} />
         </Field>
@@ -137,21 +177,25 @@ function Overview({ batchID, batch, onUpdate }: { batchID: string; batch: Batch;
         <button onClick={saveProfile} className="px-5 py-2.5 rounded-xl bg-primary text-white text-[15px] font-medium hover:bg-primary-dark">
           Save profile
         </button>
-      </Card>
+        <label className="inline-flex cursor-pointer text-sm text-primary font-medium hover:underline">
+          {heroBusy ? 'Uploading cover…' : 'Change public cover image'}
+          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={heroBusy} className="hidden" onChange={(event) => setHeroImage(event.target.files?.[0])} />
+        </label>
+      </Card>}
     </div>
   );
 }
 
 function Semesters({ batchID }: { batchID: string }) {
   const [items, setItems] = useState<Semester[]>([]);
-  const elevated = useElevated();
+  const elevated = useCan('semester.manage', batchID);
   const [form, setForm] = useState({ semester_number: 1, name: '', academic_year: '', starts_at: '', ends_at: '' });
   const [show, setShow] = useState(false);
 
-  const load = () => api.get(`/v1/batches/${batchID}/semesters`).then((res) => setItems(toList<Semester>(res.data))).catch(() => {});
+  const load = useCallback(() => api.get(`/v1/batches/${batchID}/semesters`).then((res) => setItems(toList<Semester>(res.data))).catch(() => {}), [batchID]);
   useEffect(() => {
     load();
-  }, [batchID]);
+  }, [load]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,6 +244,7 @@ function Semesters({ batchID }: { batchID: string }) {
                   Set current
                 </button>
               ) : null}
+              {elevated && <button onClick={() => promptEdit(`/v1/batches/${batchID}/semesters/${s.id}`, [{ key: 'name', label: 'Semester name', value: s.name }, { key: 'academic_year', label: 'Academic year', value: s.academic_year }], load)} className="text-xs text-primary hover:underline">Edit</button>}
             </div>
           </div>
         ))}
@@ -210,18 +255,18 @@ function Semesters({ batchID }: { batchID: string }) {
 
 function ModulesTab({ batchID }: { batchID: string }) {
   const [items, setItems] = useState<Module[]>([]);
-  const elevated = useElevated();
+  const elevated = useCan('module.manage', batchID);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [form, setForm] = useState({ semester_id: '', module_code: '', name: '', description: '', lecturer_name: '' });
   const [show, setShow] = useState(false);
 
-  const load = () => {
+  const load = useCallback(() => {
     api.get(`/v1/batches/${batchID}/modules`, { limit: 100 }).then((res) => setItems(toList<Module>(res.data))).catch(() => {});
     api.get(`/v1/batches/${batchID}/semesters`, { limit: 100 }).then((res) => setSemesters(toList<Semester>(res.data))).catch(() => {});
-  };
+  }, [batchID]);
   useEffect(() => {
     load();
-  }, [batchID]);
+  }, [load]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,6 +319,7 @@ function ModulesTab({ batchID }: { batchID: string }) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge tone={statusTone(m.status)}>{m.status}</Badge>
+              {elevated && <button onClick={() => promptEdit(`/v1/batches/${batchID}/modules/${m.id}`, [{ key: 'name', label: 'Module name', value: m.name }, { key: 'description', label: 'Description', value: m.description || '' }, { key: 'lecturer_name', label: 'Lecturer', value: m.lecturer_name || '' }], load)} className="text-xs text-primary hover:underline">Edit</button>}
               {elevated && (<button onClick={() => api.delete(`/v1/batches/${batchID}/modules/${m.id}`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
             </div>
           </div>
@@ -285,18 +331,18 @@ function ModulesTab({ batchID }: { batchID: string }) {
 
 function LessonsTab({ batchID }: { batchID: string }) {
   const [items, setItems] = useState<Lesson[]>([]);
-  const elevated = useElevated();
+  const elevated = useCan('lesson.manage', batchID);
   const [modules, setModules] = useState<Module[]>([]);
   const [form, setForm] = useState({ module_id: '', title: '', description: '', youtube_video_id: '', lesson_date: '', duration_seconds: '' });
   const [show, setShow] = useState(false);
 
-  const load = () => {
+  const load = useCallback(() => {
     api.get(`/v1/batches/${batchID}/lessons`, { limit: 100 }).then((res) => setItems(toList<Lesson>(res.data))).catch(() => {});
     api.get(`/v1/batches/${batchID}/modules`, { limit: 100 }).then((res) => setModules(toList<Module>(res.data))).catch(() => {});
-  };
+  }, [batchID]);
   useEffect(() => {
     load();
-  }, [batchID]);
+  }, [load]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -350,6 +396,7 @@ function LessonsTab({ batchID }: { batchID: string }) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge tone={statusTone(l.status)}>{l.status}</Badge>
+              {elevated && <button onClick={() => promptEdit(`/v1/batches/${batchID}/lessons/${l.id}`, [{ key: 'title', label: 'Lesson title', value: l.title }, { key: 'description', label: 'Description', value: l.description || '' }, { key: 'youtube_video_id', label: 'YouTube video ID', value: l.youtube_video_id }], load)} className="text-xs text-primary hover:underline">Edit</button>}
               {elevated && l.status !== 'PUBLISHED' && <button onClick={() => api.post(`/v1/batches/${batchID}/lessons/${l.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-primary font-medium hover:underline">Publish</button>}
               {elevated && (<button onClick={() => api.delete(`/v1/batches/${batchID}/lessons/${l.id}`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
             </div>
@@ -362,18 +409,18 @@ function LessonsTab({ batchID }: { batchID: string }) {
 
 function LinksTab({ batchID }: { batchID: string }) {
   const [items, setItems] = useState<LinkItem[]>([]);
-  const elevated = useElevated();
+  const elevated = useCan('link.manage', batchID);
   const [modules, setModules] = useState<Module[]>([]);
   const [form, setForm] = useState({ module_id: '', title: '', url: '', description: '', category: '' });
   const [show, setShow] = useState(false);
 
-  const load = () => {
+  const load = useCallback(() => {
     api.get(`/v1/batches/${batchID}/links`, { limit: 100 }).then((res) => setItems(toList<LinkItem>(res.data))).catch(() => {});
     api.get(`/v1/batches/${batchID}/modules`, { limit: 100 }).then((res) => setModules(toList<Module>(res.data))).catch(() => {});
-  };
+  }, [batchID]);
   useEffect(() => {
     load();
-  }, [batchID]);
+  }, [load]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -423,6 +470,7 @@ function LinksTab({ batchID }: { batchID: string }) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge tone={statusTone(l.status)}>{l.status}</Badge>
+              {elevated && <button onClick={() => promptEdit(`/v1/batches/${batchID}/links/${l.id}`, [{ key: 'title', label: 'Link title', value: l.title }, { key: 'url', label: 'URL', value: l.url }, { key: 'description', label: 'Description', value: l.description || '' }], load)} className="text-xs text-primary hover:underline">Edit</button>}
               {elevated && l.status !== 'PUBLISHED' && <button onClick={() => api.post(`/v1/batches/${batchID}/links/${l.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-primary font-medium hover:underline">Publish</button>}
               {elevated && (<button onClick={() => api.delete(`/v1/batches/${batchID}/links/${l.id}`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
             </div>
@@ -430,5 +478,118 @@ function LinksTab({ batchID }: { batchID: string }) {
         ))}
       </div>
     </Card>
+  );
+}
+
+interface PositionAssignment {
+  id: string;
+  user_id: string;
+  display_name: string;
+  starts_at: string;
+  ends_at: string | null;
+}
+
+function CommitteeTab({ batchID }: { batchID: string }) {
+  const canManage = useCan('position.manage', batchID);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [assignments, setAssignments] = useState<Record<string, PositionAssignment[]>>({});
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', sort_order: 0, is_public: true });
+  const [selectedMembers, setSelectedMembers] = useState<Record<string, string>>({});
+
+  const load = useCallback(() => api.get(`/v1/batches/${batchID}/positions`, { limit: 100 }).then((response) => setPositions(toList<Position>(response.data))).catch(() => {}), [batchID]);
+  useEffect(() => {
+    load();
+    if (canManage) api.get(`/v1/batches/${batchID}/members`, { limit: 100 }).then((response) => setMembers(toList<Member>(response.data).filter((member) => member.status === 'ACTIVE'))).catch(() => {});
+  }, [batchID, canManage, load]);
+
+  const create = async (event: React.FormEvent) => {
+    event.preventDefault();
+    try {
+      await api.post(`/v1/batches/${batchID}/positions`, form);
+      setForm({ title: '', description: '', sort_order: 0, is_public: true });
+      setShow(false);
+      toast.success('Committee position created');
+      load();
+    } catch (err) {
+      toast.error(errMsg(err, 'Create failed'));
+    }
+  };
+
+  const toggleAssignments = async (positionID: string) => {
+    if (assignments[positionID]) {
+      setAssignments((current) => {
+        const next = { ...current };
+        delete next[positionID];
+        return next;
+      });
+      return;
+    }
+    try {
+      const response = await api.get(`/v1/batches/${batchID}/positions/${positionID}/assignments`, { limit: 100 });
+      setAssignments((current) => ({ ...current, [positionID]: toList<PositionAssignment>(response.data) }));
+    } catch (err) {
+      toast.error(errMsg(err, 'Could not load assignments'));
+    }
+  };
+
+  const assign = async (positionID: string) => {
+    const target = selectedMembers[positionID];
+    if (!target) return;
+    try {
+      await api.post(`/v1/batches/${batchID}/positions/${positionID}/assignments`, { user_id: target, starts_at: new Date().toISOString() });
+      const response = await api.get(`/v1/batches/${batchID}/positions/${positionID}/assignments`, { limit: 100 });
+      setAssignments((current) => ({ ...current, [positionID]: toList<PositionAssignment>(response.data) }));
+      toast.success('Committee member assigned');
+    } catch (err) {
+      toast.error(errMsg(err, 'Assignment failed'));
+    }
+  };
+
+  const endAssignment = async (positionID: string, assignmentID: string) => {
+    try {
+      await api.post(`/v1/batches/${batchID}/positions/${positionID}/assignments/${assignmentID}/end`);
+      const response = await api.get(`/v1/batches/${batchID}/positions/${positionID}/assignments`, { limit: 100 });
+      setAssignments((current) => ({ ...current, [positionID]: toList<PositionAssignment>(response.data) }));
+      toast.success('Assignment ended');
+    } catch (err) {
+      toast.error(errMsg(err, 'Could not end assignment'));
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {canManage && <div className="flex justify-end"><button onClick={() => setShow(!show)} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">+ Position</button></div>}
+      {show && canManage && (
+        <Card className="p-6">
+          <form onSubmit={create} className="grid grid-cols-2 gap-4">
+            <Field label="Title"><input required className={inputCls} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></Field>
+            <Field label="Sort order"><input type="number" className={inputCls} value={form.sort_order} onChange={(event) => setForm({ ...form, sort_order: Number(event.target.value) })} /></Field>
+            <div className="col-span-2"><Field label="Description"><textarea className={inputCls} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field></div>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_public} onChange={(event) => setForm({ ...form, is_public: event.target.checked })} /> Show publicly</label>
+            <div className="col-span-2"><button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Create</button></div>
+          </form>
+        </Card>
+      )}
+      {positions.length === 0 && <Card className="p-8"><Empty message="No committee positions yet." /></Card>}
+      {positions.map((position) => (
+        <Card key={position.id} className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div><h3 className="font-semibold text-ink">{position.title}</h3><p className="text-sm text-muted">{position.description || 'No description.'}</p></div>
+            <div className="flex gap-2"><Badge tone={position.is_public ? 'green' : 'gray'}>{position.is_public ? 'PUBLIC' : 'PRIVATE'}</Badge><button onClick={() => toggleAssignments(position.id)} className="text-xs text-primary">Assignments</button>{canManage && <button onClick={() => promptEdit(`/v1/batches/${batchID}/positions/${position.id}`, [{ key: 'title', label: 'Position title', value: position.title }, { key: 'description', label: 'Description', value: position.description || '' }], load)} className="text-xs text-primary">Edit</button>}{canManage && position.is_public && <button onClick={() => api.delete(`/v1/batches/${batchID}/positions/${position.id}`).then(() => { toast.success('Position hidden'); load(); }).catch((err) => toast.error(errMsg(err, 'Update failed')))} className="text-xs text-red-600">Hide</button>}</div>
+          </div>
+          {assignments[position.id] && (
+            <div className="mt-4 p-4 rounded-xl bg-surface space-y-2">
+              {assignments[position.id].map((assignment) => (
+                <div key={assignment.id} className="flex justify-between text-sm"><span>{assignment.display_name}{assignment.ends_at ? ' · ended' : ''}</span>{canManage && !assignment.ends_at && <button onClick={() => endAssignment(position.id, assignment.id)} className="text-red-600 text-xs">End</button>}</div>
+              ))}
+              {assignments[position.id].length === 0 && <p className="text-sm text-muted">No assignments.</p>}
+              {canManage && <div className="flex gap-2 pt-2"><select className={inputCls} value={selectedMembers[position.id] || ''} onChange={(event) => setSelectedMembers({ ...selectedMembers, [position.id]: event.target.value })}><option value="">Select member…</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}</select><button onClick={() => assign(position.id)} className="px-4 rounded-xl bg-primary text-white text-sm">Assign</button></div>}
+            </div>
+          )}
+        </Card>
+      ))}
+    </div>
   );
 }

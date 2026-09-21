@@ -59,7 +59,7 @@ type Tokens struct {
 	RefreshExpires time.Time `json:"-"`
 }
 
-func PasswordValid(p string) bool { return utf8.RuneCountInString(p) >= 8 && len(p) <= 72 }
+func PasswordValid(p string) bool { return utf8.RuneCountInString(p) >= 12 && len(p) <= 72 }
 func EmailValid(s string) bool {
 	a, e := mail.ParseAddress(s)
 	return e == nil && a.Address == s && len(s) <= 254

@@ -256,7 +256,25 @@ func (a *API) meRoutes(r chi.Router) {
 	r.Get("/me/sessions", a.wrap(a.sessionsHandler))
 	r.Delete("/me/sessions/{sessionID}", a.wrap(a.revokeSessionHandler))
 	r.Get("/me/bookmarks", a.wrap(a.bookmarksHandler))
+	r.Get("/me/access", a.wrap(a.accessHandler))
 	r.Post("/me/profile/image/uploads", a.wrap(a.authorizeProfileUploadHandler))
+}
+
+// accessHandler godoc
+//
+//	@Summary Get current authorization context
+//	@Description Returns platform permissions and active batch roles and permissions for the authenticated user.
+//	@Tags users
+//	@Produce json
+//	@Success 200 {object} map[string]any
+//	@Security bearerAuth
+//	@Router /v1/me/access [get]
+func (a *API) accessHandler(w http.ResponseWriter, r *http.Request) error {
+	v, e := (user.Service{Pool: a.Pool}).Access(r.Context(), userID(r))
+	if e != nil {
+		return e
+	}
+	return send(w, http.StatusOK, v)
 }
 
 // logoutAllHandler godoc

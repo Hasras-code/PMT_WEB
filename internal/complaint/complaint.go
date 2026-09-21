@@ -62,7 +62,7 @@ func (s Service) List(ctx context.Context, user, batch string, mine bool, limit,
 	if e := authorization.Require(ctx, s.Pool, user, batch, permission); e != nil {
 		return nil, e
 	}
-	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT id,category,subject,is_anonymous,status,assigned_to,resolved_at,created_at FROM complaints WHERE batch_id=$1 AND (NOT $2 OR submitted_by=$3::uuid) ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)t`, batch, mine, user, limit, offset))
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT id,submitted_by,category,subject,message,is_anonymous,status,assigned_to,resolved_at,created_at FROM complaints WHERE batch_id=$1 AND (NOT $2 OR submitted_by=$3::uuid) ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)t`, batch, mine, user, limit, offset))
 }
 func (s Service) Get(ctx context.Context, user, batch, id string) (json.RawMessage, error) {
 	if _, e := s.access(ctx, s.Pool, user, batch, id); e != nil {

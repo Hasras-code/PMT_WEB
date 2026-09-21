@@ -127,11 +127,13 @@ func (a *API) listBatchesHandler(w http.ResponseWriter, r *http.Request) error {
 
 func (a *API) batchRoutes(r chi.Router) {
 	r.Get("/", a.wrap(a.getBatchHandler))
+	r.Get("/summary", a.wrap(a.getBatchSummaryHandler))
 	r.Patch("/", a.wrap(a.updateBatchHandler))
 	r.Get("/profile", a.wrap(a.getBatchProfileHandler))
 	r.Patch("/profile", a.wrap(a.updateBatchProfileHandler))
 	r.Post("/profile/uploads", a.wrap(a.authorizeBatchProfileUploadHandler))
 	r.Get("/members", a.wrap(a.listBatchMembersHandler))
+	r.Get("/members/candidates", a.wrap(a.listBatchMemberCandidatesHandler))
 	r.Get("/members/{membershipID}", a.wrap(a.getBatchMemberHandler))
 	r.Post("/members", a.wrap(a.createBatchMemberHandler))
 	r.Get("/roles", a.wrap(a.listBatchRolesHandler))
@@ -141,6 +143,47 @@ func (a *API) batchRoutes(r chi.Router) {
 	r.Post("/members/{membershipID}/reactivate", a.wrap(a.reactivateBatchMemberHandler))
 	r.Post("/members/{membershipID}/graduate", a.wrap(a.graduateBatchMemberHandler))
 	r.Post("/members/{membershipID}/leave", a.wrap(a.leaveBatchMemberHandler))
+}
+
+// getBatchSummaryHandler godoc
+//
+//	@Summary Get batch dashboard counts
+//	@Tags batches
+//	@Produce json
+//	@Param batchID path string true "Batch ID"
+//	@Success 200 {object} map[string]int64
+//	@Security bearerAuth
+//	@Router /v1/batches/{batchID}/summary [get]
+func (a *API) getBatchSummaryHandler(w http.ResponseWriter, r *http.Request) error {
+	v, e := (batch.Service{Pool: a.Pool}).Summary(r.Context(), userID(r), batchID(r))
+	if e != nil {
+		return e
+	}
+	return send(w, http.StatusOK, v)
+}
+
+// listBatchMemberCandidatesHandler godoc
+//
+//	@Summary Search verified membership candidates
+//	@Tags memberships
+//	@Produce json
+//	@Param batchID path string true "Batch ID"
+//	@Param query query string true "Student number, email, or display name"
+//	@Param limit query int false "Limit"
+//	@Param offset query int false "Offset"
+//	@Success 200 {array} map[string]any
+//	@Security bearerAuth
+//	@Router /v1/batches/{batchID}/members/candidates [get]
+func (a *API) listBatchMemberCandidatesHandler(w http.ResponseWriter, r *http.Request) error {
+	l, o, e := page(r)
+	if e != nil {
+		return e
+	}
+	v, e := (membership.Service{Pool: a.Pool}).Candidates(r.Context(), userID(r), batchID(r), r.URL.Query().Get("query"), l, o)
+	if e != nil {
+		return e
+	}
+	return send(w, http.StatusOK, v)
 }
 
 // getBatchHandler godoc

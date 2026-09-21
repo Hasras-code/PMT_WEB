@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useState } from 'react';
-import { api, toList, errMsg } from '../api/client';
+import { api, toList, errMsg, uploadFile } from '../api/client';
 import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { Module, Resource, ResourceType } from '../types';
-import { useElevated } from '../hooks/useRole';
+import { useCan } from '../hooks/useRole';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate } from '../components/ui';
 
 const TYPES: { code: ResourceType; label: string }[] = [
@@ -27,7 +27,8 @@ export default function Assessments() {
   const [versions, setVersions] = useState<Record<string, unknown[]>>({});
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [show, setShow] = useState(false);
-  const elevated = useElevated();
+  const elevated = useCan('resource.create', currentBatchID);
+  const canUpdate = useCan('resource.update', currentBatchID);
   const [busy, setBusy] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState({ module_id: '', type: 'LECTURE_NOTE' as ResourceType, title: '', description: '', academic_year: '', exam_type: '' });
@@ -56,7 +57,7 @@ export default function Assessments() {
         mime_type: 'application/pdf',
         size_bytes: file.size,
       });
-      await fetch(init.data.upload_url, { method: 'PUT', body: file, headers: { 'Content-Type': 'application/pdf' } });
+      await uploadFile(init.data.upload_url, file);
       const body: Record<string, unknown> = {
         module_id: form.module_id,
         upload_id: init.data.upload_id,
@@ -115,6 +116,58 @@ export default function Assessments() {
       setVersions({ ...versions, [r.id]: toList(res.data) });
     } catch (err) {
       toast.error(errMsg(err, 'Could not load versions'));
+    }
+  };
+
+  const addVersion = async (resourceID: string, nextFile?: File) => {
+    if (!nextFile || nextFile.type !== 'application/pdf') return;
+    setBusy(true);
+    try {
+      const init = await api.post(`/v1/batches/${currentBatchID}/resources/${resourceID}/versions/uploads`, {
+        file_name: nextFile.name,
+        mime_type: 'application/pdf',
+        size_bytes: nextFile.size,
+      });
+      await uploadFile(init.data.upload_url, nextFile);
+      await api.post(`/v1/batches/${currentBatchID}/resources/${resourceID}/versions`, {
+        upload_id: init.data.upload_id,
+        original_size_bytes: nextFile.size,
+        change_note: 'Uploaded from the web portal',
+      });
+      toast.success('New version uploaded');
+      setVersions((current) => {
+        const next = { ...current };
+        delete next[resourceID];
+        return next;
+      });
+      load();
+    } catch (err) {
+      toast.error(errMsg(err, 'Version upload failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const downloadVersion = async (resourceID: string, versionID: string) => {
+    try {
+      const response = await api.get(`/v1/batches/${currentBatchID}/resources/${resourceID}/versions/${versionID}/download`);
+      window.open(response.data.url, '_blank');
+    } catch (err) {
+      toast.error(errMsg(err, 'Download failed'));
+    }
+  };
+
+  const editResource = async (item: Resource) => {
+    const title = window.prompt('Material title', item.title);
+    if (title === null || !title.trim()) return;
+    const description = window.prompt('Description', item.description || '');
+    if (description === null) return;
+    try {
+      await api.patch(`/v1/batches/${currentBatchID}/resources/${item.id}`, { title, description });
+      toast.success('Material updated');
+      load();
+    } catch (err) {
+      toast.error(errMsg(err, 'Update failed'));
     }
   };
 
@@ -208,6 +261,13 @@ export default function Assessments() {
                         <button onClick={() => download(r)} className="text-primary hover:underline">Download</button>
                         <button onClick={() => toggleBookmark(r)} className="text-muted hover:text-ink hover:underline">{saved.has(r.id) ? 'Saved ✓' : 'Bookmark'}</button>
                         <button onClick={() => toggleVersions(r)} className="text-muted hover:text-ink hover:underline">Versions</button>
+                        {canUpdate && (
+                          <label className="cursor-pointer text-primary hover:underline">
+                            New version
+                            <input type="file" accept="application/pdf,.pdf" disabled={busy} className="hidden" onChange={(event) => addVersion(r.id, event.target.files?.[0])} />
+                          </label>
+                        )}
+                        {canUpdate && <button onClick={() => editResource(r)} className="text-primary hover:underline">Edit</button>}
                         {elevated && r.status !== 'PUBLISHED' && (
                           <button onClick={() => api.post(`/v1/batches/${currentBatchID}/resources/${r.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-emerald-600 hover:underline">Publish</button>
                         )}
@@ -224,7 +284,10 @@ export default function Assessments() {
                             return (
                               <div key={String(ver.id)} className="flex justify-between py-1.5 border-b border-line last:border-0">
                                 <span className="text-ink">v{String(ver.version_number)} — {String(ver.file_name)}</span>
-                                <span className="text-muted">{fmtSize(Number(ver.size_bytes))}{ver.change_note ? ` · ${String(ver.change_note)}` : ''}</span>
+                                <span className="flex items-center gap-3 text-muted">
+                                  {fmtSize(Number(ver.size_bytes))}{ver.change_note ? ` · ${String(ver.change_note)}` : ''}
+                                  <button onClick={() => downloadVersion(r.id, String(ver.id))} className="text-primary hover:underline">Download</button>
+                                </span>
                               </div>
                             );
                           })}

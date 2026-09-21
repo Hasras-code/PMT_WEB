@@ -9,7 +9,26 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"strings"
 )
+
+func (s Service) Candidates(ctx context.Context, actor, batch, query string, limit, offset int) (json.RawMessage, error) {
+	if e := authorization.Require(ctx, s.Pool, actor, batch, "membership.manage"); e != nil {
+		return nil, e
+	}
+	query = strings.TrimSpace(query)
+	if len(query) < 2 || len(query) > 254 {
+		return nil, apperror.ErrInvalid
+	}
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(
+		SELECT u.id,u.student_number,u.combination,u.display_name,u.email
+		FROM users u
+		WHERE u.status='ACTIVE' AND u.email_verified_at IS NOT NULL
+		AND NOT EXISTS(SELECT 1 FROM batch_memberships m WHERE m.batch_id=$1 AND m.user_id=u.id)
+		AND (u.student_number ILIKE '%'||$2||'%' OR u.email ILIKE '%'||$2||'%' OR u.display_name ILIKE '%'||$2||'%')
+		ORDER BY u.student_number,u.id LIMIT $3 OFFSET $4
+	)t`, batch, query, limit, offset))
+}
 
 type Service struct{ Pool *pgxpool.Pool }
 

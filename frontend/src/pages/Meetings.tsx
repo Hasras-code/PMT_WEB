@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import { VideoCameraIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { api, toList, errMsg } from '../api/client';
+import { api, toList, errMsg, uploadFile } from '../api/client';
 import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { LmsEvent } from '../types';
-import { useElevated } from '../hooks/useRole';
+import { useCan } from '../hooks/useRole';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDateTime } from '../components/ui';
 
 export default function Meetings() {
   const { currentBatchID } = useAppStore();
   const [items, setItems] = useState<LmsEvent[]>([]);
   const [show, setShow] = useState(false);
-  const elevated = useElevated();
+  const elevated = useCan('event.manage', currentBatchID);
   const [form, setForm] = useState({ title: '', description: '', location: '', starts_at: '', ends_at: '', visibility: 'MEMBERS_ONLY' });
 
   const load = () => {
@@ -38,6 +38,32 @@ export default function Meetings() {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    }
+  };
+
+  const setEventImage = async (eventID: string, file?: File) => {
+    if (!file) return;
+    try {
+      const init = await api.post(`/v1/batches/${currentBatchID}/events/${eventID}/uploads`, { file_name: file.name, mime_type: file.type, size_bytes: file.size });
+      await uploadFile(init.data.upload_url, file);
+      await api.post(`/v1/batches/${currentBatchID}/events/${eventID}/image`, { upload_id: init.data.upload_id });
+      toast.success('Meeting image updated');
+    } catch (err) {
+      toast.error(errMsg(err, 'Image upload failed'));
+    }
+  };
+
+  const editEvent = async (item: LmsEvent) => {
+    const title = window.prompt('Meeting title', item.title);
+    if (title === null || !title.trim()) return;
+    const location = window.prompt('Location or meeting link', item.location || '');
+    if (location === null) return;
+    try {
+      await api.patch(`/v1/batches/${currentBatchID}/events/${item.id}`, { title, location });
+      toast.success('Meeting updated');
+      load();
+    } catch (err) {
+      toast.error(errMsg(err, 'Update failed'));
     }
   };
 
@@ -106,7 +132,14 @@ export default function Meetings() {
                   {elevated && ev.status !== 'PUBLISHED' && (
                     <button onClick={() => api.post(`/v1/batches/${currentBatchID}/events/${ev.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-emerald-600 hover:underline">Publish</button>
                   )}
+                  {elevated && <button onClick={() => editEvent(ev)} className="text-primary hover:underline">Edit</button>}
                   {elevated && (<button onClick={() => api.delete(`/v1/batches/${currentBatchID}/events/${ev.id}`).then(() => { toast.success('Cancelled'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-red-600 hover:underline">Cancel</button>)}
+                  {elevated && (
+                    <label className="cursor-pointer text-primary hover:underline">
+                      Set image
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => setEventImage(ev.id, event.target.files?.[0])} />
+                    </label>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,26 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client';
+import { api, errMsg } from '../api/client';
 import { useAppStore } from '../store/app';
-import { usePortalBase, useElevated } from '../hooks/useRole';
+import { usePortalBase, useCan } from '../hooks/useRole';
 import type { Batch } from '../types';
 import { Card, Badge, statusTone, Empty, coverColor, initials } from '../components/ui';
 import CreateCourse from '../components/CreateCourse';
+import toast from 'react-hot-toast';
 
 export default function Courses() {
   const navigate = useNavigate();
   const base = usePortalBase();
-  const elevated = useElevated();
+  const elevated = useCan('batch.create');
+  const canArchive = useCan('batch.archive');
   const { batches, setBatches } = useAppStore();
   const [showCreate, setShowCreate] = useState(false);
 
-  const load = () => {
+  const load = useCallback(() => {
     api.get('/v1/batches').then((res) => setBatches(res.data as Batch[])).catch(() => {});
-  };
+  }, [setBatches]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return (
     <div className="space-y-6">
@@ -52,6 +54,10 @@ export default function Courses() {
                     {b.graduation_year ? ` → ${b.graduation_year}` : ''}
                   </p>
                   <p className="mt-2 text-sm text-muted line-clamp-2">{b.description || 'No description.'}</p>
+                  {canArchive && <button onClick={(event) => {
+                    event.stopPropagation();
+                    api.post(`/v1/admin/batches/${b.id}/archive`).then(() => { toast.success('Course archived'); load(); }).catch((err) => toast.error(errMsg(err, 'Archive failed')));
+                  }} className="mt-3 text-xs text-red-600 hover:underline">Archive course</button>}
                 </div>
               </div>
             </Card>
