@@ -60,6 +60,17 @@ func TestRouteMiddlewareBoundaries(t *testing.T) {
 		t.Fatal("successful health request returned an auth challenge")
 	}
 
+	browserHealthRequest := httptest.NewRequest(http.MethodGet, "/health/live", nil)
+	browserHealthRequest.Header.Set("Origin", "http://localhost:3000")
+	browserHealthResponse := httptest.NewRecorder()
+	router.ServeHTTP(browserHealthResponse, browserHealthRequest)
+	if browserHealthResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("browser health request: got %d want %d", browserHealthResponse.Code, http.StatusUnauthorized)
+	}
+	if browserHealthResponse.Header().Get("WWW-Authenticate") != "" {
+		t.Fatal("cross-origin health request triggered a browser auth challenge")
+	}
+
 	preflightRequest := httptest.NewRequest(http.MethodOptions, "/v1/me", nil)
 	preflightRequest.Header.Set("Origin", "http://localhost:3000")
 	preflightResponse := httptest.NewRecorder()

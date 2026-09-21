@@ -8,16 +8,24 @@ export default function System() {
   const { currentBatchID } = useAppStore();
   const [live, setLive] = useState<boolean | null>(null);
   const [ready, setReady] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(false);
   const [protectedHealth, setProtectedHealth] = useState(false);
   const [basicUser, setBasicUser] = useState(sessionStorage.getItem('basic_user') || '');
   const [basicPass, setBasicPass] = useState(sessionStorage.getItem('basic_pass') || '');
   const [counts, setCounts] = useState({ members: '—', resources: '—', announcements: '—', events: '—' });
 
   const check = useCallback(async () => {
+    const headers = basicAuthHeader();
+    if (!headers.Authorization) {
+      setProtectedHealth(true);
+      setLive(null);
+      setReady(null);
+      return;
+    }
+    setChecking(true);
     setLive(null);
     setReady(null);
     setProtectedHealth(false);
-    const headers = basicAuthHeader();
     try {
       await api.get('/health/live', undefined, { headers });
       setLive(true);
@@ -31,11 +39,15 @@ export default function System() {
       setReady(true);
     } catch {
       setReady(false);
+    } finally {
+      setChecking(false);
     }
   }, []);
 
   useEffect(() => {
-    check();
+    if (sessionStorage.getItem('basic_user') && sessionStorage.getItem('basic_pass') !== null) {
+      check();
+    }
     if (!currentBatchID) return;
     api.get(`/v1/batches/${currentBatchID}/summary`).then((response) => setCounts({
       members: String(response.data.members),
@@ -83,8 +95,10 @@ export default function System() {
           {services.map((s) => (
             <div key={s.name} className="flex items-center justify-between p-4 rounded-xl border border-line">
               <div className="flex items-center gap-3">
-                {s.ok === null ? (
+                {checking ? (
                   <span className="w-6 h-6 rounded-full border-2 border-line border-t-primary animate-spin" />
+                ) : s.ok === null ? (
+                  <LockClosedIcon className="w-6 h-6 text-muted" />
                 ) : s.ok ? (
                   <CheckCircleIcon className="w-6 h-6 text-emerald-600" />
                 ) : (
@@ -96,7 +110,7 @@ export default function System() {
                 </div>
               </div>
               <span className={`text-sm font-medium ${s.ok ? 'text-emerald-600' : s.ok === false ? 'text-red-600' : 'text-muted'}`}>
-                {s.ok === null ? 'Checking…' : s.ok ? 'Operational' : 'Down'}
+                {checking ? 'Checking…' : s.ok === null ? 'Not checked' : s.ok ? 'Operational' : 'Down'}
               </span>
             </div>
           ))}

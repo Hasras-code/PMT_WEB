@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UsersIcon, BookOpenIcon, AcademicCapIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
-import { api, toList, basicAuthHeader } from '../api/client';
+import { api, toList } from '../api/client';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
 import type { AuditLog, Batch } from '../types';
@@ -33,11 +33,12 @@ export default function Dashboard() {
     const load = async () => {
       const next = { users: '—', courses: String(batches.length) || '—', assessments: '—', uptime: '—' };
       try {
-        await api.get('/health/ready', undefined, { headers: basicAuthHeader() });
+        // The admin dashboard uses the existing application session. Protected
+        // infrastructure probes are checked explicitly from the system page.
+        await api.get('/v1/me');
         next.uptime = 'Operational';
-      } catch (err: unknown) {
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        next.uptime = status === 401 ? 'Protected' : 'Down';
+      } catch {
+        next.uptime = 'Down';
       }
       if (currentBatchID) {
         try {

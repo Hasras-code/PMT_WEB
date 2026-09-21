@@ -619,6 +619,43 @@ func TestMigrationRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func TestSeedPlatformAdminMigrationMapsUserAndRoleIDs(t *testing.T) {
+	f := setup(t)
+	ctx := context.Background()
+	var userID string
+	if e := f.p.QueryRow(ctx, `
+		INSERT INTO users(
+			student_number,combination,first_name,last_name,display_name,email,
+			password_hash,email_verified_at,status
+		)
+		VALUES('as123123','PMT-CS','Platform','Admin','Platform Admin',
+			'test@example.com','unused',now(),'ACTIVE')
+		RETURNING id
+	`).Scan(&userID); e != nil {
+		t.Fatal(e)
+	}
+	b, e := os.ReadFile("../../migrations/000011_seed_platform_admin.up.sql")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = f.p.Exec(ctx, string(b)); e != nil {
+		t.Fatal(e)
+	}
+	var assignedUserID, assignedRoleID, scope string
+	if e = f.p.QueryRow(ctx, `
+		SELECT upr.user_id,upr.role_id,upr.scope
+		FROM user_platform_roles upr
+		JOIN roles r ON (r.id,r.scope)=(upr.role_id,upr.scope)
+		WHERE upr.user_id=$1 AND r.code='PLATFORM_ADMIN'
+	`, userID).Scan(&assignedUserID, &assignedRoleID, &scope); e != nil {
+		t.Fatal(e)
+	}
+	if assignedUserID != userID || assignedRoleID == userID || scope != "PLATFORM" {
+		t.Fatalf("invalid platform role mapping: user=%s role=%s scope=%s", assignedUserID, assignedRoleID, scope)
+	}
+}
+
 func TestExpiredVerificationAndInactiveAccounts(t *testing.T) {
 	f := setup(t)
 	ctx := context.Background()

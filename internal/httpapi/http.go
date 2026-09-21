@@ -170,7 +170,12 @@ func (a *API) authenticatedBasic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
 		if !ok || subtle.ConstantTimeCompare([]byte(username), []byte(a.Config.BasicUser)) != 1 || subtle.ConstantTimeCompare([]byte(password), []byte(a.Config.BasicPass)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+			// A Basic challenge on a cross-origin XHR makes browsers display their
+			// native sign-in dialog. The frontend already knows the auth scheme and
+			// supplies the header explicitly, so only challenge non-browser clients.
+			if r.Header.Get("Origin") == "" {
+				w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+			}
 			a.fail(w, r, apperror.ErrUnauthorized)
 			return
 		}
