@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   student_number: string;
+  combination: string | null;
   first_name: string;
   last_name: string;
   display_name: string;
@@ -152,6 +153,7 @@ export interface Member {
   status: string;
   joined_at: string;
   display_name: string;
+  combination: string | null;
   roles: string[];
 }
 
@@ -163,6 +165,7 @@ export interface RoleCatalogEntry {
 export interface AdminUser {
   id: string;
   student_number: string;
+  combination: string | null;
   first_name: string;
   last_name: string;
   display_name: string;

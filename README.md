@@ -166,3 +166,19 @@ Integration tests use fresh, randomly named schemas and remove only those test s
 Migrations have sequential up/down pairs. `make migrate-down` reverses one migration and may destroy its data; use only for development or a reviewed recovery procedure. `make migration name=description` creates the next pair. System roles are installed by migrations; no sample credentials or production correctness depend on development seed data.
 
 See [operations](docs/operations.md) for backup, deployment and recovery details.
+
+## Frontend (React portal)
+
+A React + TypeScript + Vite + Tailwind CSS frontend lives in `frontend/` and is wired to this API. It has no vote in backend correctness; every screen maps to a real endpoint.
+
+```sh
+cd frontend
+npm install
+npm run dev   # http://localhost:5173
+```
+
+- Login routes by role: platform admins and batch-role holders land in the **admin portal** (`/admin/*`, Figma admin shell), plain students land in the **student portal** (`/student/*`, learning overview).
+- Registration includes the required `combination` (`PMT-ICT` or `PMT-CS`).
+- JWT access tokens (15 min) refresh through a single-flight client: parallel 401s share one rotation and tokens are renewed proactively, because concurrent refresh reuse revokes the session server-side.
+- The Backup & Recovery page asks for the HTTP Basic Auth health credentials (`AUTH_BASIC_USER` / `AUTH_BASIC_PASS`) since `/health/*` is protected.
+- `make frontend` starts the dev server; CORS must include the frontend origin (see `.env.example`).

@@ -1,18 +1,41 @@
 import { useEffect, useState } from 'react';
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { api, toList } from '../api/client';
+import { CheckCircleIcon, XCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { api, toList, basicAuthHeader } from '../api/client';
 import { useAppStore } from '../store/app';
-import { Card, CardTitle } from '../components/ui';
+import { Card, CardTitle, Field, inputCls } from '../components/ui';
 
 export default function System() {
   const { currentBatchID } = useAppStore();
   const [live, setLive] = useState<boolean | null>(null);
   const [ready, setReady] = useState<boolean | null>(null);
+  const [protectedHealth, setProtectedHealth] = useState(false);
+  const [basicUser, setBasicUser] = useState(sessionStorage.getItem('basic_user') || '');
+  const [basicPass, setBasicPass] = useState(sessionStorage.getItem('basic_pass') || '');
   const [counts, setCounts] = useState({ members: '—', resources: '—', announcements: '—', events: '—' });
 
+  const check = async () => {
+    setLive(null);
+    setReady(null);
+    setProtectedHealth(false);
+    const headers = basicAuthHeader();
+    try {
+      await api.get('/health/live', { headers } as object);
+      setLive(true);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401) setProtectedHealth(true);
+      setLive(false);
+    }
+    try {
+      await api.get('/health/ready', { headers } as object);
+      setReady(true);
+    } catch {
+      setReady(false);
+    }
+  };
+
   useEffect(() => {
-    api.get('/health/live').then(() => setLive(true)).catch(() => setLive(false));
-    api.get('/health/ready').then(() => setReady(true)).catch(() => setReady(false));
+    check();
     if (!currentBatchID) return;
     const jobs: [string, (v: string) => void][] = [
       [`/v1/batches/${currentBatchID}/members`, (v) => setCounts((c) => ({ ...c, members: v }))],
@@ -34,6 +57,31 @@ export default function System() {
     <div className="space-y-6">
       <Card className="p-7">
         <CardTitle>Service status</CardTitle>
+        <p className="mt-1 text-sm text-muted">Health endpoints require HTTP Basic Auth (see AUTH_BASIC_USER / AUTH_BASIC_PASS).</p>
+        <form
+          className="mt-4 grid grid-cols-3 gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            sessionStorage.setItem('basic_user', basicUser);
+            sessionStorage.setItem('basic_pass', basicPass);
+            check();
+          }}
+        >
+          <Field label="Basic-auth user">
+            <input className={inputCls} value={basicUser} onChange={(e) => setBasicUser(e.target.value)} autoComplete="username" />
+          </Field>
+          <Field label="Basic-auth password">
+            <input type="password" className={inputCls} value={basicPass} onChange={(e) => setBasicPass(e.target.value)} autoComplete="current-password" />
+          </Field>
+          <div className="flex items-end">
+            <button className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-medium">Check status</button>
+          </div>
+        </form>
+        {protectedHealth && (
+          <p className="mt-3 flex items-center gap-2 text-sm text-orange-700">
+            <LockClosedIcon className="w-4 h-4" /> Health endpoints rejected the credentials — enter the basic-auth user and password above.
+          </p>
+        )}
         <div className="mt-4 space-y-3">
           {services.map((s) => (
             <div key={s.name} className="flex items-center justify-between p-4 rounded-xl border border-line">

@@ -112,6 +112,7 @@ export default function Users() {
               <thead>
                 <tr className="text-muted text-sm border-b border-line">
                   <th className="py-3 pr-4 font-medium">Name</th>
+                  <th className="py-3 pr-4 font-medium">Combination</th>
                   <th className="py-3 pr-4 font-medium">Status</th>
                   <th className="py-3 pr-4 font-medium">Roles</th>
                   <th className="py-3 pr-4 font-medium">Joined</th>
@@ -126,6 +127,7 @@ export default function Users() {
                       <p className="font-medium text-ink">{m.display_name}</p>
                       <p className="text-xs text-muted font-mono">{m.user_id.slice(0, 8)}…</p>
                     </td>
+                    <td className="py-3.5 pr-4 text-sm text-muted">{m.combination || '—'}</td>
                     <td className="py-3.5 pr-4">
                       <Badge tone={statusTone(m.status)}>{m.status}</Badge>
                     </td>

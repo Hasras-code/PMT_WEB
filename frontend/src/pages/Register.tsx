@@ -8,6 +8,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     student_number: '',
+    combination: 'PMT-ICT',
     first_name: '',
     last_name: '',
     display_name: '',
@@ -60,6 +61,14 @@ export default function Register() {
             <Field label="Display name">
               <input required placeholder="John Doe" className={inputCls} value={form.display_name} onChange={set('display_name')} />
             </Field>
+            <div className="col-span-2">
+              <Field label="Combination">
+                <select className={inputCls} value={form.combination} onChange={(e) => setForm({ ...form, combination: e.target.value })}>
+                  <option value="PMT-ICT">PMT-ICT</option>
+                  <option value="PMT-CS">PMT-CS</option>
+                </select>
+              </Field>
+            </div>
             <Field label="First name">
               <input required className={inputCls} value={form.first_name} onChange={set('first_name')} />
             </Field>

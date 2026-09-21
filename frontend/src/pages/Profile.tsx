@@ -47,7 +47,7 @@ export default function Profile() {
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-semibold text-ink">{user.display_name}</h2>
-            <p className="text-sm text-muted">{user.email} · {user.student_number}</p>
+            <p className="text-sm text-muted">{user.email} · {user.student_number}{user.combination ? ` · ${user.combination}` : ''}</p>
           </div>
           <Badge tone={statusTone(user.status)}>{user.status}</Badge>
         </div>

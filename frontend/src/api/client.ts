@@ -127,4 +127,12 @@ export function errMsg(err: unknown, fallback: string): string {
   return e?.response?.data?.error?.message || fallback;
 }
 
+/** Basic-auth header for the protected /health endpoints (creds kept in session storage). */
+export function basicAuthHeader(): Record<string, string> {
+  const u = sessionStorage.getItem('basic_user');
+  const p = sessionStorage.getItem('basic_pass');
+  if (!u || p === null) return {};
+  return { Authorization: 'Basic ' + btoa(u + ':' + p) };
+}
+
 export default client;

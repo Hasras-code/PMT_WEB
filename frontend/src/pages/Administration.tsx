@@ -75,6 +75,7 @@ export default function Administration() {
                   <tr className="text-muted text-sm border-b border-line">
                     <th className="py-3 pr-4 font-medium">User</th>
                     <th className="py-3 pr-4 font-medium">Student #</th>
+                    <th className="py-3 pr-4 font-medium">Combination</th>
                     <th className="py-3 pr-4 font-medium">Status</th>
                     <th className="py-3 pr-4 font-medium">Joined</th>
                     <th className="py-3 font-medium">Actions</th>
@@ -85,6 +86,7 @@ export default function Administration() {
                     <tr key={u.id}>
                       <td className="py-3 pr-4"><p className="font-medium text-ink">{u.display_name}</p><p className="text-xs text-muted">{u.email}</p></td>
                       <td className="py-3 pr-4 text-muted text-sm font-mono">{u.student_number}</td>
+                      <td className="py-3 pr-4 text-muted text-sm">{u.combination || '—'}</td>
                       <td className="py-3 pr-4"><Badge tone={statusTone(u.status)}>{u.status}</Badge></td>
                       <td className="py-3 pr-4 text-muted text-sm">{fmtDate(u.created_at)}</td>
                       <td className="py-3">
