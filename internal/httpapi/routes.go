@@ -20,8 +20,10 @@ func (a *API) AuthenticatedBasic(next http.Handler) http.Handler {
 }
 
 func (a *API) NotFoundHandler() http.HandlerFunc {
-	return a.wrap(func(http.ResponseWriter, *http.Request) error { return apperror.ErrNotFound })
+	return a.wrap(a.notFoundHandler)
 }
+
+func (a *API) notFoundHandler(http.ResponseWriter, *http.Request) error { return apperror.ErrNotFound }
 
 func (a *API) MethodNotAllowedHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -34,9 +36,20 @@ func (a *API) MethodNotAllowedHandler() http.HandlerFunc {
 }
 
 func (a *API) LiveHandler() http.HandlerFunc {
-	return a.wrap(func(w http.ResponseWriter, _ *http.Request) error {
-		return send(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
+	return a.wrap(a.liveHandler)
+}
+
+// liveHandler godoc
+//
+//	@Summary Check liveness
+//	@Description Reports whether the process is running.
+//	@Tags health
+//	@Produce json
+//	@Success 200 {object} map[string]string
+//	@Security basicAuth
+//	@Router /health/live [get]
+func (a *API) liveHandler(w http.ResponseWriter, _ *http.Request) error {
+	return send(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (a *API) ReadyHandler() http.HandlerFunc {

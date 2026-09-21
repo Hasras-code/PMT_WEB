@@ -29,12 +29,16 @@ import (
 )
 
 type API struct {
-	Pool    *pgxpool.Pool
-	Auth    *auth.Service
-	Files   *storage.Local
-	Uploads upload.Service
-	Config  config.Config
-	Log     *slog.Logger
+	Pool               *pgxpool.Pool
+	Auth               *auth.Service
+	Files              *storage.Local
+	Uploads            upload.Service
+	Config             config.Config
+	Log                *slog.Logger
+	swaggerOnce        sync.Once
+	swaggerDocument    []byte
+	swaggerDocumentErr error
+	swaggerRouter      chi.Router
 }
 type endpoint func(http.ResponseWriter, *http.Request) error
 type contextKey int

@@ -51,6 +51,7 @@
   "paths": {
     "/health/live": {
       "get": {
+        "description": "Manage live.",
         "operationId": "get_health_live",
         "responses": {
           "200": {
@@ -154,11 +155,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /health/live"
+        "summary": "Get live",
+        "tags": [
+          "System"
+        ]
       }
     },
     "/health/ready": {
       "get": {
+        "description": "Manage ready.",
         "operationId": "get_health_ready",
         "responses": {
           "200": {
@@ -262,11 +267,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /health/ready"
+        "summary": "Get ready",
+        "tags": [
+          "System"
+        ]
       }
     },
     "/v1/admin/audit-logs": {
       "get": {
+        "description": "Manage audit logs.",
         "operationId": "get_v1_admin_audit_logs",
         "parameters": [
           {
@@ -400,11 +409,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/admin/audit-logs"
+        "summary": "Get audit logs",
+        "tags": [
+          "Administration"
+        ]
       }
     },
     "/v1/admin/batches": {
       "post": {
+        "description": "Manage batches.",
         "operationId": "post_v1_admin_batches",
         "requestBody": {
           "content": {
@@ -552,11 +565,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/admin/batches"
+        "summary": "Post batches",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/admin/batches/{batchID}/archive": {
       "post": {
+        "description": "Manage archive.",
         "operationId": "post_v1_admin_batches__batchID__archive",
         "parameters": [
           {
@@ -669,11 +686,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/admin/batches/{batchID}/archive"
+        "summary": "Post archive",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/admin/gallery": {
       "get": {
+        "description": "Manage gallery.",
         "operationId": "get_v1_admin_gallery",
         "parameters": [
           {
@@ -807,9 +828,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/admin/gallery"
+        "summary": "Get gallery",
+        "tags": [
+          "Gallery"
+        ]
       },
       "post": {
+        "description": "Manage gallery.",
         "operationId": "post_v1_admin_gallery",
         "requestBody": {
           "content": {
@@ -961,11 +986,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/admin/gallery"
+        "summary": "Post gallery",
+        "tags": [
+          "Gallery"
+        ]
       }
     },
     "/v1/admin/gallery/uploads": {
       "post": {
+        "description": "Manage uploads.",
         "operationId": "post_v1_admin_gallery_uploads",
         "requestBody": {
           "content": {
@@ -1126,11 +1155,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/admin/gallery/uploads"
+        "summary": "Post uploads",
+        "tags": [
+          "Gallery"
+        ]
       }
     },
     "/v1/admin/gallery/{imageID}": {
       "delete": {
+        "description": "Manage imageID.",
         "operationId": "delete_v1_admin_gallery__imageID_",
         "parameters": [
           {
@@ -1243,9 +1276,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/admin/gallery/{imageID}"
+        "summary": "Delete imageID",
+        "tags": [
+          "Gallery"
+        ]
       },
       "get": {
+        "description": "Manage imageID.",
         "operationId": "get_v1_admin_gallery__imageID_",
         "parameters": [
           {
@@ -1365,9 +1402,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/admin/gallery/{imageID}"
+        "summary": "Get imageID",
+        "tags": [
+          "Gallery"
+        ]
       },
       "patch": {
+        "description": "Manage imageID.",
         "operationId": "patch_v1_admin_gallery__imageID_",
         "parameters": [
           {
@@ -1502,11 +1543,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/admin/gallery/{imageID}"
+        "summary": "Patch imageID",
+        "tags": [
+          "Gallery"
+        ]
       }
     },
     "/v1/admin/gallery/{imageID}/publish": {
       "post": {
+        "description": "Manage publish.",
         "operationId": "post_v1_admin_gallery__imageID__publish",
         "parameters": [
           {
@@ -1619,11 +1664,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/admin/gallery/{imageID}/publish"
+        "summary": "Post publish",
+        "tags": [
+          "Gallery"
+        ]
       }
     },
     "/v1/admin/users": {
       "get": {
+        "description": "Manage users.",
         "operationId": "get_v1_admin_users",
         "parameters": [
           {
@@ -1757,11 +1806,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/admin/users"
+        "summary": "Get users",
+        "tags": [
+          "Administration"
+        ]
       }
     },
     "/v1/admin/users/{userID}": {
       "get": {
+        "description": "Manage userID.",
         "operationId": "get_v1_admin_users__userID_",
         "parameters": [
           {
@@ -1881,11 +1934,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/admin/users/{userID}"
+        "summary": "Get userID",
+        "tags": [
+          "Administration"
+        ]
       }
     },
     "/v1/admin/users/{userID}/archive": {
       "post": {
+        "description": "Manage archive.",
         "operationId": "post_v1_admin_users__userID__archive",
         "parameters": [
           {
@@ -1998,11 +2055,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/admin/users/{userID}/archive"
+        "summary": "Post archive",
+        "tags": [
+          "Administration"
+        ]
       }
     },
     "/v1/admin/users/{userID}/reactivate": {
       "post": {
+        "description": "Manage reactivate.",
         "operationId": "post_v1_admin_users__userID__reactivate",
         "parameters": [
           {
@@ -2115,11 +2176,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/admin/users/{userID}/reactivate"
+        "summary": "Post reactivate",
+        "tags": [
+          "Administration"
+        ]
       }
     },
     "/v1/admin/users/{userID}/suspend": {
       "post": {
+        "description": "Manage suspend.",
         "operationId": "post_v1_admin_users__userID__suspend",
         "parameters": [
           {
@@ -2232,11 +2297,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/admin/users/{userID}/suspend"
+        "summary": "Post suspend",
+        "tags": [
+          "Administration"
+        ]
       }
     },
     "/v1/auth/forgot-password": {
       "post": {
+        "description": "Manage forgot password.",
         "operationId": "post_v1_auth_forgot_password",
         "requestBody": {
           "content": {
@@ -2359,11 +2428,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "POST /v1/auth/forgot-password"
+        "summary": "Post forgot password",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/auth/login": {
       "post": {
+        "description": "Authenticate with email and password. Use token transport for JSON refresh credentials or cookie transport for browser sessions.",
         "operationId": "post_v1_auth_login",
         "requestBody": {
           "content": {
@@ -2508,7 +2581,10 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "POST /v1/auth/login"
+        "summary": "Log in",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/auth/logout": {
@@ -2632,11 +2708,15 @@
           },
           {}
         ],
-        "summary": "POST /v1/auth/logout"
+        "summary": "Log out",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/auth/logout-all": {
       "post": {
+        "description": "Manage logout all.",
         "operationId": "post_v1_auth_logout_all",
         "responses": {
           "204": {
@@ -2738,7 +2818,10 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/auth/logout-all"
+        "summary": "Post logout all",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/auth/refresh": {
@@ -2884,11 +2967,15 @@
           },
           {}
         ],
-        "summary": "POST /v1/auth/refresh"
+        "summary": "Refresh an access token",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/auth/register": {
       "post": {
+        "description": "Create a pending account and send an email verification message.",
         "operationId": "post_v1_auth_register",
         "requestBody": {
           "content": {
@@ -3031,11 +3118,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "POST /v1/auth/register"
+        "summary": "Register a user",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/auth/resend-verification": {
       "post": {
+        "description": "Manage resend verification.",
         "operationId": "post_v1_auth_resend_verification",
         "requestBody": {
           "content": {
@@ -3158,11 +3249,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "POST /v1/auth/resend-verification"
+        "summary": "Post resend verification",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/auth/reset-password": {
       "post": {
+        "description": "Set a new password using a password reset token.",
         "operationId": "post_v1_auth_reset_password",
         "requestBody": {
           "content": {
@@ -3282,11 +3377,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "POST /v1/auth/reset-password"
+        "summary": "Reset a password",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/auth/verify-email": {
       "post": {
+        "description": "Activate a pending account using its email verification token.",
         "operationId": "post_v1_auth_verify_email",
         "requestBody": {
           "content": {
@@ -3402,11 +3501,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "POST /v1/auth/verify-email"
+        "summary": "Verify an email address",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/v1/batches": {
       "get": {
+        "description": "Manage batches.",
         "operationId": "get_v1_batches",
         "parameters": [
           {
@@ -3540,11 +3643,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches"
+        "summary": "Get batches",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}": {
       "get": {
+        "description": "Manage batchID.",
         "operationId": "get_v1_batches__batchID_",
         "parameters": [
           {
@@ -3664,9 +3771,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}"
+        "summary": "Get batchID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage batchID.",
         "operationId": "patch_v1_batches__batchID_",
         "parameters": [
           {
@@ -3798,11 +3909,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}"
+        "summary": "Patch batchID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/announcements": {
       "get": {
+        "description": "Manage announcements.",
         "operationId": "get_v1_batches__batchID__announcements",
         "parameters": [
           {
@@ -3945,9 +4060,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/announcements"
+        "summary": "Get announcements",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage announcements.",
         "operationId": "post_v1_batches__batchID__announcements",
         "parameters": [
           {
@@ -4109,11 +4228,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/announcements"
+        "summary": "Post announcements",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/announcements/{announcementID}": {
       "delete": {
+        "description": "Manage announcementID.",
         "operationId": "delete_v1_batches__batchID__announcements__announcementID_",
         "parameters": [
           {
@@ -4235,9 +4358,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/announcements/{announcementID}"
+        "summary": "Delete announcementID",
+        "tags": [
+          "Batches"
+        ]
       },
       "get": {
+        "description": "Manage announcementID.",
         "operationId": "get_v1_batches__batchID__announcements__announcementID_",
         "parameters": [
           {
@@ -4366,9 +4493,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/announcements/{announcementID}"
+        "summary": "Get announcementID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage announcementID.",
         "operationId": "patch_v1_batches__batchID__announcements__announcementID_",
         "parameters": [
           {
@@ -4522,11 +4653,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/announcements/{announcementID}"
+        "summary": "Patch announcementID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/announcements/{announcementID}/attachments": {
       "get": {
+        "description": "Manage attachments.",
         "operationId": "get_v1_batches__batchID__announcements__announcementID__attachments",
         "parameters": [
           {
@@ -4678,9 +4813,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/announcements/{announcementID}/attachments"
+        "summary": "Get attachments",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage attachments.",
         "operationId": "post_v1_batches__batchID__announcements__announcementID__attachments",
         "parameters": [
           {
@@ -4834,11 +4973,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/announcements/{announcementID}/attachments"
+        "summary": "Post attachments",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/announcements/{announcementID}/attachments/uploads": {
       "post": {
+        "description": "Manage uploads.",
         "operationId": "post_v1_batches__batchID__announcements__announcementID__attachments_uploads",
         "parameters": [
           {
@@ -5019,11 +5162,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/announcements/{announcementID}/attachments/uploads"
+        "summary": "Post uploads",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/announcements/{announcementID}/attachments/{attachmentID}": {
       "delete": {
+        "description": "Manage attachmentID.",
         "operationId": "delete_v1_batches__batchID__announcements__announcementID__attachments__attachmentID_",
         "parameters": [
           {
@@ -5154,11 +5301,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/announcements/{announcementID}/attachments/{attachmentID}"
+        "summary": "Delete attachmentID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/announcements/{announcementID}/attachments/{attachmentID}/download": {
       "get": {
+        "description": "Manage download.",
         "operationId": "get_v1_batches__batchID__announcements__announcementID__attachments__attachmentID__download",
         "parameters": [
           {
@@ -5305,11 +5456,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/announcements/{announcementID}/attachments/{attachmentID}/download"
+        "summary": "Get download",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/announcements/{announcementID}/publish": {
       "post": {
+        "description": "Manage publish.",
         "operationId": "post_v1_batches__batchID__announcements__announcementID__publish",
         "parameters": [
           {
@@ -5431,11 +5586,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/announcements/{announcementID}/publish"
+        "summary": "Post publish",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/audit-logs": {
       "get": {
+        "description": "Manage audit logs.",
         "operationId": "get_v1_batches__batchID__audit_logs",
         "parameters": [
           {
@@ -5578,11 +5737,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/audit-logs"
+        "summary": "Get audit logs",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/complaints": {
       "get": {
+        "description": "Manage complaints.",
         "operationId": "get_v1_batches__batchID__complaints",
         "parameters": [
           {
@@ -5725,9 +5888,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/complaints"
+        "summary": "Get complaints",
+        "tags": [
+          "Support"
+        ]
       },
       "post": {
+        "description": "Manage complaints.",
         "operationId": "post_v1_batches__batchID__complaints",
         "parameters": [
           {
@@ -5883,11 +6050,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/complaints"
+        "summary": "Post complaints",
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/v1/batches/{batchID}/complaints/mine": {
       "get": {
+        "description": "Manage mine.",
         "operationId": "get_v1_batches__batchID__complaints_mine",
         "parameters": [
           {
@@ -6030,11 +6201,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/complaints/mine"
+        "summary": "Get mine",
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/v1/batches/{batchID}/complaints/{complaintID}": {
       "get": {
+        "description": "Manage complaintID.",
         "operationId": "get_v1_batches__batchID__complaints__complaintID_",
         "parameters": [
           {
@@ -6163,11 +6338,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/complaints/{complaintID}"
+        "summary": "Get complaintID",
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/v1/batches/{batchID}/complaints/{complaintID}/assignee": {
       "patch": {
+        "description": "Manage assignee.",
         "operationId": "patch_v1_batches__batchID__complaints__complaintID__assignee",
         "parameters": [
           {
@@ -6305,11 +6484,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/complaints/{complaintID}/assignee"
+        "summary": "Patch assignee",
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/v1/batches/{batchID}/complaints/{complaintID}/messages": {
       "get": {
+        "description": "Manage messages.",
         "operationId": "get_v1_batches__batchID__complaints__complaintID__messages",
         "parameters": [
           {
@@ -6451,9 +6634,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/complaints/{complaintID}/messages"
+        "summary": "Get messages",
+        "tags": [
+          "Support"
+        ]
       },
       "post": {
+        "description": "Manage messages.",
         "operationId": "post_v1_batches__batchID__complaints__complaintID__messages",
         "parameters": [
           {
@@ -6594,11 +6781,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/complaints/{complaintID}/messages"
+        "summary": "Post messages",
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/v1/batches/{batchID}/complaints/{complaintID}/status": {
       "patch": {
+        "description": "Manage status.",
         "operationId": "patch_v1_batches__batchID__complaints__complaintID__status",
         "parameters": [
           {
@@ -6736,11 +6927,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/complaints/{complaintID}/status"
+        "summary": "Patch status",
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/v1/batches/{batchID}/events": {
       "get": {
+        "description": "Manage events.",
         "operationId": "get_v1_batches__batchID__events",
         "parameters": [
           {
@@ -6883,9 +7078,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/events"
+        "summary": "Get events",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage events.",
         "operationId": "post_v1_batches__batchID__events",
         "parameters": [
           {
@@ -7048,11 +7247,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/events"
+        "summary": "Post events",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/events/{eventID}": {
       "delete": {
+        "description": "Manage eventID.",
         "operationId": "delete_v1_batches__batchID__events__eventID_",
         "parameters": [
           {
@@ -7174,9 +7377,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/events/{eventID}"
+        "summary": "Delete eventID",
+        "tags": [
+          "Batches"
+        ]
       },
       "get": {
+        "description": "Manage eventID.",
         "operationId": "get_v1_batches__batchID__events__eventID_",
         "parameters": [
           {
@@ -7305,9 +7512,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/events/{eventID}"
+        "summary": "Get eventID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage eventID.",
         "operationId": "patch_v1_batches__batchID__events__eventID_",
         "parameters": [
           {
@@ -7462,11 +7673,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/events/{eventID}"
+        "summary": "Patch eventID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/events/{eventID}/image": {
       "get": {
+        "description": "Manage image.",
         "operationId": "get_v1_batches__batchID__events__eventID__image",
         "parameters": [
           {
@@ -7595,9 +7810,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/events/{eventID}/image"
+        "summary": "Get image",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage image.",
         "operationId": "post_v1_batches__batchID__events__eventID__image",
         "parameters": [
           {
@@ -7738,11 +7957,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/events/{eventID}/image"
+        "summary": "Post image",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/events/{eventID}/publish": {
       "post": {
+        "description": "Manage publish.",
         "operationId": "post_v1_batches__batchID__events__eventID__publish",
         "parameters": [
           {
@@ -7864,11 +8087,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/events/{eventID}/publish"
+        "summary": "Post publish",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/events/{eventID}/uploads": {
       "post": {
+        "description": "Manage uploads.",
         "operationId": "post_v1_batches__batchID__events__eventID__uploads",
         "parameters": [
           {
@@ -8049,11 +8276,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/events/{eventID}/uploads"
+        "summary": "Post uploads",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/feedback": {
       "get": {
+        "description": "Manage feedback.",
         "operationId": "get_v1_batches__batchID__feedback",
         "parameters": [
           {
@@ -8196,9 +8427,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/feedback"
+        "summary": "Get feedback",
+        "tags": [
+          "Support"
+        ]
       },
       "post": {
+        "description": "Manage feedback.",
         "operationId": "post_v1_batches__batchID__feedback",
         "parameters": [
           {
@@ -8352,11 +8587,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/feedback"
+        "summary": "Post feedback",
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/v1/batches/{batchID}/feedback/{feedbackID}/status": {
       "patch": {
+        "description": "Manage status.",
         "operationId": "patch_v1_batches__batchID__feedback__feedbackID__status",
         "parameters": [
           {
@@ -8494,11 +8733,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/feedback/{feedbackID}/status"
+        "summary": "Patch status",
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/v1/batches/{batchID}/lessons": {
       "get": {
+        "description": "Manage lessons.",
         "operationId": "get_v1_batches__batchID__lessons",
         "parameters": [
           {
@@ -8641,9 +8884,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/lessons"
+        "summary": "Get lessons",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage lessons.",
         "operationId": "post_v1_batches__batchID__lessons",
         "parameters": [
           {
@@ -8805,11 +9052,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/lessons"
+        "summary": "Post lessons",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/lessons/{lessonID}": {
       "delete": {
+        "description": "Manage lessonID.",
         "operationId": "delete_v1_batches__batchID__lessons__lessonID_",
         "parameters": [
           {
@@ -8931,9 +9182,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/lessons/{lessonID}"
+        "summary": "Delete lessonID",
+        "tags": [
+          "Batches"
+        ]
       },
       "get": {
+        "description": "Manage lessonID.",
         "operationId": "get_v1_batches__batchID__lessons__lessonID_",
         "parameters": [
           {
@@ -9062,9 +9317,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/lessons/{lessonID}"
+        "summary": "Get lessonID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage lessonID.",
         "operationId": "patch_v1_batches__batchID__lessons__lessonID_",
         "parameters": [
           {
@@ -9217,11 +9476,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/lessons/{lessonID}"
+        "summary": "Patch lessonID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/lessons/{lessonID}/publish": {
       "post": {
+        "description": "Manage publish.",
         "operationId": "post_v1_batches__batchID__lessons__lessonID__publish",
         "parameters": [
           {
@@ -9343,11 +9606,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/lessons/{lessonID}/publish"
+        "summary": "Post publish",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/links": {
       "get": {
+        "description": "Manage links.",
         "operationId": "get_v1_batches__batchID__links",
         "parameters": [
           {
@@ -9490,9 +9757,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/links"
+        "summary": "Get links",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage links.",
         "operationId": "post_v1_batches__batchID__links",
         "parameters": [
           {
@@ -9650,11 +9921,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/links"
+        "summary": "Post links",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/links/{linkID}": {
       "delete": {
+        "description": "Manage linkID.",
         "operationId": "delete_v1_batches__batchID__links__linkID_",
         "parameters": [
           {
@@ -9776,9 +10051,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/links/{linkID}"
+        "summary": "Delete linkID",
+        "tags": [
+          "Batches"
+        ]
       },
       "get": {
+        "description": "Manage linkID.",
         "operationId": "get_v1_batches__batchID__links__linkID_",
         "parameters": [
           {
@@ -9907,9 +10186,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/links/{linkID}"
+        "summary": "Get linkID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage linkID.",
         "operationId": "patch_v1_batches__batchID__links__linkID_",
         "parameters": [
           {
@@ -10059,11 +10342,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/links/{linkID}"
+        "summary": "Patch linkID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/links/{linkID}/publish": {
       "post": {
+        "description": "Manage publish.",
         "operationId": "post_v1_batches__batchID__links__linkID__publish",
         "parameters": [
           {
@@ -10185,11 +10472,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/links/{linkID}/publish"
+        "summary": "Post publish",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/members": {
       "get": {
+        "description": "Manage members.",
         "operationId": "get_v1_batches__batchID__members",
         "parameters": [
           {
@@ -10332,9 +10623,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/members"
+        "summary": "Get members",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage members.",
         "operationId": "post_v1_batches__batchID__members",
         "parameters": [
           {
@@ -10479,11 +10774,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/members"
+        "summary": "Post members",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/members/{membershipID}": {
       "get": {
+        "description": "Manage membershipID.",
         "operationId": "get_v1_batches__batchID__members__membershipID_",
         "parameters": [
           {
@@ -10612,11 +10911,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/members/{membershipID}"
+        "summary": "Get membershipID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/members/{membershipID}/graduate": {
       "post": {
+        "description": "Manage graduate.",
         "operationId": "post_v1_batches__batchID__members__membershipID__graduate",
         "parameters": [
           {
@@ -10738,11 +11041,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/members/{membershipID}/graduate"
+        "summary": "Post graduate",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/members/{membershipID}/leave": {
       "post": {
+        "description": "Manage leave.",
         "operationId": "post_v1_batches__batchID__members__membershipID__leave",
         "parameters": [
           {
@@ -10864,11 +11171,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/members/{membershipID}/leave"
+        "summary": "Post leave",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/members/{membershipID}/reactivate": {
       "post": {
+        "description": "Manage reactivate.",
         "operationId": "post_v1_batches__batchID__members__membershipID__reactivate",
         "parameters": [
           {
@@ -10990,11 +11301,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/members/{membershipID}/reactivate"
+        "summary": "Post reactivate",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/members/{membershipID}/roles": {
       "post": {
+        "description": "Manage roles.",
         "operationId": "post_v1_batches__batchID__members__membershipID__roles",
         "parameters": [
           {
@@ -11142,11 +11457,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/members/{membershipID}/roles"
+        "summary": "Post roles",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/members/{membershipID}/roles/{roleCode}": {
       "delete": {
+        "description": "Manage roleCode.",
         "operationId": "delete_v1_batches__batchID__members__membershipID__roles__roleCode_",
         "parameters": [
           {
@@ -11276,11 +11595,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/members/{membershipID}/roles/{roleCode}"
+        "summary": "Delete roleCode",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/members/{membershipID}/suspend": {
       "post": {
+        "description": "Manage suspend.",
         "operationId": "post_v1_batches__batchID__members__membershipID__suspend",
         "parameters": [
           {
@@ -11402,11 +11725,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/members/{membershipID}/suspend"
+        "summary": "Post suspend",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/modules": {
       "get": {
+        "description": "Manage modules.",
         "operationId": "get_v1_batches__batchID__modules",
         "parameters": [
           {
@@ -11549,9 +11876,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/modules"
+        "summary": "Get modules",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage modules.",
         "operationId": "post_v1_batches__batchID__modules",
         "parameters": [
           {
@@ -11710,11 +12041,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/modules"
+        "summary": "Post modules",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/modules/{moduleID}": {
       "delete": {
+        "description": "Manage moduleID.",
         "operationId": "delete_v1_batches__batchID__modules__moduleID_",
         "parameters": [
           {
@@ -11836,9 +12171,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/modules/{moduleID}"
+        "summary": "Delete moduleID",
+        "tags": [
+          "Batches"
+        ]
       },
       "get": {
+        "description": "Manage moduleID.",
         "operationId": "get_v1_batches__batchID__modules__moduleID_",
         "parameters": [
           {
@@ -11967,9 +12306,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/modules/{moduleID}"
+        "summary": "Get moduleID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage moduleID.",
         "operationId": "patch_v1_batches__batchID__modules__moduleID_",
         "parameters": [
           {
@@ -12119,11 +12462,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/modules/{moduleID}"
+        "summary": "Patch moduleID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/positions": {
       "get": {
+        "description": "Manage positions.",
         "operationId": "get_v1_batches__batchID__positions",
         "parameters": [
           {
@@ -12266,9 +12613,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/positions"
+        "summary": "Get positions",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage positions.",
         "operationId": "post_v1_batches__batchID__positions",
         "parameters": [
           {
@@ -12422,11 +12773,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/positions"
+        "summary": "Post positions",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/positions/{positionID}": {
       "delete": {
+        "description": "Manage positionID.",
         "operationId": "delete_v1_batches__batchID__positions__positionID_",
         "parameters": [
           {
@@ -12548,9 +12903,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/positions/{positionID}"
+        "summary": "Delete positionID",
+        "tags": [
+          "Batches"
+        ]
       },
       "get": {
+        "description": "Manage positionID.",
         "operationId": "get_v1_batches__batchID__positions__positionID_",
         "parameters": [
           {
@@ -12679,9 +13038,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/positions/{positionID}"
+        "summary": "Get positionID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage positionID.",
         "operationId": "patch_v1_batches__batchID__positions__positionID_",
         "parameters": [
           {
@@ -12828,11 +13191,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/positions/{positionID}"
+        "summary": "Patch positionID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/positions/{positionID}/assignments": {
       "get": {
+        "description": "Manage assignments.",
         "operationId": "get_v1_batches__batchID__positions__positionID__assignments",
         "parameters": [
           {
@@ -12984,9 +13351,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/positions/{positionID}/assignments"
+        "summary": "Get assignments",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage assignments.",
         "operationId": "post_v1_batches__batchID__positions__positionID__assignments",
         "parameters": [
           {
@@ -13151,11 +13522,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/positions/{positionID}/assignments"
+        "summary": "Post assignments",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/positions/{positionID}/assignments/{assignmentID}/end": {
       "post": {
+        "description": "Manage end.",
         "operationId": "post_v1_batches__batchID__positions__positionID__assignments__assignmentID__end",
         "parameters": [
           {
@@ -13286,11 +13661,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/positions/{positionID}/assignments/{assignmentID}/end"
+        "summary": "Post end",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/profile": {
       "get": {
+        "description": "Manage profile.",
         "operationId": "get_v1_batches__batchID__profile",
         "parameters": [
           {
@@ -13410,9 +13789,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/profile"
+        "summary": "Get profile",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage profile.",
         "operationId": "patch_v1_batches__batchID__profile",
         "parameters": [
           {
@@ -13553,11 +13936,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/profile"
+        "summary": "Patch profile",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/profile/uploads": {
       "post": {
+        "description": "Manage uploads.",
         "operationId": "post_v1_batches__batchID__profile_uploads",
         "parameters": [
           {
@@ -13729,11 +14116,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/profile/uploads"
+        "summary": "Post uploads",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources": {
       "get": {
+        "description": "Manage resources.",
         "operationId": "get_v1_batches__batchID__resources",
         "parameters": [
           {
@@ -13876,9 +14267,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/resources"
+        "summary": "Get resources",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage resources.",
         "operationId": "post_v1_batches__batchID__resources",
         "parameters": [
           {
@@ -14056,11 +14451,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/resources"
+        "summary": "Post resources",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources/uploads": {
       "post": {
+        "description": "Manage uploads.",
         "operationId": "post_v1_batches__batchID__resources_uploads",
         "parameters": [
           {
@@ -14232,11 +14631,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/resources/uploads"
+        "summary": "Post uploads",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources/{resourceID}": {
       "delete": {
+        "description": "Manage resourceID.",
         "operationId": "delete_v1_batches__batchID__resources__resourceID_",
         "parameters": [
           {
@@ -14358,9 +14761,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/resources/{resourceID}"
+        "summary": "Delete resourceID",
+        "tags": [
+          "Batches"
+        ]
       },
       "get": {
+        "description": "Manage resourceID.",
         "operationId": "get_v1_batches__batchID__resources__resourceID_",
         "parameters": [
           {
@@ -14489,9 +14896,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/resources/{resourceID}"
+        "summary": "Get resourceID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage resourceID.",
         "operationId": "patch_v1_batches__batchID__resources__resourceID_",
         "parameters": [
           {
@@ -14632,11 +15043,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/resources/{resourceID}"
+        "summary": "Patch resourceID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources/{resourceID}/bookmark": {
       "delete": {
+        "description": "Manage bookmark.",
         "operationId": "delete_v1_batches__batchID__resources__resourceID__bookmark",
         "parameters": [
           {
@@ -14758,9 +15173,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/batches/{batchID}/resources/{resourceID}/bookmark"
+        "summary": "Delete bookmark",
+        "tags": [
+          "Batches"
+        ]
       },
       "put": {
+        "description": "Manage bookmark.",
         "operationId": "put_v1_batches__batchID__resources__resourceID__bookmark",
         "parameters": [
           {
@@ -14882,11 +15301,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PUT /v1/batches/{batchID}/resources/{resourceID}/bookmark"
+        "summary": "Put bookmark",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources/{resourceID}/download": {
       "get": {
+        "description": "Manage download.",
         "operationId": "get_v1_batches__batchID__resources__resourceID__download",
         "parameters": [
           {
@@ -15024,11 +15447,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/resources/{resourceID}/download"
+        "summary": "Get download",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources/{resourceID}/publish": {
       "post": {
+        "description": "Manage publish.",
         "operationId": "post_v1_batches__batchID__resources__resourceID__publish",
         "parameters": [
           {
@@ -15150,11 +15577,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/resources/{resourceID}/publish"
+        "summary": "Post publish",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources/{resourceID}/versions": {
       "get": {
+        "description": "Manage versions.",
         "operationId": "get_v1_batches__batchID__resources__resourceID__versions",
         "parameters": [
           {
@@ -15306,9 +15737,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/resources/{resourceID}/versions"
+        "summary": "Get versions",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage versions.",
         "operationId": "post_v1_batches__batchID__resources__resourceID__versions",
         "parameters": [
           {
@@ -15479,11 +15914,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/resources/{resourceID}/versions"
+        "summary": "Post versions",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources/{resourceID}/versions/uploads": {
       "post": {
+        "description": "Manage uploads.",
         "operationId": "post_v1_batches__batchID__resources__resourceID__versions_uploads",
         "parameters": [
           {
@@ -15664,11 +16103,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/resources/{resourceID}/versions/uploads"
+        "summary": "Post uploads",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/resources/{resourceID}/versions/{versionID}/download": {
       "get": {
+        "description": "Manage download.",
         "operationId": "get_v1_batches__batchID__resources__resourceID__versions__versionID__download",
         "parameters": [
           {
@@ -15815,11 +16258,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/resources/{resourceID}/versions/{versionID}/download"
+        "summary": "Get download",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/roles": {
       "get": {
+        "description": "Manage roles.",
         "operationId": "get_v1_batches__batchID__roles",
         "parameters": [
           {
@@ -15962,11 +16409,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/roles"
+        "summary": "Get roles",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/semesters": {
       "get": {
+        "description": "Manage semesters.",
         "operationId": "get_v1_batches__batchID__semesters",
         "parameters": [
           {
@@ -16109,9 +16560,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/semesters"
+        "summary": "Get semesters",
+        "tags": [
+          "Batches"
+        ]
       },
       "post": {
+        "description": "Manage semesters.",
         "operationId": "post_v1_batches__batchID__semesters",
         "parameters": [
           {
@@ -16272,11 +16727,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/semesters"
+        "summary": "Post semesters",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/semesters/{semesterID}": {
       "get": {
+        "description": "Manage semesterID.",
         "operationId": "get_v1_batches__batchID__semesters__semesterID_",
         "parameters": [
           {
@@ -16405,9 +16864,13 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/batches/{batchID}/semesters/{semesterID}"
+        "summary": "Get semesterID",
+        "tags": [
+          "Batches"
+        ]
       },
       "patch": {
+        "description": "Manage semesterID.",
         "operationId": "patch_v1_batches__batchID__semesters__semesterID_",
         "parameters": [
           {
@@ -16559,11 +17022,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/batches/{batchID}/semesters/{semesterID}"
+        "summary": "Patch semesterID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/batches/{batchID}/semesters/{semesterID}/set-current": {
       "post": {
+        "description": "Manage set current.",
         "operationId": "post_v1_batches__batchID__semesters__semesterID__set_current",
         "parameters": [
           {
@@ -16685,11 +17152,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/batches/{batchID}/semesters/{semesterID}/set-current"
+        "summary": "Post set current",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/files/downloads/{token}": {
       "get": {
+        "description": "Manage token.",
         "operationId": "get_v1_files_downloads__token_",
         "parameters": [
           {
@@ -16804,11 +17275,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/files/downloads/{token}"
+        "summary": "Get token",
+        "tags": [
+          "System"
+        ]
       }
     },
     "/v1/files/uploads/{token}": {
       "put": {
+        "description": "Manage token.",
         "operationId": "put_v1_files_uploads__token_",
         "parameters": [
           {
@@ -16944,11 +17419,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "PUT /v1/files/uploads/{token}"
+        "summary": "Put token",
+        "tags": [
+          "System"
+        ]
       }
     },
     "/v1/me": {
       "get": {
+        "description": "Manage me.",
         "operationId": "get_v1_me",
         "responses": {
           "200": {
@@ -17084,11 +17563,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/me"
+        "summary": "Get me",
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/v1/me/bookmarks": {
       "get": {
+        "description": "Manage bookmarks.",
         "operationId": "get_v1_me_bookmarks",
         "parameters": [
           {
@@ -17222,11 +17705,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/me/bookmarks"
+        "summary": "Get bookmarks",
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/v1/me/notifications": {
       "get": {
+        "description": "Manage notifications.",
         "operationId": "get_v1_me_notifications",
         "parameters": [
           {
@@ -17360,11 +17847,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/me/notifications"
+        "summary": "Get notifications",
+        "tags": [
+          "Notifications"
+        ]
       }
     },
     "/v1/me/notifications/read-all": {
       "post": {
+        "description": "Manage read all.",
         "operationId": "post_v1_me_notifications_read_all",
         "responses": {
           "204": {
@@ -17466,11 +17957,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/me/notifications/read-all"
+        "summary": "Post read all",
+        "tags": [
+          "Notifications"
+        ]
       }
     },
     "/v1/me/notifications/{notificationID}": {
       "patch": {
+        "description": "Manage notificationID.",
         "operationId": "patch_v1_me_notifications__notificationID_",
         "parameters": [
           {
@@ -17583,11 +18078,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/me/notifications/{notificationID}"
+        "summary": "Patch notificationID",
+        "tags": [
+          "Notifications"
+        ]
       }
     },
     "/v1/me/profile": {
       "patch": {
+        "description": "Manage profile.",
         "operationId": "patch_v1_me_profile",
         "requestBody": {
           "content": {
@@ -17717,11 +18216,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "PATCH /v1/me/profile"
+        "summary": "Patch profile",
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/v1/me/profile/image": {
       "get": {
+        "description": "Manage image.",
         "operationId": "get_v1_me_profile_image",
         "responses": {
           "200": {
@@ -17830,11 +18333,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/me/profile/image"
+        "summary": "Get image",
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/v1/me/profile/image/uploads": {
       "post": {
+        "description": "Manage uploads.",
         "operationId": "post_v1_me_profile_image_uploads",
         "requestBody": {
           "content": {
@@ -17995,11 +18502,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "POST /v1/me/profile/image/uploads"
+        "summary": "Post uploads",
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/v1/me/sessions": {
       "get": {
+        "description": "Manage sessions.",
         "operationId": "get_v1_me_sessions",
         "parameters": [
           {
@@ -18133,11 +18644,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "GET /v1/me/sessions"
+        "summary": "Get sessions",
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/v1/me/sessions/{sessionID}": {
       "delete": {
+        "description": "Manage sessionID.",
         "operationId": "delete_v1_me_sessions__sessionID_",
         "parameters": [
           {
@@ -18250,11 +18765,15 @@
             "bearerAuth": []
           }
         ],
-        "summary": "DELETE /v1/me/sessions/{sessionID}"
+        "summary": "Delete sessionID",
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/v1/public/batches/{slug}": {
       "get": {
+        "description": "Manage slug.",
         "operationId": "get_v1_public_batches__slug_",
         "parameters": [
           {
@@ -18368,11 +18887,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/batches/{slug}"
+        "summary": "Get slug",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/public/batches/{slug}/events": {
       "get": {
+        "description": "Manage events.",
         "operationId": "get_v1_public_batches__slug__events",
         "parameters": [
           {
@@ -18509,11 +19032,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/batches/{slug}/events"
+        "summary": "Get events",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/public/batches/{slug}/events/{eventID}": {
       "get": {
+        "description": "Manage eventID.",
         "operationId": "get_v1_public_batches__slug__events__eventID_",
         "parameters": [
           {
@@ -18636,11 +19163,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/batches/{slug}/events/{eventID}"
+        "summary": "Get eventID",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/public/batches/{slug}/events/{eventID}/image": {
       "get": {
+        "description": "Manage image.",
         "operationId": "get_v1_public_batches__slug__events__eventID__image",
         "parameters": [
           {
@@ -18764,11 +19295,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/batches/{slug}/events/{eventID}/image"
+        "summary": "Get image",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/public/batches/{slug}/image": {
       "get": {
+        "description": "Manage image.",
         "operationId": "get_v1_public_batches__slug__image",
         "parameters": [
           {
@@ -18883,11 +19418,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/batches/{slug}/image"
+        "summary": "Get image",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/public/batches/{slug}/positions": {
       "get": {
+        "description": "Manage positions.",
         "operationId": "get_v1_public_batches__slug__positions",
         "parameters": [
           {
@@ -19024,11 +19563,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/batches/{slug}/positions"
+        "summary": "Get positions",
+        "tags": [
+          "Batches"
+        ]
       }
     },
     "/v1/public/gallery": {
       "get": {
+        "description": "Manage gallery.",
         "operationId": "get_v1_public_gallery",
         "parameters": [
           {
@@ -19208,11 +19751,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/gallery"
+        "summary": "Get gallery",
+        "tags": [
+          "Gallery"
+        ]
       }
     },
     "/v1/public/gallery/{imageID}": {
       "get": {
+        "description": "Manage imageID.",
         "operationId": "get_v1_public_gallery__imageID_",
         "parameters": [
           {
@@ -19365,11 +19912,15 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/gallery/{imageID}"
+        "summary": "Get imageID",
+        "tags": [
+          "Gallery"
+        ]
       }
     },
     "/v1/public/gallery/{imageID}/files/{variant}": {
       "get": {
+        "description": "Manage variant.",
         "operationId": "get_v1_public_gallery__imageID__files__variant_",
         "parameters": [
           {
@@ -19493,7 +20044,10 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "GET /v1/public/gallery/{imageID}/files/{variant}"
+        "summary": "Get variant",
+        "tags": [
+          "Gallery"
+        ]
       }
     }
   },

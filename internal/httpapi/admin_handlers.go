@@ -1,93 +1,242 @@
 package httpapi
 
 import (
+	"net/http"
+
 	"github.com/Hasras-code/PMT_WEB.git/internal/audit"
 	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
 	"github.com/Hasras-code/PMT_WEB.git/internal/notification"
 	"github.com/Hasras-code/PMT_WEB.git/internal/user"
 	"github.com/go-chi/chi/v5"
-	"net/http"
 )
 
 func (a *API) adminRoutes(r chi.Router) {
-	b := batch.Service{Pool: a.Pool}
-	u := user.Service{Pool: a.Pool}
-	r.Post("/admin/batches", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
-		in, e := decode[batch.Input](w, r)
-		if e != nil {
-			return e
-		}
-		id, e := b.Create(r.Context(), userID(r), in, false)
-		if e != nil {
-			return e
-		}
-		return created(w, id)
-	}))
-	r.Post("/admin/batches/{batchID}/archive", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
-		if e := b.Archive(r.Context(), userID(r), batchID(r)); e != nil {
-			return e
-		}
-		return send(w, 204, nil)
-	}))
-	for _, path := range []string{"/admin/users", "/admin/users/{userID}"} {
-		r.Get(path, a.wrap(func(w http.ResponseWriter, r *http.Request) error {
-			l, o, e := page(r)
-			if e != nil {
-				return e
-			}
-			v, e := u.AdminList(r.Context(), userID(r), param(r, "userID"), l, o)
-			if e != nil {
-				return e
-			}
-			return send(w, 200, v)
-		}))
-	}
-	for _, x := range []struct{ path, status string }{{"suspend", "SUSPENDED"}, {"reactivate", "ACTIVE"}, {"archive", "ARCHIVED"}} {
-		r.Post("/admin/users/{userID}/"+x.path, a.wrap(func(w http.ResponseWriter, r *http.Request) error {
-			if e := u.Status(r.Context(), userID(r), param(r, "userID"), x.status); e != nil {
-				return e
-			}
-			return send(w, 204, nil)
-		}))
-	}
+	r.Post("/admin/batches", a.wrap(a.adminCreateBatchHandler))
+	r.Post("/admin/batches/{batchID}/archive", a.wrap(a.adminArchiveBatchHandler))
+	r.Get("/admin/users", a.wrap(a.adminListUsersHandler))
+	r.Get("/admin/users/{userID}", a.wrap(a.adminListUserHandler))
+	r.Post("/admin/users/{userID}/suspend", a.wrap(a.adminSuspendUserHandler))
+	r.Post("/admin/users/{userID}/reactivate", a.wrap(a.adminReactivateUserHandler))
+	r.Post("/admin/users/{userID}/archive", a.wrap(a.adminArchiveUserHandler))
 	r.Get("/admin/audit-logs", a.auditHandler())
 }
+
+// adminCreateBatchHandler godoc
+//
+//	@Summary Create a batch
+//	@Tags admin
+//	@Accept json
+//	@Param payload body batch.Input true "Batch"
+//	@Success 201 {object} map[string]string
+//	@Security bearerAuth
+//	@Router /v1/admin/batches [post]
+func (a *API) adminCreateBatchHandler(w http.ResponseWriter, r *http.Request) error {
+	b := batch.Service{Pool: a.Pool}
+	in, e := decode[batch.Input](w, r)
+	if e != nil {
+		return e
+	}
+	id, e := b.Create(r.Context(), userID(r), in, false)
+	if e != nil {
+		return e
+	}
+	return created(w, id)
+	return created(w, id)
+}
+
+// adminArchiveBatchHandler godoc
+//
+//	@Summary Archive a batch
+//	@Tags admin
+//	@Param batchID path string true "Batch ID"
+//	@Success 204
+//	@Security bearerAuth
+//	@Router /v1/admin/batches/{batchID}/archive [post]
+func (a *API) adminArchiveBatchHandler(w http.ResponseWriter, r *http.Request) error {
+	b := batch.Service{Pool: a.Pool}
+	if e := b.Archive(r.Context(), userID(r), batchID(r)); e != nil {
+		return e
+	}
+	return send(w, 204, nil)
+	return send(w, 204, nil)
+}
+
+// adminListUsersHandler godoc
+//
+//	@Summary List users
+//	@Tags admin
+//	@Produce json
+//	@Param userID path string false "User ID"
+//	@Param limit query int false "Limit"
+//	@Param offset query int false "Offset"
+//	@Success 200 {array} map[string]any
+//	@Security bearerAuth
+//	@Router /v1/admin/users [get]
+func (a *API) adminListUsersHandler(w http.ResponseWriter, r *http.Request) error {
+	u := user.Service{Pool: a.Pool}
+	l, o, e := page(r)
+	if e != nil {
+		return e
+	}
+	v, e := u.AdminList(r.Context(), userID(r), param(r, "userID"), l, o)
+	if e != nil {
+		return e
+	}
+	return send(w, 200, v)
+	return send(w, 200, v)
+}
+
+// adminListUserHandler godoc
+//
+//	@Summary Get a user's admin view
+//	@Tags admin
+//	@Produce json
+//	@Param userID path string true "User ID"
+//	@Param limit query int false "Limit"
+//	@Param offset query int false "Offset"
+//	@Success 200 {array} map[string]any
+//	@Security bearerAuth
+//	@Router /v1/admin/users/{userID} [get]
+func (a *API) adminListUserHandler(w http.ResponseWriter, r *http.Request) error {
+	u := user.Service{Pool: a.Pool}
+	l, o, e := page(r)
+	if e != nil {
+		return e
+	}
+	v, e := u.AdminList(r.Context(), userID(r), param(r, "userID"), l, o)
+	if e != nil {
+		return e
+	}
+	return send(w, 200, v)
+}
+
+func (a *API) adminSetUserStatusHandler(w http.ResponseWriter, r *http.Request, status string) error {
+	u := user.Service{Pool: a.Pool}
+	if e := u.Status(r.Context(), userID(r), param(r, "userID"), status); e != nil {
+		return e
+	}
+	return send(w, 204, nil)
+}
+
+// adminSuspendUserHandler godoc
+//
+//	@Summary Suspend a user
+//	@Tags admin
+//	@Param userID path string true "User ID"
+//	@Success 204
+//	@Security bearerAuth
+//	@Router /v1/admin/users/{userID}/suspend [post]
+func (a *API) adminSuspendUserHandler(w http.ResponseWriter, r *http.Request) error {
+	return a.adminSetUserStatusHandler(w, r, "SUSPENDED")
+}
+
+// adminReactivateUserHandler godoc
+//
+//	@Summary Reactivate a user
+//	@Tags admin
+//	@Param userID path string true "User ID"
+//	@Success 204
+//	@Security bearerAuth
+//	@Router /v1/admin/users/{userID}/reactivate [post]
+func (a *API) adminReactivateUserHandler(w http.ResponseWriter, r *http.Request) error {
+	return a.adminSetUserStatusHandler(w, r, "ACTIVE")
+}
+
+// adminArchiveUserHandler godoc
+//
+//	@Summary Archive a user
+//	@Tags admin
+//	@Param userID path string true "User ID"
+//	@Success 204
+//	@Security bearerAuth
+//	@Router /v1/admin/users/{userID}/archive [post]
+func (a *API) adminArchiveUserHandler(w http.ResponseWriter, r *http.Request) error {
+	return a.adminSetUserStatusHandler(w, r, "ARCHIVED")
+}
 func (a *API) auditHandler() http.HandlerFunc {
-	return a.wrap(func(w http.ResponseWriter, r *http.Request) error {
-		l, o, e := page(r)
-		if e != nil {
-			return e
-		}
-		v, e := audit.List(r.Context(), a.Pool, userID(r), batchID(r), l, o)
-		if e != nil {
-			return e
-		}
-		return send(w, 200, v)
-	})
+	return a.wrap(a.auditLogsHandler)
+}
+
+// auditLogsHandler godoc
+//
+//	@Summary List audit logs
+//	@Tags admin
+//	@Produce json
+//	@Param batchID path string false "Batch ID"
+//	@Param limit query int false "Limit"
+//	@Param offset query int false "Offset"
+//	@Success 200 {array} map[string]any
+//	@Security bearerAuth
+//	@Router /v1/admin/audit-logs [get]
+func (a *API) auditLogsHandler(w http.ResponseWriter, r *http.Request) error {
+	l, o, e := page(r)
+	if e != nil {
+		return e
+	}
+	v, e := audit.List(r.Context(), a.Pool, userID(r), batchID(r), l, o)
+	if e != nil {
+		return e
+	}
+	return send(w, 200, v)
 }
 func (a *API) notificationRoutes(r chi.Router) {
+	r.Get("/me/notifications", a.wrap(a.listNotificationsHandler))
+	r.Patch("/me/notifications/{notificationID}", a.wrap(a.readNotificationHandler))
+	r.Post("/me/notifications/read-all", a.wrap(a.readAllNotificationsHandler))
+}
+
+// listNotificationsHandler godoc
+//
+//	@Summary List notifications
+//	@Tags notifications
+//	@Produce json
+//	@Param limit query int false "Limit"
+//	@Param offset query int false "Offset"
+//	@Success 200 {array} map[string]any
+//	@Security bearerAuth
+//	@Router /v1/me/notifications [get]
+func (a *API) listNotificationsHandler(w http.ResponseWriter, r *http.Request) error {
 	s := notification.Service{Pool: a.Pool}
-	r.Get("/me/notifications", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
-		l, o, e := page(r)
-		if e != nil {
-			return e
-		}
-		v, e := s.List(r.Context(), userID(r), l, o)
-		if e != nil {
-			return e
-		}
-		return send(w, 200, v)
-	}))
-	r.Patch("/me/notifications/{notificationID}", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
-		if e := s.Read(r.Context(), userID(r), param(r, "notificationID")); e != nil {
-			return e
-		}
-		return send(w, 204, nil)
-	}))
-	r.Post("/me/notifications/read-all", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
-		if e := s.Read(r.Context(), userID(r), ""); e != nil {
-			return e
-		}
-		return send(w, 204, nil)
-	}))
+	l, o, e := page(r)
+	if e != nil {
+		return e
+	}
+	v, e := s.List(r.Context(), userID(r), l, o)
+	if e != nil {
+		return e
+	}
+	return send(w, 200, v)
+	return send(w, 200, v)
+}
+
+// readNotificationHandler godoc
+//
+//	@Summary Read a notification
+//	@Tags notifications
+//	@Param notificationID path string true "Notification ID"
+//	@Success 204
+//	@Security bearerAuth
+//	@Router /v1/me/notifications/{notificationID} [patch]
+func (a *API) readNotificationHandler(w http.ResponseWriter, r *http.Request) error {
+	s := notification.Service{Pool: a.Pool}
+	if e := s.Read(r.Context(), userID(r), param(r, "notificationID")); e != nil {
+		return e
+	}
+	return send(w, 204, nil)
+}
+
+// readAllNotificationsHandler godoc
+//
+//	@Summary Read all notifications
+//	@Tags notifications
+//	@Success 204
+//	@Security bearerAuth
+//	@Router /v1/me/notifications/read-all [post]
+func (a *API) readAllNotificationsHandler(w http.ResponseWriter, r *http.Request) error {
+	s := notification.Service{Pool: a.Pool}
+	if e := s.Read(r.Context(), userID(r), ""); e != nil {
+		return e
+	}
+	return send(w, 204, nil)
+	return send(w, 204, nil)
 }

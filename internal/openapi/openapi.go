@@ -4,6 +4,12 @@ package openapi
 
 import (
 	"fmt"
+	"net/http"
+	"reflect"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/Hasras-code/PMT_WEB.git/internal/announcement"
 	"github.com/Hasras-code/PMT_WEB.git/internal/auth"
 	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
@@ -20,11 +26,6 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/upload"
 	"github.com/Hasras-code/PMT_WEB.git/internal/user"
 	"github.com/go-chi/chi/v5"
-	"net/http"
-	"reflect"
-	"regexp"
-	"strings"
-	"time"
 )
 
 type M = map[string]any
@@ -67,6 +68,53 @@ func body(fields ...string) M {
 	}
 	return M{"type": "object", "additionalProperties": false, "properties": p}
 }
+
+func operationMetadata(method, path string) (string, string, string) {
+	tag := "System"
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	for _, part := range parts {
+		switch part {
+		case "auth":
+			tag = "Authentication"
+		case "admin":
+			tag = "Administration"
+		case "batches":
+			tag = "Batches"
+		case "gallery":
+			tag = "Gallery"
+		case "notifications":
+			tag = "Notifications"
+		case "complaints", "feedback":
+			tag = "Support"
+		case "me":
+			tag = "Profile"
+		}
+	}
+
+	name := strings.Trim(parts[len(parts)-1], "{}")
+	name = strings.ReplaceAll(name, "-", " ")
+	if name == "" {
+		name = "resource"
+	}
+	summary := strings.ToUpper(method[:1]) + strings.ToLower(method[1:]) + " " + name
+	description := "Manage " + name + "."
+	switch path {
+	case "/v1/auth/register":
+		summary, description = "Register a user", "Create a pending account and send an email verification message."
+	case "/v1/auth/login":
+		summary, description = "Log in", "Authenticate with email and password. Use token transport for JSON refresh credentials or cookie transport for browser sessions."
+	case "/v1/auth/refresh":
+		summary, description = "Refresh an access token", "Rotate the refresh credential and issue a new access token."
+	case "/v1/auth/logout":
+		summary, description = "Log out", "Revoke the current refresh session."
+	case "/v1/auth/verify-email":
+		summary, description = "Verify an email address", "Activate a pending account using its email verification token."
+	case "/v1/auth/reset-password":
+		summary, description = "Reset a password", "Set a new password using a password reset token."
+	}
+	return tag, summary, description
+}
+
 func Request(method, path string) M {
 	if method != "POST" && method != "PATCH" {
 		return nil
@@ -172,7 +220,8 @@ func Generate(r chi.Routes) (M, error) {
 			return nil
 		}
 		path = strings.TrimSuffix(path, "/")
-		op := M{"summary": method + " " + path, "operationId": strings.ToLower(method) + regexp.MustCompile(`[^A-Za-z0-9]`).ReplaceAllString(path, "_"), "responses": M{}}
+		tag, summary, description := operationMetadata(method, path)
+		op := M{"tags": []string{tag}, "summary": summary, "description": description, "operationId": strings.ToLower(method) + regexp.MustCompile(`[^A-Za-z0-9]`).ReplaceAllString(path, "_"), "responses": M{}}
 		params := []any{}
 		for _, m := range regexp.MustCompile(`\{([^}]+)\}`).FindAllStringSubmatch(path, -1) {
 			s := M{"type": "string"}
