@@ -1,4 +1,4 @@
-package integration
+package main
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/Hasras-code/PMT_WEB.git/internal/auth"
 	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
-	"github.com/Hasras-code/PMT_WEB.git/internal/httpapi"
 	"github.com/Hasras-code/PMT_WEB.git/internal/membership"
 	"github.com/Hasras-code/PMT_WEB.git/internal/notification"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
@@ -58,7 +57,6 @@ type fixture struct {
 	mail  *mailbox
 	h     http.Handler
 	store *storage.Local
-	api   *httpapi.API
 }
 
 func setup(t *testing.T) *fixture {
@@ -94,7 +92,7 @@ func setup(t *testing.T) *fixture {
 		t.Fatal(e)
 	}
 	t.Cleanup(p.Close)
-	files, e := filepath.Glob("../migrations/*.up.sql")
+	files, e := filepath.Glob("../../migrations/*.up.sql")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -117,8 +115,15 @@ func setup(t *testing.T) *fixture {
 	mail := &mailbox{tokens: map[string]string{}}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	as := &auth.Service{Pool: p, Signer: auth.Signer{Secret: []byte(secret), Issuer: "test", Audience: "test"}, Mail: mail, Log: log, Cost: 4}
-	a := &httpapi.API{Pool: p, Auth: as, Files: store, Uploads: upload.Service{Pool: p, Store: store, BaseURL: "http://api.test"}, Log: log, Config: config.Config{BaseURL: "http://api.test", Secret: secret, Origins: []string{"http://client.test"}}}
-	return &fixture{t: t, p: p, as: as, mail: mail, h: a.Router(), store: store, api: a}
+	a := &app{
+		cfg:     config.Config{BaseURL: "http://api.test", Secret: secret, Origins: []string{"http://client.test"}},
+		pool:    p,
+		auth:    as,
+		files:   store,
+		uploads: upload.Service{Pool: p, Store: store, BaseURL: "http://api.test"},
+		logger:  log,
+	}
+	return &fixture{t: t, p: p, as: as, mail: mail, h: a.mount(), store: store}
 }
 func (f *fixture) request(method, path, token string, body any, expected int) []byte {
 	f.t.Helper()

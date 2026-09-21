@@ -3,10 +3,62 @@ package httpapi
 import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
 	"github.com/Hasras-code/PMT_WEB.git/internal/membership"
+	"github.com/Hasras-code/PMT_WEB.git/internal/position"
 
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
+
+func (a *API) publicBatchRoutes(r chi.Router) {
+	batches := batch.Service{Pool: a.Pool}
+	positions := position.Service{Pool: a.Pool}
+	r.Get("/public/batches/{slug}", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
+		value, err := batches.Public(r.Context(), param(r, "slug"))
+		if err != nil {
+			return err
+		}
+		return send(w, http.StatusOK, value)
+	}))
+	for _, path := range []string{"/public/batches/{slug}/events", "/public/batches/{slug}/events/{eventID}"} {
+		r.Get(path, a.wrap(func(w http.ResponseWriter, r *http.Request) error {
+			limit, offset, err := page(r)
+			if err != nil {
+				return err
+			}
+			value, err := batches.PublicEvents(r.Context(), param(r, "slug"), param(r, "eventID"), limit, offset)
+			if err != nil {
+				return err
+			}
+			return send(w, http.StatusOK, value)
+		}))
+	}
+	r.Get("/public/batches/{slug}/positions", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
+		limit, offset, err := page(r)
+		if err != nil {
+			return err
+		}
+		value, err := positions.Public(r.Context(), param(r, "slug"), limit, offset)
+		if err != nil {
+			return err
+		}
+		return send(w, http.StatusOK, value)
+	}))
+}
+
+func (a *API) batchIndexRoutes(r chi.Router) {
+	s := batch.Service{Pool: a.Pool}
+	r.Get("/batches", a.wrap(func(w http.ResponseWriter, r *http.Request) error {
+		limit, offset, err := page(r)
+		if err != nil {
+			return err
+		}
+		batches, err := s.List(r.Context(), userID(r), limit, offset)
+		if err != nil {
+			return err
+		}
+		return send(w, http.StatusOK, batches)
+	}))
+}
 
 func (a *API) batchRoutes(r chi.Router) {
 	s := batch.Service{Pool: a.Pool}

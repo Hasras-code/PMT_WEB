@@ -15,7 +15,7 @@ test:
 test-race:
 	go test -race ./...
 fmt:
-	gofmt -w cmd internal integration
+	gofmt -w cmd internal
 audit:
 	go mod verify
 	go vet ./...
@@ -32,7 +32,7 @@ migration:
 seed:
 	@echo 'System roles are seeded by migrations. Use cmd/admin to bootstrap real verified users; see README.'
 docs:
-	go run ./cmd/openapi > docs/openapi.json
+	go run ./cmd/api openapi > docs/openapi.json
 jobs:
 	go run ./cmd/jobs
 
@@ -40,4 +40,4 @@ jobs:
 init:
 	python3 scripts/setup.py
 test-integration:
-	@TEST_DATABASE_URL="$(DATABASE_URL)" go test ./integration
+	@TEST_DATABASE_URL="$(DATABASE_URL)" go test ./cmd/api

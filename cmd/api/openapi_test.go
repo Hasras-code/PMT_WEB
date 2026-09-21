@@ -1,8 +1,7 @@
-package openapi_test
+package main
 
 import (
 	"encoding/json"
-	"github.com/Hasras-code/PMT_WEB.git/internal/httpapi"
 	"github.com/Hasras-code/PMT_WEB.git/internal/openapi"
 	"os"
 	"reflect"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestRouteContract(t *testing.T) {
-	doc, e := openapi.Generate((&httpapi.API{}).Router())
+	doc, e := openapi.Generate((&app{}).mount())
 	if e != nil {
 		t.Fatal(e)
 	}

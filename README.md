@@ -37,7 +37,7 @@ The migration container must complete successfully before the API starts. Contai
 
 ## Structure and dependencies
 
-`cmd/api` composes the HTTP server, PostgreSQL pool, authentication, mail, and local storage. `cmd/migrate` applies golang-migrate files using its pgx/v5 adapter. `cmd/admin` provides audited bootstrap commands. `cmd/jobs` processes notifications and expired uploads. `cmd/openapi` generates the API contract from the actual router and request types.
+`cmd/api` composes the HTTP server, middleware boundaries, route tree, PostgreSQL pool, authentication, mail, and local storage. Its `openapi` command mode generates the API contract from the same router used by the running server. `cmd/migrate` applies golang-migrate files using its pgx/v5 adapter. `cmd/admin` provides audited bootstrap commands. `cmd/jobs` processes notifications and expired uploads.
 
 `internal/httpapi` contains thin Chi/net/http handlers, strict JSON decoding, response mapping and middleware. Domain packages contain explicit application operations and parameterized PostgreSQL queries. `authorization` centralizes current database permission checks. `platform` supplies typed configuration, bounded pgxpool connections, SMTP and filesystem storage. Domain operations do not depend on Chi, HTTP statuses or external storage-provider SDK types. Shared interfaces are limited to actual boundaries such as mail delivery, storage and query access.
 
@@ -118,7 +118,7 @@ Transitions are OPEN → IN_REVIEW → RESOLVED → CLOSED, with RESOLVED → IN
 
 ## API contract and errors
 
-See [OpenAPI](docs/openapi.json). Regenerate with `make docs`. There are no HTML pages. Dates use ISO 8601; timestamps use RFC 3339. Collection limits default to 20 and maximum 100, with offset capped at 100000, except the gallery cursor API described above.
+See [OpenAPI](docs/openapi.json). Regenerate it with `make docs`, or open the development-only Swagger UI at `http://localhost:8080/swagger/`. The service has no application HTML pages. Dates use ISO 8601; timestamps use RFC 3339. Collection limits default to 20 and maximum 100, with offset capped at 100000, except the gallery cursor API described above.
 
 PATCH fields generally preserve omitted values. Nullable fields currently treat JSON null as omitted; dedicated lifecycle operations control security-sensitive state. State-changing actions and logout are typically 204; creations return 201; authentication responses return 200 and enumeration-safe email requests return 202.
 

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Hasras-code/PMT_WEB.git/internal/auth"
-	"github.com/Hasras-code/PMT_WEB.git/internal/httpapi"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/mail"
@@ -81,18 +80,6 @@ func (a *app) close() {
 			a.files.Close()
 		}
 	}
-}
-
-func (a *app) mount() http.Handler {
-	api := &httpapi.API{
-		Pool:    a.pool,
-		Auth:    a.auth,
-		Files:   a.files,
-		Uploads: a.uploads,
-		Config:  a.cfg,
-		Log:     a.logger,
-	}
-	return api.Router()
 }
 
 func (a *app) run() error {

@@ -1,4 +1,3 @@
-
 CREATE TABLE users (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), student_number text NOT NULL UNIQUE,
  first_name text NOT NULL, last_name text NOT NULL, display_name text NOT NULL,
