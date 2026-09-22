@@ -1,0 +1,2 @@
+# Isolated secrets — never commit the real file.
+.env.vps

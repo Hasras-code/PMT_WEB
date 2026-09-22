@@ -8,11 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (a *API) legacySupportRoutes(r chi.Router) {
-	// Keep the historical entry point aligned with the named support endpoints.
-	a.supportRoutes(r)
-}
-
 func (a *API) supportRoutes(r chi.Router) {
 	r.Post("/complaints", a.wrap(a.createComplaintHandler))
 	r.Get("/complaints", a.wrap(a.listComplaintsHandler))
