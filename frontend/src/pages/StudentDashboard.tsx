@@ -11,7 +11,7 @@ import { api, toList } from '../api/client';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
 import type { Announcement, LmsEvent, NotificationItem } from '../types';
-import { Card, CardTitle, PrimaryButton, OutlineButton, Badge, timeAgo, fmtDateTime, coverColor, initials } from '../components/ui';
+import { Card, CardTitle, PrimaryButton, OutlineButton, Badge, timeAgo, fmtDateTime, coverColor, initials, Skeleton } from '../components/ui';
 
 const DOTS = ['bg-primary', 'bg-orange-500', 'bg-emerald-500', 'bg-purple-500'];
 
@@ -32,9 +32,11 @@ export default function StudentDashboard() {
   const [announcements, setAnnouncements] = useState<(Announcement & { batchName: string })[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     (async () => {
       const evs: (LmsEvent & { batchName: string })[] = [];
       const anns: (Announcement & { batchName: string })[] = [];
@@ -59,6 +61,7 @@ export default function StudentDashboard() {
         if (!cancelled) setUnread(toList<NotificationItem>(r.data).filter((n) => !n.read_at).length);
       } catch { /* ignore */ }
       if (cancelled) return;
+      setLoading(false);
       const now = Date.now();
       setMeetings(
         evs
@@ -122,17 +125,27 @@ export default function StudentDashboard() {
         </Card>
         <Card className="p-7">
           <CardTitle>Upcoming Meetings</CardTitle>
-          <div className="mt-4 divide-y divide-line">
-            {meetings.length === 0 && <p className="py-6 text-sm text-muted">No upcoming meetings.</p>}
-            {meetings.map((m, i) => (
-              <div key={m.id} className="py-3.5 first:pt-1">
-                <div className="flex items-start gap-3">
-                  <span className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${DOTS[i % DOTS.length]}`} />
-                  <p className="text-[15px] text-ink leading-snug">{m.title}</p>
-                </div>
-                <p className="ml-[22px] mt-1 text-sm text-muted">{fmtDateTime(m.starts_at)} · {m.batchName}</p>
+          <div className="mt-4 divide-y divide-line" role="status" aria-live="polite" aria-label="Upcoming meetings">
+            {loading ? (
+              <div className="space-y-3 py-2" aria-hidden="true">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
-            ))}
+            ) : (
+              <>
+                {meetings.length === 0 && <p className="py-6 text-sm text-muted">No upcoming meetings.</p>}
+                {meetings.map((m, i) => (
+                  <div key={m.id} className="py-3.5 first:pt-1">
+                    <div className="flex items-start gap-3">
+                      <span className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${DOTS[i % DOTS.length]}`} />
+                      <p className="text-[15px] text-ink leading-snug">{m.title}</p>
+                    </div>
+                    <p className="ml-[22px] mt-1 text-sm text-muted">{fmtDateTime(m.starts_at)} · {m.batchName}</p>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </Card>
       </div>
@@ -140,15 +153,24 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Card className="p-7">
           <CardTitle>Latest Announcements</CardTitle>
-          <div className="mt-4 divide-y divide-line">
-            {announcements.length === 0 && <p className="py-6 text-sm text-muted">No announcements.</p>}
-            {announcements.map((a) => (
-              <div key={a.id} className="py-3.5 first:pt-1">
-                <p className="text-[15px] font-medium text-ink">{a.title}</p>
-                <p className="text-sm text-muted line-clamp-1">{a.body}</p>
-                <p className="mt-1 text-xs text-muted">{a.batchName} · {timeAgo(a.created_at)}</p>
+          <div className="mt-4 divide-y divide-line" role="status" aria-live="polite" aria-label="Latest announcements">
+            {loading ? (
+              <div className="space-y-3 py-2" aria-hidden="true">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-4 w-1/2" />
               </div>
-            ))}
+            ) : (
+              <>
+                {announcements.length === 0 && <p className="py-6 text-sm text-muted">No announcements.</p>}
+                {announcements.map((a) => (
+                  <div key={a.id} className="py-3.5 first:pt-1">
+                    <p className="text-[15px] font-medium text-ink">{a.title}</p>
+                    <p className="text-sm text-muted line-clamp-1">{a.body}</p>
+                    <p className="mt-1 text-xs text-muted">{a.batchName} · {timeAgo(a.created_at)}</p>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </Card>
         <Card className="p-7">
@@ -156,14 +178,23 @@ export default function StudentDashboard() {
             <BookmarkIcon className="w-5 h-5 text-muted" />
             <CardTitle>My Bookmarks</CardTitle>
           </div>
-          <div className="mt-4 divide-y divide-line">
-            {bookmarks.length === 0 && <p className="py-6 text-sm text-muted">No bookmarked materials. Open any assessment file and bookmark it.</p>}
-            {bookmarks.slice(0, 5).map((b) => (
-              <div key={b.id} className="py-3 first:pt-1 flex items-center justify-between gap-3">
-                <p className="text-[15px] text-ink truncate">{b.title}</p>
-                <Badge tone="purple">{b.type.replaceAll('_', ' ')}</Badge>
+          <div className="mt-4 divide-y divide-line" role="status" aria-live="polite" aria-label="Bookmarked materials">
+            {loading ? (
+              <div className="space-y-3 py-2" aria-hidden="true">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
               </div>
-            ))}
+            ) : (
+              <>
+                {bookmarks.length === 0 && <p className="py-6 text-sm text-muted">No bookmarked materials. Open any assessment file and bookmark it.</p>}
+                {bookmarks.slice(0, 5).map((b) => (
+                  <div key={b.id} className="py-3 first:pt-1 flex items-center justify-between gap-3">
+                    <p className="text-[15px] text-ink truncate">{b.title}</p>
+                    <Badge tone="purple">{b.type.replaceAll('_', ' ')}</Badge>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
           <div className="mt-5 space-y-4">
             <PrimaryButton onClick={() => navigate('/student/courses')}>Browse Courses</PrimaryButton>

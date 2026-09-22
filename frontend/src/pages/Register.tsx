@@ -63,7 +63,7 @@ export default function Register() {
         <div className="w-full max-w-lg bg-charcoal-card backdrop-blur-xl rounded-2xl border border-line p-8 shadow-2xl relative z-10">
           <h1 className="text-2xl font-semibold text-ink">Create account</h1>
           <p className="mt-1 text-sm text-muted">Takes less than a minute.</p>
-          <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Student number">
               <input required placeholder="AS2025..." className={inputCls} value={form.student_number} onChange={set('student_number')} />
             </Field>

@@ -14,6 +14,7 @@ export default function Meetings() {
   const [show, setShow] = useState(false);
   const elevated = useCan('event.manage', currentBatchID);
   const [form, setForm] = useState({ title: '', description: '', location: '', starts_at: '', ends_at: '', visibility: 'MEMBERS_ONLY' });
+  const [creating, setCreating] = useState(false);
 
   const load = () => {
     if (!currentBatchID) return;
@@ -24,6 +25,7 @@ export default function Meetings() {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
     const body: Record<string, unknown> = {
       title: form.title,
       starts_at: new Date(form.starts_at).toISOString(),
@@ -32,6 +34,7 @@ export default function Meetings() {
     if (form.description) body.description = form.description;
     if (form.location) body.location = form.location;
     if (form.ends_at) body.ends_at = new Date(form.ends_at).toISOString();
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${currentBatchID}/events`, body);
       toast.success('Meeting scheduled');
@@ -40,6 +43,8 @@ export default function Meetings() {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -81,7 +86,7 @@ export default function Meetings() {
 
       {show && elevated && (
         <Card className="p-7">
-          <form onSubmit={create} className="grid grid-cols-2 gap-4">
+          <form onSubmit={create} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="col-span-2">
               <Field label="Title"><input required className={inputCls} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
             </div>
@@ -98,7 +103,7 @@ export default function Meetings() {
             <Field label="Starts at"><input required type="datetime-local" className={inputCls} value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></Field>
             <Field label="Ends at"><input type="datetime-local" className={inputCls} value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></Field>
             <div className="col-span-2">
-              <button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Schedule</button>
+              <button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Scheduling…' : 'Schedule'}</button>
             </div>
           </form>
         </Card>

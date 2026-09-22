@@ -22,6 +22,7 @@ export default function Administration() {
   const [thumb, setThumb] = useState<File | null>(null);
   const [gform, setGform] = useState({ title: '', caption: '', alt_text: '' });
   const [busy, setBusy] = useState(false);
+  const [actingID, setActingID] = useState('');
 
   const loadUsers = () => api.get('/v1/admin/users', { limit: 100 }).then((res) => setUsers(toList<AdminUser>(res.data))).catch(() => {});
   const loadPlatformRoles = () => api.get('/v1/admin/roles').then((res) => setPlatformRoles(toList<PlatformRole>(res.data))).catch((e) => toast.error(errMsg(e, 'Could not load platform roles')));
@@ -38,8 +39,11 @@ export default function Administration() {
     if (!canUsers && canGallery) setTab('gallery');
   }, [canGallery, canUsers]);
 
-  const userStatus = (id: string, action: 'suspend' | 'reactivate' | 'archive') =>
-    api.post(`/v1/admin/users/${id}/${action}`).then(() => { toast.success(`User ${action}d`); loadUsers(); }).catch((e) => toast.error(errMsg(e, 'Action failed')));
+  const userStatus = (id: string, action: 'suspend' | 'reactivate' | 'archive') => {
+    if (actingID) return;
+    setActingID(id);
+    api.post(`/v1/admin/users/${id}/${action}`).then(() => { toast.success(`User ${action}d`); loadUsers(); }).catch((e) => toast.error(errMsg(e, 'Action failed'))).finally(() => setActingID(''));
+  };
 
   const openUserEditor = (user: AdminUser) => {
     setEditingUser(user);
@@ -144,9 +148,9 @@ export default function Administration() {
                       <td className="py-3">
                         <div className="flex gap-2 text-xs font-medium">
                           <button onClick={() => openUserEditor(u)} className="text-primary hover:underline">Edit</button>
-                          <button onClick={() => userStatus(u.id, 'suspend')} className="text-orange-600 hover:underline">Suspend</button>
-                          <button onClick={() => userStatus(u.id, 'reactivate')} className="text-emerald-600 hover:underline">Reactivate</button>
-                          <button onClick={() => userStatus(u.id, 'archive')} className="text-red-600 hover:underline">Archive</button>
+                          <button disabled={actingID === u.id} onClick={() => userStatus(u.id, 'suspend')} className="text-orange-600 hover:underline disabled:opacity-50">Suspend</button>
+                          <button disabled={actingID === u.id} onClick={() => userStatus(u.id, 'reactivate')} className="text-emerald-600 hover:underline disabled:opacity-50">Reactivate</button>
+                          <button disabled={actingID === u.id} onClick={() => userStatus(u.id, 'archive')} className="text-red-600 hover:underline disabled:opacity-50">Archive</button>
                         </div>
                       </td>
                     </tr>
@@ -167,7 +171,7 @@ export default function Administration() {
           </div>
           {showUpload && (
             <Card className="p-7">
-              <form onSubmit={uploadGallery} className="grid grid-cols-2 gap-4">
+              <form onSubmit={uploadGallery} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Title"><input className={inputCls} value={gform.title} onChange={(e) => setGform({ ...gform, title: e.target.value })} /></Field>
                 <Field label="Alt text (required)"><input required className={inputCls} value={gform.alt_text} onChange={(e) => setGform({ ...gform, alt_text: e.target.value })} /></Field>
                 <div className="col-span-2"><Field label="Caption"><input className={inputCls} value={gform.caption} onChange={(e) => setGform({ ...gform, caption: e.target.value })} /></Field></div>

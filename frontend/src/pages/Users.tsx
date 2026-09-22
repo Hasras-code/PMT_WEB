@@ -155,7 +155,7 @@ export default function Users() {
           </button>
         </div>
         {loading ? (
-          <p className="py-6 text-sm text-muted">Loading…</p>
+          <p className="py-6 text-sm text-muted" role="status">Loading…</p>
         ) : members.length === 0 ? (
           <Empty message="No members yet." />
         ) : (

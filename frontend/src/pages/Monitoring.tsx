@@ -58,7 +58,7 @@ export default function Monitoring() {
         </div>
       </div>
       {loading ? (
-        <p className="py-6 text-sm text-muted">Loading…</p>
+          <p className="py-6 text-sm text-muted" role="status">Loading…</p>
       ) : logs.length === 0 ? (
         <Empty message="No log entries." />
       ) : (

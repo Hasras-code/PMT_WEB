@@ -62,7 +62,7 @@ export default function Profile() {
       navigate('/login');
     }).catch((e) => toast.error(errMsg(e, 'Failed')));
 
-  if (!user) return <p className="text-sm text-muted">Loading…</p>;
+  if (!user) return <p className="text-sm text-muted" role="status">Loading…</p>;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -84,7 +84,7 @@ export default function Profile() {
           <input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy} className="hidden" onChange={(event) => setProfileImage(event.target.files?.[0])} />
         </label>
         {editing ? (
-          <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="First name"><input className={inputCls} value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} /></Field>
             <Field label="Last name"><input className={inputCls} value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} /></Field>
             <Field label="Display name"><input className={inputCls} value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} /></Field>

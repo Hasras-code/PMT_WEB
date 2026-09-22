@@ -87,6 +87,27 @@ export function Empty({ message }: { message: string }) {
   return <p className="py-8 text-center text-sm text-muted">{message}</p>;
 }
 
+/** Shimmering placeholder shown while content loads (theme-safe). */
+export function Skeleton({ className = '' }: { className?: string }) {
+  return <div aria-hidden="true" className={`animate-pulse rounded-lg bg-surface ${className}`} />;
+}
+
+/** Persistent inline error with a retry action (for failed loads). */
+export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="py-8 text-center" role="alert">
+      <p className="text-sm text-muted">{message}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-3 px-5 py-2 rounded-xl border border-line text-sm font-medium text-ink hover:bg-surface"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
 /** Accessible tab bar: tablist pattern with arrow-key navigation. */
 export function Tabs<T extends string>({
   tabs,

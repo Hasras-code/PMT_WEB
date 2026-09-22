@@ -49,7 +49,7 @@ export default function Gallery() {
         </select>
       </div>
       {loading && images.length === 0 ? (
-        <p className="text-sm text-muted">Loading…</p>
+        <p className="text-sm text-muted" role="status">Loading…</p>
       ) : images.length === 0 ? (
         <Card className="p-8"><Empty message="No published images this month." /></Card>
       ) : (
@@ -67,8 +67,8 @@ export default function Gallery() {
           </div>
           {cursor && (
             <div className="flex justify-center">
-              <button onClick={() => load(false, cursor)} className="px-6 py-2.5 rounded-xl border border-line bg-charcoal-card text-[15px] font-medium text-ink hover:bg-surface">
-                Load more
+              <button onClick={() => load(false, cursor)} disabled={loading} className="px-6 py-2.5 rounded-xl border border-line bg-charcoal-card text-[15px] font-medium text-ink hover:bg-surface disabled:opacity-50">
+                {loading ? 'Loading…' : 'Load more'}
               </button>
             </div>
           )}

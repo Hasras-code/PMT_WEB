@@ -18,7 +18,7 @@ export default function CourseDetail() {
     api.get(`/v1/batches/${batchID}`).then((res) => setBatch(res.data)).catch(() => toast.error('Course not found'));
   }, [batchID]);
 
-  if (!batch) return <p className="text-muted text-sm">Loading…</p>;
+  if (!batch) return <p className="text-muted text-sm" role="status">Loading…</p>;
 
   return (
     <div className="space-y-6">
@@ -166,6 +166,7 @@ function Semesters({ batchID }: { batchID: string }) {
   const elevated = useCan('semester.manage', batchID);
   const [form, setForm] = useState({ semester_number: 1, name: '', academic_year: '', starts_at: '', ends_at: '' });
   const [show, setShow] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => api.get(`/v1/batches/${batchID}/semesters`).then((res) => setItems(toList<Semester>(res.data))).catch(() => {}), [batchID]);
   const editor = usePatchEditor(load);
@@ -175,9 +176,11 @@ function Semesters({ batchID }: { batchID: string }) {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
     const body: Record<string, unknown> = { semester_number: Number(form.semester_number), name: form.name, academic_year: form.academic_year };
     if (form.starts_at) body.starts_at = new Date(form.starts_at).toISOString();
     if (form.ends_at) body.ends_at = new Date(form.ends_at).toISOString();
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${batchID}/semesters`, body);
       toast.success('Semester created');
@@ -185,6 +188,8 @@ function Semesters({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -195,15 +200,15 @@ function Semesters({ batchID }: { batchID: string }) {
         {elevated && (<button onClick={() => setShow(!show)} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">+ New</button>)}
       </div>
       {show && (
-        <form onSubmit={create} className="mt-4 grid grid-cols-2 gap-4 p-4 rounded-xl bg-surface">
+        <form onSubmit={create} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-surface">
           <Field label="Number"><input required type="number" min={1} className={inputCls} value={form.semester_number} onChange={(e) => setForm({ ...form, semester_number: Number(e.target.value) })} /></Field>
           <Field label="Name"><input required className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
           <Field label="Academic year"><input required placeholder="2026/2027" className={inputCls} value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} /></Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Starts"><input type="datetime-local" className={inputCls} value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></Field>
             <Field label="Ends"><input type="datetime-local" className={inputCls} value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></Field>
           </div>
-          <div className="col-span-2"><button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Create</button></div>
+          <div className="col-span-2"><button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Creating…' : 'Create'}</button></div>
         </form>
       )}
       <div className="mt-4 divide-y divide-line">
@@ -236,6 +241,7 @@ function ModulesTab({ batchID }: { batchID: string }) {
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [form, setForm] = useState({ semester_id: '', module_code: '', name: '', description: '', lecturer_name: '' });
   const [show, setShow] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => {
     api.get(`/v1/batches/${batchID}/modules`, { limit: 100 }).then((res) => setItems(toList<Module>(res.data))).catch(() => {});
@@ -248,6 +254,8 @@ function ModulesTab({ batchID }: { batchID: string }) {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${batchID}/modules`, {
         semester_id: form.semester_id,
@@ -262,6 +270,8 @@ function ModulesTab({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -272,7 +282,7 @@ function ModulesTab({ batchID }: { batchID: string }) {
         {elevated && (<button onClick={() => setShow(!show)} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">+ New</button>)}
       </div>
       {show && (
-        <form onSubmit={create} className="mt-4 grid grid-cols-2 gap-4 p-4 rounded-xl bg-surface">
+        <form onSubmit={create} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-surface">
           <Field label="Semester">
             <select required className={inputCls} value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
               <option value="">Select…</option>
@@ -283,7 +293,7 @@ function ModulesTab({ batchID }: { batchID: string }) {
           <Field label="Name"><input required className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
           <Field label="Lecturer"><input className={inputCls} value={form.lecturer_name} onChange={(e) => setForm({ ...form, lecturer_name: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Description"><textarea rows={2} className={inputCls} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field></div>
-          <div className="col-span-2"><button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Create</button></div>
+          <div className="col-span-2"><button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Creating…' : 'Create'}</button></div>
         </form>
       )}
       <div className="mt-4 space-y-3">
@@ -314,6 +324,7 @@ function LessonsTab({ batchID }: { batchID: string }) {
   const [modules, setModules] = useState<Module[]>([]);
   const [form, setForm] = useState({ module_id: '', title: '', description: '', youtube_video_id: '', lesson_date: '', duration_seconds: '' });
   const [show, setShow] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => {
     api.get(`/v1/batches/${batchID}/lessons`, { limit: 100 }).then((res) => setItems(toList<Lesson>(res.data))).catch(() => {});
@@ -326,9 +337,11 @@ function LessonsTab({ batchID }: { batchID: string }) {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
     const body: Record<string, unknown> = { module_id: form.module_id, title: form.title, description: form.description, youtube_video_id: form.youtube_video_id };
     if (form.lesson_date) body.lesson_date = form.lesson_date;
     if (form.duration_seconds) body.duration_seconds = Number(form.duration_seconds);
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${batchID}/lessons`, body);
       toast.success('Lesson created');
@@ -336,6 +349,8 @@ function LessonsTab({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -346,7 +361,7 @@ function LessonsTab({ batchID }: { batchID: string }) {
         {elevated && (<button onClick={() => setShow(!show)} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">+ New</button>)}
       </div>
       {show && (
-        <form onSubmit={create} className="mt-4 grid grid-cols-2 gap-4 p-4 rounded-xl bg-surface">
+        <form onSubmit={create} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-surface">
           <Field label="Module">
             <select required className={inputCls} value={form.module_id} onChange={(e) => setForm({ ...form, module_id: e.target.value })}>
               <option value="">Select…</option>
@@ -355,12 +370,12 @@ function LessonsTab({ batchID }: { batchID: string }) {
           </Field>
           <Field label="Title"><input required className={inputCls} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
           <Field label="YouTube video ID"><input required placeholder="dQw4w9WgXcQ" className={inputCls} value={form.youtube_video_id} onChange={(e) => setForm({ ...form, youtube_video_id: e.target.value })} /></Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Date"><input type="date" className={inputCls} value={form.lesson_date} onChange={(e) => setForm({ ...form, lesson_date: e.target.value })} /></Field>
             <Field label="Duration (sec)"><input type="number" min={1} className={inputCls} value={form.duration_seconds} onChange={(e) => setForm({ ...form, duration_seconds: e.target.value })} /></Field>
           </div>
           <div className="col-span-2"><Field label="Description"><textarea rows={2} className={inputCls} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field></div>
-          <div className="col-span-2"><button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Create</button></div>
+          <div className="col-span-2"><button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Creating…' : 'Create'}</button></div>
         </form>
       )}
       <div className="mt-4 divide-y divide-line">
@@ -394,6 +409,7 @@ function LinksTab({ batchID }: { batchID: string }) {
   const [modules, setModules] = useState<Module[]>([]);
   const [form, setForm] = useState({ module_id: '', title: '', url: '', description: '', category: '' });
   const [show, setShow] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => {
     api.get(`/v1/batches/${batchID}/links`, { limit: 100 }).then((res) => setItems(toList<LinkItem>(res.data))).catch(() => {});
@@ -406,10 +422,12 @@ function LinksTab({ batchID }: { batchID: string }) {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
     const body: Record<string, unknown> = { title: form.title, url: form.url };
     if (form.module_id) body.module_id = form.module_id;
     if (form.description) body.description = form.description;
     if (form.category) body.category = form.category;
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${batchID}/links`, body);
       toast.success('Link created');
@@ -418,6 +436,8 @@ function LinksTab({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -428,7 +448,7 @@ function LinksTab({ batchID }: { batchID: string }) {
         {elevated && (<button onClick={() => setShow(!show)} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">+ New</button>)}
       </div>
       {show && (
-        <form onSubmit={create} className="mt-4 grid grid-cols-2 gap-4 p-4 rounded-xl bg-surface">
+        <form onSubmit={create} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-surface">
           <Field label="Title"><input required className={inputCls} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
           <Field label="URL"><input required type="url" placeholder="https://…" className={inputCls} value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} /></Field>
           <Field label="Module (optional)">
@@ -439,7 +459,7 @@ function LinksTab({ batchID }: { batchID: string }) {
           </Field>
           <Field label="Category"><input className={inputCls} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Description"><input className={inputCls} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field></div>
-          <div className="col-span-2"><button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Create</button></div>
+          <div className="col-span-2"><button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Creating…' : 'Create'}</button></div>
         </form>
       )}
       <div className="mt-4 divide-y divide-line">
@@ -480,6 +500,7 @@ function CommitteeTab({ batchID }: { batchID: string }) {
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', sort_order: 0, is_public: true });
   const [selectedMembers, setSelectedMembers] = useState<Record<string, string>>({});
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => api.get(`/v1/batches/${batchID}/positions`, { limit: 100 }).then((response) => setPositions(toList<Position>(response.data))).catch(() => {}), [batchID]);
   const editor = usePatchEditor(load);
@@ -490,6 +511,8 @@ function CommitteeTab({ batchID }: { batchID: string }) {
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (creating) return;
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${batchID}/positions`, form);
       setForm({ title: '', description: '', sort_order: 0, is_public: true });
@@ -498,6 +521,8 @@ function CommitteeTab({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -547,12 +572,12 @@ function CommitteeTab({ batchID }: { batchID: string }) {
       {canManage && <div className="flex justify-end"><button onClick={() => setShow(!show)} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">+ Position</button></div>}
       {show && canManage && (
         <Card className="p-6">
-          <form onSubmit={create} className="grid grid-cols-2 gap-4">
+          <form onSubmit={create} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Title"><input required className={inputCls} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></Field>
             <Field label="Sort order"><input type="number" className={inputCls} value={form.sort_order} onChange={(event) => setForm({ ...form, sort_order: Number(event.target.value) })} /></Field>
             <div className="col-span-2"><Field label="Description"><textarea className={inputCls} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field></div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_public} onChange={(event) => setForm({ ...form, is_public: event.target.checked })} /> Show publicly</label>
-            <div className="col-span-2"><button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Create</button></div>
+            <div className="col-span-2"><button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Creating…' : 'Create'}</button></div>
           </form>
         </Card>
       )}

@@ -27,7 +27,7 @@ export default function PublicBatch() {
     api.get(`/v1/public/batches/${slug}/positions`).then((res) => setPositions(toList(res.data))).catch(() => {});
   }, [slug]);
 
-  if (!batch) return <p className="text-sm text-muted">Loading…</p>;
+  if (!batch) return <p className="text-sm text-muted" role="status">Loading…</p>;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">

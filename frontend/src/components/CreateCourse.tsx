@@ -64,7 +64,7 @@ export default function CreateCourse({ open, onClose }: { open: boolean; onClose
           <Field label="Name">
             <input ref={firstInputRef} required className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Slug (lowercase, dashes)">
               <input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="cohort-2026" className={inputCls} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
             </Field>

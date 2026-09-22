@@ -39,6 +39,7 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
   const [form, setForm] = useState({ title: '', body: '', priority: 'NORMAL' });
   const elevated = useCan('announcement.create', batchID);
   const [show, setShow] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [attachments, setAttachments] = useState<Record<string, { id: string; file_name: string; size_bytes: number }[]>>({});
 
   const load = useCallback(() => api.get(`/v1/batches/${batchID}/announcements`, { limit: 100 }).then((res) => setItems(toList<Announcement>(res.data))).catch(() => {}), [batchID]);
@@ -49,6 +50,8 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${batchID}/announcements`, { title: form.title, body: form.body, priority: form.priority });
       toast.success('Announcement created');
@@ -57,6 +60,8 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -121,7 +126,7 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
       {show && elevated && (
         <Card className="p-7">
           <form onSubmit={create} className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="col-span-2">
                 <Field label="Title"><input required className={inputCls} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
               </div>
@@ -132,7 +137,7 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
               </Field>
             </div>
             <Field label="Body"><textarea required rows={4} className={inputCls} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} /></Field>
-            <button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Create</button>
+            <button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Creating…' : 'Create'}</button>
           </form>
         </Card>
       )}
@@ -192,6 +197,8 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
   const [show, setShow] = useState(false);
   const [thread, setThread] = useState<{ id: string; messages: { message: string; created_at: string }[] } | null>(null);
   const [reply, setReply] = useState('');
+  const [sending, setSending] = useState(false);
+  const [creating, setCreating] = useState(false);
   const canManage = useCan('complaint.view_all', batchID);
   const canResolve = useCan('complaint.resolve', batchID);
   const [managers, setManagers] = useState<Member[]>([]);
@@ -208,6 +215,8 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${batchID}/complaints`, form);
       toast.success(form.is_anonymous ? 'Anonymous complaint submitted. It will not appear in your personal history.' : 'Complaint submitted');
@@ -216,6 +225,8 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Submit failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -229,13 +240,16 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
   };
 
   const sendReply = async () => {
-    if (!thread || !reply.trim()) return;
+    if (!thread || !reply.trim() || sending) return;
+    setSending(true);
     try {
       await api.post(`/v1/batches/${batchID}/complaints/${thread.id}/messages`, { message: reply });
       setReply('');
       openThread(thread.id);
     } catch (err) {
       toast.error(errMsg(err, 'Reply failed'));
+    } finally {
+      setSending(false);
     }
   };
 
@@ -270,7 +284,7 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
       {show && (
         <Card className="p-7">
           <form onSubmit={create} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Category"><input required placeholder="e.g. facilities" className={inputCls} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></Field>
               <Field label="Subject"><input required className={inputCls} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} /></Field>
             </div>
@@ -279,7 +293,7 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
               <input type="checkbox" checked={form.is_anonymous} onChange={(e) => setForm({ ...form, is_anonymous: e.target.checked })} className="w-4 h-4 accent-primary" />
               Submit anonymously
             </label>
-            <button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Submit</button>
+            <button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Submitting…' : 'Submit'}</button>
           </form>
         </Card>
       )}
@@ -317,7 +331,7 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
               {thread.messages.length === 0 && <p className="text-sm text-muted">No messages yet.</p>}
               <div className="flex gap-2 pt-1">
                 <input aria-label="Write a reply" className={inputCls} placeholder="Write a reply…" value={reply} onChange={(e) => setReply(e.target.value)} />
-                <button onClick={sendReply} className="px-4 rounded-xl bg-primary text-white text-sm font-medium whitespace-nowrap">Send</button>
+                <button onClick={sendReply} disabled={sending || !reply.trim()} className="px-4 rounded-xl bg-primary text-white text-sm font-medium whitespace-nowrap disabled:opacity-50">{sending ? 'Sending…' : 'Send'}</button>
               </div>
             </div>
           )}
@@ -332,6 +346,7 @@ function FeedbackTab({ batchID }: { batchID: string }) {
   const [form, setForm] = useState({ category: '', message: '', rating: '', is_anonymous: false });
   const elevated = useCan('feedback.view', batchID);
   const [show, setShow] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => {
     if (!elevated) return;
@@ -343,8 +358,10 @@ function FeedbackTab({ batchID }: { batchID: string }) {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
     const body: Record<string, unknown> = { category: form.category, message: form.message, is_anonymous: form.is_anonymous };
     if (form.rating) body.rating = Number(form.rating);
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${batchID}/feedback`, body);
       toast.success('Feedback submitted');
@@ -353,6 +370,8 @@ function FeedbackTab({ batchID }: { batchID: string }) {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Submit failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -369,7 +388,7 @@ function FeedbackTab({ batchID }: { batchID: string }) {
       {show && (
         <Card className="p-7">
           <form onSubmit={create} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Category"><input placeholder="e.g. teaching" className={inputCls} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></Field>
               <Field label="Rating (1–5, optional)">
                 <select className={inputCls} value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })}>
@@ -382,7 +401,7 @@ function FeedbackTab({ batchID }: { batchID: string }) {
               <input type="checkbox" checked={form.is_anonymous} onChange={(e) => setForm({ ...form, is_anonymous: e.target.checked })} className="w-4 h-4 accent-primary" />
               Submit anonymously
             </label>
-            <button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Submit</button>
+            <button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Submitting…' : 'Submit'}</button>
           </form>
         </Card>
       )}
