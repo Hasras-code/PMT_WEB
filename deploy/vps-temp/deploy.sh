@@ -22,17 +22,6 @@ fi
 set -a; . "./$ENV_FILE"; set +a
 API_PORT="${API_PORT:-8090}"
 
-# Privilege detection: the restricted pmtdeploy user has no sudo. Root-only
-# steps (Docker install, ufw, usermod) are skipped gracefully — everything the
-# deploy needs (docker socket via the `docker` group, repo write access, user
-# cron) works without root. Nothing here touches hermes-* containers.
-CAN_ADMIN=false
-if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
-  CAN_ADMIN=true
-else
-  echo "==> Non-root without passwordless sudo: Docker install / ufw / usermod steps will be skipped."
-fi
-
 for v in VPS_IP POSTGRES_PASSWORD JWT_SECRET AUTH_BASIC_PASS; do
   if [[ -z "${!v:-}" || "${!v}" == REPLACE_* ]]; then
     echo "ERROR: $v is not set in $ENV_FILE"
@@ -43,12 +32,8 @@ if ((${#JWT_SECRET} < 32)); then echo "ERROR: JWT_SECRET must be >= 32 chars"; e
 
 echo "==> VPS_IP=$VPS_IP"
 
-# Docker (Ubuntu) if missing — root only.
+# Docker (Ubuntu) if missing
 if ! command -v docker >/dev/null 2>&1; then
-  if [ "$CAN_ADMIN" = false ]; then
-    echo "ERROR: docker is missing and this user cannot install it (no sudo). Ask an admin to install Docker first."
-    exit 1
-  fi
   echo "==> Installing Docker..."
   sudo apt-get update -y
   sudo apt-get install -y ca-certificates curl gnupg
@@ -58,14 +43,13 @@ if ! command -v docker >/dev/null 2>&1; then
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
   sudo apt-get update -y
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-  if [ "$CAN_ADMIN" = true ] && [ "$(id -u)" -ne 0 ]; then sudo usermod -aG docker "$USER" || true; fi
+  sudo usermod -aG docker "$USER" || true
 fi
 docker compose version
 
 # Firewall (additive only — never touch existing rules): open the PMT ports.
 # DB stays localhost-only. 22/443 already allowed on the shared box.
-# Skipped for unprivileged deploys (rules persist once an admin adds them).
-if [ "$CAN_ADMIN" = true ] && command -v ufw >/dev/null 2>&1; then
+if command -v ufw >/dev/null 2>&1; then
   sudo ufw allow 80/tcp || true
   sudo ufw allow "$API_PORT/tcp" || true
   sudo ufw allow 8025/tcp || true
@@ -93,10 +77,7 @@ curl -sf -u "$AUTH_BASIC_USER:$AUTH_BASIC_PASS" "http://localhost:$API_PORT/heal
 curl -sf "http://localhost/" -o /dev/null -w "frontend %{http_code}\n"
 
 # Cron for background jobs (notifications, expired uploads, session cleanup).
-# Log path must be writable: /var/log for root, repo-local file otherwise.
-JOBS_LOG="/var/log/pmt-jobs.log"
-if [ "$(id -u)" -ne 0 ]; then JOBS_LOG="$ROOT/deploy/vps-temp/jobs.log"; fi
-CRON="*/5 * * * * cd $ROOT && docker compose --env-file $ENV_FILE -f docker-compose.yml -f deploy/vps-temp/docker-compose.vps.yml run --rm jobs >> $JOBS_LOG 2>&1"
+CRON="*/5 * * * * cd $ROOT && docker compose --env-file $ENV_FILE -f docker-compose.yml -f deploy/vps-temp/docker-compose.vps.yml run --rm jobs >> /var/log/pmt-jobs.log 2>&1"
 if ! crontab -l 2>/dev/null | grep -q "deploy/vps-temp.* run --rm jobs"; then
   # `|| true`: crontab -l exits 1 when the user has no crontab yet; without
   # this, `set -o pipefail` would abort the whole deploy on fresh accounts.
