@@ -12,9 +12,11 @@ if [[ -z "$IP" && -f deploy/vps-temp/.env.vps ]]; then
 fi
 if [[ -z "$IP" ]]; then echo "Usage: bash deploy/vps-temp/verify.sh [VPS_IP]"; exit 1; fi
 AUTH_ARGS=()
+API_PORT=8090
 if [[ -f deploy/vps-temp/.env.vps ]]; then
   set -a; . deploy/vps-temp/.env.vps; set +a
   AUTH_ARGS=(-u "${AUTH_BASIC_USER:-admin}:${AUTH_BASIC_PASS:-}")
+  API_PORT="${API_PORT:-8090}"
 fi
 
 echo "==> containers"
@@ -23,9 +25,9 @@ docker compose --env-file deploy/vps-temp/.env.vps -f docker-compose.yml -f depl
 echo "==> GET http://$IP/ (frontend)"
 curl -sf "http://$IP/" -o /dev/null -w "frontend %{http_code}\n"
 
-echo "==> GET http://$IP:8080/health/live + /ready (basic auth)"
-curl -sf "${AUTH_ARGS[@]}" "http://$IP:8080/health/live" && echo " live OK"
-curl -sf "${AUTH_ARGS[@]}" "http://$IP:8080/health/ready" && echo " ready OK"
+echo "==> GET http://$IP:$API_PORT/health/live + /ready (basic auth)"
+curl -sf "${AUTH_ARGS[@]}" "http://$IP:$API_PORT/health/live" && echo " live OK"
+curl -sf "${AUTH_ARGS[@]}" "http://$IP:$API_PORT/health/ready" && echo " ready OK"
 
 echo "==> proxy via :80"
 curl -sf "${AUTH_ARGS[@]}" "http://$IP/health/ready" && echo " proxy ready OK"

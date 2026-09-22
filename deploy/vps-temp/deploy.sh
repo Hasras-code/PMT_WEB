@@ -14,6 +14,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 set -a; . "./$ENV_FILE"; set +a
+API_PORT="${API_PORT:-8090}"
 
 for v in VPS_IP POSTGRES_PASSWORD JWT_SECRET AUTH_BASIC_PASS; do
   if [[ -z "${!v:-}" || "${!v}" == REPLACE_* ]]; then
@@ -40,13 +41,12 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 docker compose version
 
-# Firewall: 22 + 80 + 8080 + 8025(temp). DB stays localhost-only.
+# Firewall (additive only — never touch existing rules): open the PMT ports.
+# DB stays localhost-only. 22/443 already allowed on the shared box.
 if command -v ufw >/dev/null 2>&1; then
-  sudo ufw allow 22/tcp || true
   sudo ufw allow 80/tcp || true
-  sudo ufw allow 8080/tcp || true
+  sudo ufw allow "$API_PORT/tcp" || true
   sudo ufw allow 8025/tcp || true
-  sudo ufw --force enable || true
   sudo ufw status || true
 fi
 
@@ -66,8 +66,8 @@ docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f deploy/vps-temp/d
 
 echo "==> Health check (Basic Auth from .env.vps)..."
 sleep 5
-curl -sf -u "$AUTH_BASIC_USER:$AUTH_BASIC_PASS" "http://localhost:8080/health/live" && echo " live OK"
-curl -sf -u "$AUTH_BASIC_USER:$AUTH_BASIC_PASS" "http://localhost:8080/health/ready" && echo " ready OK"
+curl -sf -u "$AUTH_BASIC_USER:$AUTH_BASIC_PASS" "http://localhost:$API_PORT/health/live" && echo " live OK"
+curl -sf -u "$AUTH_BASIC_USER:$AUTH_BASIC_PASS" "http://localhost:$API_PORT/health/ready" && echo " ready OK"
 curl -sf "http://localhost/" -o /dev/null -w "frontend %{http_code}\n"
 
 # Cron for background jobs (notifications, expired uploads, session cleanup).
@@ -80,6 +80,6 @@ fi
 echo ""
 echo "DONE. Public links (replace if firewall differs):"
 echo "  Frontend: http://$VPS_IP/"
-echo "  API:      http://$VPS_IP:8080/health/ready  (user: $AUTH_BASIC_USER)"
+echo "  API:      http://$VPS_IP:$API_PORT/health/ready  (user: $AUTH_BASIC_USER)"
 echo "  Mailpit:  http://$VPS_IP:8025/  (lock down after testing)"
 echo "Run: bash deploy/vps-temp/verify.sh"

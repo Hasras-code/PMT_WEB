@@ -13,7 +13,10 @@ docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f deploy/vps-temp/d
   pg_dump -U lms lms > "$OUT/db.sql"
 
 echo "==> files volume..."
-docker run --rm -v pmtweb_files_data:/data/files:ro -v "$ROOT/$OUT:/backup" alpine \
+FILES_VOL="$(docker volume ls --format '{{.Name}}' | grep '_files_data$' | head -1)"
+if [[ -z "$FILES_VOL" ]]; then echo "ERROR: no *_files_data volume found"; exit 1; fi
+echo "using volume $FILES_VOL"
+docker run --rm -v "$FILES_VOL:/data/files:ro" -v "$ROOT/$OUT:/backup" alpine \
   tar -czf /backup/files.tar.gz -C /data/files .
 
 ls -lh "$OUT"
