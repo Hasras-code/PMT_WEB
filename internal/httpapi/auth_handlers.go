@@ -50,7 +50,7 @@ func (a *API) registerHandler(w http.ResponseWriter, r *http.Request) error {
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			payload	body	tokenInput	true	"Verification token"
+//	@Param			payload	body	resetPasswordInput	true	"Verification token"
 //	@Success		204
 //	@Failure		422	{object}	map[string]any
 //	@Router			/v1/auth/verify-email [post]
@@ -196,10 +196,6 @@ func (a *API) logoutHandler(w http.ResponseWriter, r *http.Request) error {
 
 type emailInput struct {
 	Email string `json:"email"`
-}
-
-type tokenInput struct {
-	Token string `json:"token"`
 }
 
 type resetPasswordInput struct {
