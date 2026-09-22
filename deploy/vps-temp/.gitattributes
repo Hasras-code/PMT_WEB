@@ -1,0 +1,6 @@
+# Keep Linux scripts/compose files LF-only so they run on the VPS.
+*.sh text eol=lf
+*.yml text eol=lf
+*.conf text eol=lf
+Dockerfile text eol=lf
+.env.vps.example text eol=lf

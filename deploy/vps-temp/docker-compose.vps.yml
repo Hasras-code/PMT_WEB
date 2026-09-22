@@ -1,0 +1,79 @@
+# TEMP VPS overlay — IP-only HTTP, no domain/TLS.
+# Usage (from repo root on the VPS):
+#   docker compose --env-file deploy/vps-temp/.env.vps \
+#     -f docker-compose.yml -f deploy/vps-temp/docker-compose.vps.yml \
+#     --profile app up --build -d
+#
+# Design notes (see cmd/api/routes.go, internal/upload/upload.go):
+# - API routes are /health/*, /v1/* (incl. /v1/files/uploads|downloads with
+#   absolute URLs built from PUBLIC_API_URL), and /swagger/* in development.
+# - PUBLIC_API_URL must be browser-reachable, so it is http://<VPS_IP>:8080 and
+#   port 8080 stays open for temp. Nginx on :80 also proxies /v1/,/health/,
+#   /swagger/ to api:8080 for convenience.
+# - APP_ENV stays `development` on purpose: config.go rejects
+#   APP_ENV=production without https + COOKIE_SECURE=true. Temp has neither.
+# - Postgres keeps its base 127.0.0.1:5432 binding (localhost-only on VPS).
+#   Mailpit 8025 is exposed publicly for temp email verification; lock it
+#   down after testing (see README).
+
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: lms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/vps-temp/.env.vps}
+      POSTGRES_DB: lms
+
+  mailpit:
+    # !override replaces the base 127.0.0.1-only bindings (compose merges
+    # port lists by appending, so without override 8025 would bind twice).
+    ports: !override
+      - "8025:8025"
+      - "127.0.0.1:1025:1025"
+
+  migrate:
+    environment:
+      DATABASE_URL: postgres://lms:${POSTGRES_PASSWORD:?required}@postgres:5432/lms?sslmode=disable
+
+  api:
+    # !override replaces the base 127.0.0.1:8080 binding with a public one.
+    # Temp needs :8080 open: upload/download URLs are absolute PUBLIC_API_URL.
+    ports: !override
+      - "8080:8080"
+    environment:
+      APP_ENV: development
+      HTTP_ADDR: :8080
+      PUBLIC_API_URL: http://${VPS_IP:?set VPS_IP in deploy/vps-temp/.env.vps}:8080
+      DATABASE_URL: postgres://lms:${POSTGRES_PASSWORD:?required}@postgres:5432/lms?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in deploy/vps-temp/.env.vps}
+      JWT_ISSUER: pmt-api
+      JWT_AUDIENCE: pmt-clients
+      DB_MAX_CONNS: 5
+      SMTP_ADDR: mailpit:1025
+      MAIL_FROM: lms@localhost
+      STORAGE_DIR: /data/files
+      CORS_ALLOWED_ORIGINS: http://${VPS_IP}:80,http://${VPS_IP},http://${VPS_IP}:8080
+      COOKIE_SECURE: "false"
+      AUTH_BASIC_USER: ${AUTH_BASIC_USER:-admin}
+      AUTH_BASIC_PASS: ${AUTH_BASIC_PASS:?set AUTH_BASIC_PASS in deploy/vps-temp/.env.vps}
+      TRUSTED_PROXY_CIDRS: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+    volumes:
+      - files_data:/data/files
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+
+  frontend:
+    build:
+      # Context is resolved against the project directory (repo root, where the
+      # first -f file lives), NOT against this overlay's folder.
+      context: .
+      dockerfile: deploy/vps-temp/frontend.Dockerfile
+      args:
+        VITE_API_URL: http://${VPS_IP:?set VPS_IP}:8080
+    profiles: [app]
+    ports:
+      - "80:80"
+    depends_on:
+      - api
