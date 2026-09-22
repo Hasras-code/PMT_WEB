@@ -10,9 +10,10 @@
 # - PUBLIC_API_URL must be browser-reachable, so it is http://<VPS_IP>:<API_PORT>
 #   and that host port stays open for temp. Nginx on :80 also proxies
 #   /v1/,/health/,/swagger/ to api:8080 for convenience.
-# - Shared-box note (95.211.43.93 also runs trading): caddy owns localhost:8080,
-#   hermes owns 8000/8501/6379/443. PMT therefore publishes the API on host
+# - Shared-box note: other services on this box own localhost:8080
+#   and 8000/8501/6379/443. PMT therefore publishes the API on host
 #   ${API_PORT:-8090} (container port stays 8080, so nginx.conf is unchanged).
+#   Do NOT touch those ports.
 # - Share-link mode: set TUNNEL_URL=https://<tunnel> in .env.vps to make the
 #   frontend, PUBLIC_API_URL (absolute file URLs) and CORS all use the public
 #   HTTPS tunnel. Empty = plain IP mode. Required because browsers block

@@ -13,7 +13,10 @@ docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f deploy/vps-temp/d
   pg_dump -U lms lms > "$OUT/db.sql"
 
 echo "==> files volume..."
-FILES_VOL="$(docker volume ls --format '{{.Name}}' | grep '_files_data$' | head -1)"
+# Scoped to this compose project on purpose: only the PMT files volume may
+# ever be named here. Never list or print other volumes on the shared box.
+PROJ="$(basename "$ROOT")"
+FILES_VOL="$(docker volume ls --format '{{.Name}}' | grep -x "${PROJ}_files_data" | head -1)"
 if [[ -z "$FILES_VOL" ]]; then echo "ERROR: no *_files_data volume found"; exit 1; fi
 echo "using volume $FILES_VOL"
 docker run --rm -v "$FILES_VOL:/data/files:ro" -v "$ROOT/$OUT:/backup" alpine \

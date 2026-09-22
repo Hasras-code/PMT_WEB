@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Temp VPS deploy — Ubuntu + Docker, IP-only HTTP. Run from repo root on the VPS.
 #   bash deploy/vps-temp/deploy.sh
+# Connection (recovered from previous sessions / repo history):
+#   PMT temp VPS : ssh root@95.211.43.93  (clone repo to /opt/pmt-web, run here)
+#   Occupied on this box — do NOT touch: localhost:8080 and 8000/8501/6379/443
+#   (other services). This bundle only opens 80, $API_PORT (8090),
+#   8025 (temp Mailpit, lock down after testing). DB stays localhost-only.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -73,7 +78,9 @@ curl -sf "http://localhost/" -o /dev/null -w "frontend %{http_code}\n"
 # Cron for background jobs (notifications, expired uploads, session cleanup).
 CRON="*/5 * * * * cd $ROOT && docker compose --env-file $ENV_FILE -f docker-compose.yml -f deploy/vps-temp/docker-compose.vps.yml run --rm jobs >> /var/log/pmt-jobs.log 2>&1"
 if ! crontab -l 2>/dev/null | grep -q "deploy/vps-temp.* run --rm jobs"; then
-  (crontab -l 2>/dev/null; echo "$CRON") | crontab -
+  # `|| true`: crontab -l exits 1 when the user has no crontab yet; without
+  # this, `set -o pipefail` would abort the whole deploy on fresh accounts.
+  (crontab -l 2>/dev/null || true; echo "$CRON") | crontab -
   echo "==> Installed jobs cron (every 5 min)"
 fi
 
