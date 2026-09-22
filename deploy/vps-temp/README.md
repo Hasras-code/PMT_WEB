@@ -1,5 +1,17 @@
 # Temp VPS deploy (IP-only, no domain) — isolated bundle
 
+## Auto-deploy (live update on every green main push)
+
+Pushing to `main` triggers the `backend` CI workflow; when it passes, the
+`deploy-vps` workflow SSHes into the VPS as the restricted `pmtdeploy` user
+and runs `remote-deploy.sh` (pull `--ff-only` + `deploy.sh` + `verify.sh`).
+Manual runs: Actions tab → `deploy-vps` → Run workflow.
+
+Security: `pmtdeploy` has no sudo and its key is forced to the deploy script
+only (see `remote-deploy.sh` header) — it cannot open a shell, read
+`.env.vps`, or touch the `hermes-*` trading containers. Rollback:
+`git reset --hard <sha>` on the VPS, then rerun `deploy.sh`.
+
 ## Connection details (recovered from previous sessions)
 
 - PMT temp VPS IP: `95.211.43.93` (public IPv4, no scheme, no port)
