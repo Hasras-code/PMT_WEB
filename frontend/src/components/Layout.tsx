@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
-import { api, clearSession, toList } from '../api/client';
+import { api, toList } from '../api/client';
 import type { Batch, NotificationItem } from '../types';
 import { useAccess } from '../hooks/useRole';
 
@@ -39,7 +39,7 @@ const TITLES: Record<string, string> = {
 };
 
 export default function Layout() {
-  const { user, setUser } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { batches, currentBatchID, setBatches, setCurrentBatchID } = useAppStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -82,8 +82,7 @@ export default function Layout() {
     } catch {
       /* ignore */
     }
-    setUser(null);
-    clearSession();
+    logout();
     navigate('/login');
   };
 

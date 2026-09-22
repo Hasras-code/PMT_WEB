@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { clearSession } from '../api/client';
 import type { AccessContext, User } from '../types';
 
 interface AuthState {
@@ -9,10 +10,21 @@ interface AuthState {
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
   setAccess: (access: AccessContext | null) => void;
+  logout: () => void;
+}
+
+function readStoredUser(): User | null {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
+  user: readStoredUser(),
   isAuthenticated: !!localStorage.getItem('access_token'),
   loading: false,
   access: null,
@@ -26,4 +38,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   setLoading: (loading) => set({ loading }),
   setAccess: (access) => set({ access }),
+  logout: () => {
+    clearSession();
+    set({ user: null, isAuthenticated: false, access: null });
+  },
 }));

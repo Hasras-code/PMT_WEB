@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { api, errMsg } from '../api/client';
 import { useAuthStore } from '../store/auth';
 import toast from 'react-hot-toast';
@@ -7,6 +7,7 @@ import { Field, inputCls, PrimaryButton } from '../components/ui';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +28,8 @@ export default function Login() {
       const me = await api.get('/v1/me');
       setUser(me.data);
       toast.success('Welcome back!');
-      navigate('/', { replace: true });
+      const from = (location.state as { from?: string } | null)?.from || '/';
+      navigate(from, { replace: true });
     } catch (err) {
       const msg = errMsg(err, 'Login failed');
       setError(msg);

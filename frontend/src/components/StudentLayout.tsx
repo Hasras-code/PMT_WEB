@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
-import { api, clearSession, toList } from '../api/client';
+import { api, toList } from '../api/client';
 import type { Batch, NotificationItem } from '../types';
 
 const NAV = [
@@ -31,7 +31,7 @@ const TITLES: Record<string, string> = {
 };
 
 export default function StudentLayout() {
-  const { user, setUser } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { batches, currentBatchID, setBatches, setCurrentBatchID } = useAppStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,7 +48,7 @@ export default function StudentLayout() {
   const activeTitle =
     NAV.find((n) => location.pathname === n.to || location.pathname.startsWith(n.to + '/'))?.title ||
     TITLES[location.pathname] ||
-    (location.pathname.startsWith('/student/public/') ? 'Public View' : 'Dashboard');
+    (location.pathname.startsWith('/public/') ? 'Public View' : 'Dashboard');
 
   const handleLogout = async () => {
     try {
@@ -57,8 +57,7 @@ export default function StudentLayout() {
     } catch {
       /* ignore */
     }
-    setUser(null);
-    clearSession();
+    logout();
     navigate('/login');
   };
 
