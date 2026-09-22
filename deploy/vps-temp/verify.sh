@@ -20,7 +20,11 @@ if [[ -f deploy/vps-temp/.env.vps ]]; then
 fi
 
 echo "==> containers"
-docker compose --env-file deploy/vps-temp/.env.vps -f docker-compose.yml -f deploy/vps-temp/docker-compose.vps.yml ps 2>/dev/null || docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+# NOTE: the fallback is scoped to this compose project on purpose — a plain
+# `docker ps` would print EVERY container on the shared box (including the
+# trading stack) into logs that stream back to GitHub. Never broaden this.
+PROJ="$(basename "$ROOT")"
+docker compose --env-file deploy/vps-temp/.env.vps -f docker-compose.yml -f deploy/vps-temp/docker-compose.vps.yml ps 2>/dev/null || docker ps --filter "label=com.docker.compose.project=$PROJ" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 
 echo "==> GET http://$IP/ (frontend)"
 curl -sf "http://$IP/" -o /dev/null -w "frontend %{http_code}\n"
