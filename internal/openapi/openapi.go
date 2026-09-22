@@ -16,6 +16,7 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/complaint"
 	"github.com/Hasras-code/PMT_WEB.git/internal/event"
 	"github.com/Hasras-code/PMT_WEB.git/internal/feedback"
+	"github.com/Hasras-code/PMT_WEB.git/internal/fund"
 	"github.com/Hasras-code/PMT_WEB.git/internal/gallery"
 	"github.com/Hasras-code/PMT_WEB.git/internal/lesson"
 	"github.com/Hasras-code/PMT_WEB.git/internal/link"
@@ -86,6 +87,8 @@ func operationMetadata(method, path string) (string, string, string) {
 			tag = "Batches"
 		case "gallery":
 			tag = "Gallery"
+		case "funds", "fund-transfers", "birthday-fund":
+			tag = "Funds"
 		case "notifications":
 			tag = "Notifications"
 		case "complaints", "feedback":
@@ -125,6 +128,32 @@ func Request(method, path string) M {
 	}
 	if strings.HasSuffix(path, "/uploads") {
 		return schema(reflect.TypeFor[upload.Input]())
+	}
+	if strings.Contains(path, "/funds") || strings.Contains(path, "/fund-transfers") || strings.Contains(path, "/birthday-fund") {
+		switch {
+		case strings.HasSuffix(path, "/reverse"), strings.HasSuffix(path, "/post"), strings.HasSuffix(path, "/close"), strings.HasSuffix(path, "/archive"):
+			return nil
+		case strings.HasSuffix(path, "/repayments"):
+			return schema(reflect.TypeFor[fund.RepaymentInput]())
+		case strings.HasSuffix(path, "/payments"):
+			return schema(reflect.TypeFor[fund.PaymentInput]())
+		case strings.HasSuffix(path, "/managers"):
+			return schema(reflect.TypeFor[fund.ManagerInput]())
+		case strings.HasSuffix(path, "/attachments"):
+			return schema(reflect.TypeFor[fund.AttachmentInput]())
+		case strings.HasSuffix(path, "/transactions"):
+			return schema(reflect.TypeFor[fund.TransactionInput]())
+		case strings.Contains(path, "/transactions/{transactionID}") && method == "PATCH":
+			return schema(reflect.TypeFor[fund.TransactionUpdate]())
+		case strings.HasSuffix(path, "/fund-transfers"):
+			return schema(reflect.TypeFor[fund.TransferInput]())
+		case strings.HasSuffix(path, "/birthday-fund/periods"):
+			return schema(reflect.TypeFor[fund.PeriodInput]())
+		case strings.HasSuffix(path, "/funds"):
+			return schema(reflect.TypeFor[fund.FundInput]())
+		case strings.Contains(path, "/funds/{fundID}") && method == "PATCH":
+			return schema(reflect.TypeFor[fund.FundUpdate]())
+		}
 	}
 	if strings.Contains(path, "/auth/") {
 		switch path {
@@ -264,6 +293,15 @@ func Generate(r chi.Routes) (M, error) {
 				M{"name": "query", "in": "query", "schema": M{"type": "string", "maxLength": 200}},
 			)
 		}
+		if method == "GET" && strings.HasSuffix(path, "/funds/{fundID}/transactions") {
+			params = append(params,
+				M{"name": "type", "in": "query", "schema": M{"type": "string", "enum": []string{"CASH_IN", "EXPENSE", "TRANSFER_IN", "TRANSFER_OUT", "REVERSAL_IN", "REVERSAL_OUT"}}},
+				M{"name": "source_type", "in": "query", "schema": M{"type": "string"}},
+				M{"name": "date_from", "in": "query", "schema": M{"type": "string", "format": "date-time"}},
+				M{"name": "date_to", "in": "query", "schema": M{"type": "string", "format": "date-time"}},
+				M{"name": "include_drafts", "in": "query", "schema": M{"type": "boolean", "default": false}},
+			)
+		}
 		if len(params) > 0 {
 			op["parameters"] = params
 		}
@@ -370,6 +408,18 @@ func requiredFields(method, path string) []string {
 		return []string{"user_id"}
 	case strings.HasSuffix(path, "/roles"):
 		return []string{"role"}
+	case strings.HasSuffix(path, "/fund-transfers"):
+		return []string{"from_fund_id", "to_fund_id", "type", "amount_minor"}
+	case strings.HasSuffix(path, "/repayments") || strings.HasSuffix(path, "/payments"):
+		return []string{"amount_minor"}
+	case strings.HasSuffix(path, "/managers"):
+		return []string{"membership_id"}
+	case strings.HasSuffix(path, "/birthday-fund/periods"):
+		return []string{"year", "month", "amount_minor"}
+	case strings.HasSuffix(path, "/funds"):
+		return []string{"name", "type"}
+	case strings.HasSuffix(path, "/transactions"):
+		return []string{"type", "amount_minor", "description"}
 	case strings.HasSuffix(path, "/semesters"):
 		return []string{"semester_number", "name", "academic_year"}
 	case strings.HasSuffix(path, "/modules"):

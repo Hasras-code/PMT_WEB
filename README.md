@@ -1,6 +1,6 @@
 # PMT university LMS API
 
-A Go REST API for multiple university cohorts and a single public platform gallery. PostgreSQL runs locally in Docker Compose. PDFs and images are stored on local disk, outside the database and outside any static web directory. There is no frontend, achievement model, fund management, album model, or per-batch gallery.
+A Go REST API for multiple university cohorts, cohort fund management, and a single public platform gallery. PostgreSQL runs locally in Docker Compose. PDFs and images are stored on local disk, outside the database and outside any static web directory. There is no achievement model, album model, or per-batch gallery.
 
 ## Run locally
 
@@ -83,6 +83,12 @@ CLI access and database credentials are privileged operator capabilities. `--act
 Representatives can approve memberships with `POST /v1/batches/{batchID}/members` and body `{"user_id":"..."}`. Promotion uses `POST /v1/batches/{batchID}/members/{membershipID}/roles` and body `{"role":"BATCH_REP"}`. Removal uses DELETE on the corresponding role-code path. Additional responsibilities never replace STUDENT. Normal API operations protect the last active representative from role removal/membership suspension; operator access provides recovery.
 
 See [security and permissions](docs/security.md) for the permission matrix. Public committee titles do not grant access. Platform administrators have global gallery and platform-management permissions but no automatic access to private cohort content.
+
+## Fund management
+
+Every new cohort receives one Birthday Fund. Batch representatives can create other funds, record cash and expenses, assign fund-specific managers, transfer money, issue and repay internal loans, and administer monthly Birthday Fund contributions. Students have read-only access to posted financial records in their own cohort and can see only their own individual contribution status.
+
+Balances and loan outstanding amounts are derived from immutable posted ledger records. Outgoing operations lock the affected fund rows before checking balances, and transfers always create both ledger sides in one PostgreSQL transaction. Receipts use the same private signed local-storage flow as other documents. See [fund management](docs/funds.md) for the accounting and authorization rules.
 
 ## PDF upload, versions and downloads
 

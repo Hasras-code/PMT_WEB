@@ -8,8 +8,8 @@ All active members receive STUDENT. Additional columns below describe additive b
 
 | Role | Permissions |
 |---|---|
-| STUDENT | batch.view, membership.view, semester.view, module.view, announcement.view, resource.view, lesson.view, link.view, event.view, position.view, complaint.create, complaint.view_own, feedback.create |
-| BATCH_REP | batch.manage, batch.profile.manage, membership.manage, role.assign, semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, lesson.manage, link.manage, event.manage, position.manage, feedback.view/manage, audit.view |
+| STUDENT | batch.view, membership.view, semester.view, module.view, announcement.view, resource.view, lesson.view, link.view, event.view, position.view, complaint.create, complaint.view_own, feedback.create, fund.view |
+| BATCH_REP | batch.manage, batch.profile.manage, membership.manage, role.assign, semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, lesson.manage, link.manage, event.manage, position.manage, feedback.view/manage, audit.view, fund.create/update/close, fund.transaction.create/reverse, fund.manager.assign/remove, fund.transfer.create/reverse, birthday_fund.manage, birthday_contribution.record |
 | CONTENT_MANAGER | announcement.create/update/delete/publish, resource.create/update/delete/publish, lesson.manage, link.manage, event.manage, position.manage, batch.profile.manage |
 | ACADEMIC_REP | semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, lesson.manage, link.manage |
 | COMPLAINT_MANAGER | complaint.view_all/respond/resolve |
@@ -17,9 +17,11 @@ All active members receive STUDENT. Additional columns below describe additive b
 
 `x/y` notation expands to separate permission codes. Catalog definitions and scope constraints live in migration 000002. There is no numeric role precedence. Only batch-assigned roles satisfy batch permissions. Public titles grant no permissions. Role assignment allows only BATCH roles and never accepts platform promotion from a batch endpoint.
 
+Fund-manager assignments are scoped capabilities outside the role catalog. They allow an active member to operate only the referenced fund and do not alter that member's roles. A two-fund transfer requires authority for both funds. Contribution administration remains restricted to its explicit batch permissions because it exposes individual payment status.
+
 ## Isolation and transactions
 
-Private repositories include both route batch and entity identifiers. Composite foreign keys prevent cross-batch modules, semesters, resources, versions, positions and complaint messages. Batch write operations lock their cohort to serialize membership/role mutations with protected domain changes. Unrelated cohorts do not share that lock.
+Private repositories include both route batch and entity identifiers. Composite foreign keys prevent cross-batch modules, semesters, resources, versions, positions, complaint messages, funds, financial transactions, managers, transfers, contribution obligations and receipts. Batch write operations lock their cohort to serialize membership/role mutations with protected domain changes. Financial posting additionally locks affected fund rows, in stable UUID order for two-fund operations, before deriving available balances. Unrelated cohorts do not share those locks.
 
 The STUDENT invariant is checked at transaction commit. Assignment/removal and their audits commit together. Verification consumes the token with the account update. Refresh rotation locks account then session; replay revocation is committed before returning an authentication failure. Login rechecks the password hash under the account lock to prevent a concurrent reset issuing an old-password session.
 

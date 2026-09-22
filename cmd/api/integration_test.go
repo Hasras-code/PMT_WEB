@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/Hasras-code/PMT_WEB.git/internal/auth"
 	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
+	"github.com/Hasras-code/PMT_WEB.git/internal/fund"
 	"github.com/Hasras-code/PMT_WEB.git/internal/membership"
 	"github.com/Hasras-code/PMT_WEB.git/internal/notification"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
@@ -226,6 +227,103 @@ func (f *fixture) upload(path, token, name, mime string, b []byte) string {
 		f.t.Fatalf("upload %d %s", w.Code, w.Body.String())
 	}
 	return v["upload_id"].(string)
+}
+
+func TestFundManagement(t *testing.T) {
+	f := setup(t)
+	rep, repToken, _ := f.newUser("FUND-REP")
+	student, studentToken, _ := f.newUser("FUND-STUDENT")
+	batchID := f.newBatch(rep, "fund-cohort")
+	f.member(rep, batchID, rep, "BATCH_REP")
+	studentMembership := f.member(rep, batchID, student, "")
+	base := "/v1/batches/" + batchID
+
+	funds := f.request("GET", base+"/funds", studentToken, nil, 200)
+	if !bytes.Contains(funds, []byte("Birthday Fund")) {
+		t.Fatal("batch was not initialized with a Birthday Fund")
+	}
+	f.request("POST", base+"/funds", studentToken, map[string]any{"name": "Denied", "type": "OTHER"}, 403)
+	mainFund := idOf(t, f.request("POST", base+"/funds", repToken, map[string]any{"name": "Main Fund", "type": "OTHER"}, 201))
+	eventFund := idOf(t, f.request("POST", base+"/funds", repToken, map[string]any{"name": "Event Fund", "type": "OTHER"}, 201))
+	linkedFund := idOf(t, f.request("POST", base+"/funds", repToken, map[string]any{
+		"name": "Freshers Fund", "type": "EVENT",
+		"event": map[string]any{"title": "Freshers Night", "starts_at": "2026-10-10T18:00:00Z", "visibility": "MEMBERS_ONLY"},
+	}, 201))
+	linked := object(t, f.request("GET", base+"/funds/"+linkedFund, studentToken, nil, 200))
+	linkedEvent, ok := linked["event_id"].(string)
+	if !ok || linkedEvent == "" {
+		t.Fatal("event fund did not return its atomically created event")
+	}
+	f.request("GET", base+"/events/"+linkedEvent, repToken, nil, 200)
+
+	f.request("POST", base+"/funds/"+mainFund+"/transactions", repToken, map[string]any{"type": "CASH_IN", "amount_minor": 100000, "description": "Opening cash"}, 201)
+	expense := idOf(t, f.request("POST", base+"/funds/"+mainFund+"/transactions", repToken, map[string]any{"type": "EXPENSE", "amount_minor": 30000, "description": "Supplies"}, 201))
+	f.request("POST", base+"/funds/"+mainFund+"/transactions", repToken, map[string]any{"type": "EXPENSE", "amount_minor": 80000, "description": "Too much"}, 409)
+	receipt := f.upload(base+"/funds/"+mainFund+"/transactions/"+expense+"/attachments/uploads", repToken, "receipt.pdf", "application/pdf", []byte("%PDF-1.7\nreceipt"))
+	attachment := idOf(t, f.request("POST", base+"/funds/"+mainFund+"/transactions/"+expense+"/attachments", repToken, map[string]any{"upload_id": receipt, "visibility": "MEMBERS"}, 201))
+	download := object(t, f.request("GET", base+"/funds/"+mainFund+"/transactions/"+expense+"/attachments/"+attachment+"/download", studentToken, nil, 200))
+	if got := f.request("GET", download["url"].(string), "", nil, 200); string(got) != "%PDF-1.7\nreceipt" {
+		t.Fatal("fund receipt download bytes")
+	}
+	f.request("POST", base+"/funds/"+mainFund+"/transactions/"+expense+"/reverse", repToken, nil, 201)
+	f.request("POST", base+"/funds/"+mainFund+"/transactions/"+expense+"/reverse", repToken, nil, 409)
+
+	f.request("POST", base+"/funds/"+mainFund+"/managers", repToken, map[string]any{"membership_id": studentMembership}, 201)
+	if got := f.request("GET", base+"/funds/"+mainFund+"/managers", repToken, nil, 200); !bytes.Contains(got, []byte(studentMembership)) {
+		t.Fatal("assigned fund manager was not listed")
+	}
+	f.request("POST", base+"/funds/"+mainFund+"/transactions", studentToken, map[string]any{"type": "CASH_IN", "amount_minor": 10000, "description": "Managed income"}, 201)
+	f.request("POST", base+"/funds/"+eventFund+"/transactions", studentToken, map[string]any{"type": "CASH_IN", "amount_minor": 10000, "description": "Wrong fund"}, 403)
+	f.request("DELETE", base+"/funds/"+mainFund+"/managers/"+studentMembership, repToken, nil, 204)
+	f.request("POST", base+"/funds/"+mainFund+"/transactions", studentToken, map[string]any{"type": "CASH_IN", "amount_minor": 1000, "description": "Revoked"}, 403)
+
+	lifecycleFund := idOf(t, f.request("POST", base+"/funds", repToken, map[string]any{"name": "Managed Fund", "type": "OTHER"}, 201))
+	f.request("PATCH", base+"/funds/"+lifecycleFund, repToken, map[string]any{"name": "Updated Managed Fund"}, 204)
+	f.request("POST", base+"/funds/"+lifecycleFund+"/close", repToken, nil, 204)
+	f.request("POST", base+"/funds/"+lifecycleFund+"/transactions", repToken, map[string]any{"type": "CASH_IN", "amount_minor": 1000, "description": "Closed fund"}, 409)
+	f.request("POST", base+"/funds/"+lifecycleFund+"/archive", repToken, nil, 204)
+
+	otherBatch := f.newBatch(rep, "other-fund-cohort")
+	f.member(rep, otherBatch, rep, "BATCH_REP")
+	otherFund := idOf(t, f.request("POST", "/v1/batches/"+otherBatch+"/funds", repToken, map[string]any{"name": "Other Cohort", "type": "OTHER"}, 201))
+	f.request("GET", base+"/funds/"+otherFund, studentToken, nil, 404)
+	f.request("POST", base+"/fund-transfers", repToken, map[string]any{"from_fund_id": mainFund, "to_fund_id": otherFund, "type": "TRANSFER", "amount_minor": 1000}, 404)
+
+	transfer := idOf(t, f.request("POST", base+"/fund-transfers", repToken, map[string]any{"from_fund_id": mainFund, "to_fund_id": eventFund, "type": "LOAN", "amount_minor": 20000, "description": "Event loan"}, 201))
+	f.request("POST", base+"/fund-transfers/"+transfer+"/repayments", repToken, map[string]any{"amount_minor": 5000}, 201)
+	f.request("POST", base+"/fund-transfers/"+transfer+"/repayments", repToken, map[string]any{"amount_minor": 20000}, 409)
+	f.request("GET", base+"/fund-transfers/"+transfer, studentToken, nil, 200)
+
+	period := idOf(t, f.request("POST", base+"/birthday-fund/periods", repToken, map[string]any{"year": 2026, "month": 9, "amount_minor": 20000}, 201))
+	f.request("GET", base+"/birthday-fund/periods/"+period+"/contributions", studentToken, nil, 403)
+	f.request("GET", base+"/birthday-fund/periods/"+period+"/my-contribution", studentToken, nil, 200)
+	f.request("POST", base+"/birthday-fund/periods/"+period+"/contributions/"+studentMembership+"/payments", repToken, map[string]any{"amount_minor": 5000}, 201)
+	f.request("GET", base+"/birthday-fund", studentToken, nil, 200)
+
+	concurrentFund := idOf(t, f.request("POST", base+"/funds", repToken, map[string]any{"name": "Concurrency", "type": "OTHER"}, 201))
+	svc := fund.Service{Pool: f.p}
+	if _, err := svc.CreateTransaction(context.Background(), rep, batchID, concurrentFund, fund.TransactionInput{Type: "CASH_IN", AmountMinor: 10000, Description: "Seed", Status: "POSTED"}); err != nil {
+		t.Fatal(err)
+	}
+	start := make(chan struct{})
+	errs := make(chan error, 2)
+	for range 2 {
+		go func() {
+			<-start
+			_, err := svc.CreateTransaction(context.Background(), rep, batchID, concurrentFund, fund.TransactionInput{Type: "EXPENSE", AmountMinor: 8000, Description: "Concurrent", Status: "POSTED"})
+			errs <- err
+		}()
+	}
+	close(start)
+	succeeded := 0
+	for range 2 {
+		if err := <-errs; err == nil {
+			succeeded++
+		}
+	}
+	if succeeded != 1 {
+		t.Fatalf("concurrent expenses succeeded %d times", succeeded)
+	}
 }
 func TestAuthLifecycle(t *testing.T) {
 	f := setup(t)

@@ -87,4 +87,5 @@ func (a *API) EventRoutes(r chi.Router)         { a.eventRoutes(r) }
 func (a *API) EventImageRoutes(r chi.Router)    { a.eventImageRoutes(r) }
 func (a *API) PositionRoutes(r chi.Router)      { a.positionRoutes(r) }
 func (a *API) SupportRoutes(r chi.Router)       { a.supportRoutes(r) }
+func (a *API) FundRoutes(r chi.Router)          { a.fundRoutes(r) }
 func (a *API) AuditHandler() http.HandlerFunc   { return a.auditHandler() }

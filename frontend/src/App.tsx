@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth';
 import { useElevated } from './hooks/useRole';
-import type { JSX } from 'react';
+import { lazy, Suspense, type JSX } from 'react';
 import Layout from './components/Layout';
 import StudentLayout from './components/StudentLayout';
 import Login from './pages/Login';
@@ -24,6 +24,12 @@ import Gallery from './pages/Gallery';
 import PublicBatch from './pages/PublicBatch';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
+
+const Funds = lazy(() => import('./pages/Funds'));
+
+function FundsPage() {
+  return <Suspense fallback={<p className="p-8 text-sm text-muted">Loading funds…</p>}><Funds /></Suspense>;
+}
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthenticated } = useAuthStore();
@@ -61,6 +67,7 @@ const LEGACY = [
   'profile',
   'notifications',
   'support',
+  'funds',
 ];
 
 function App() {
@@ -98,6 +105,7 @@ function App() {
           <Route path="gallery" element={<Gallery />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="funds" element={<FundsPage />} />
         </Route>
 
         <Route
@@ -119,6 +127,7 @@ function App() {
           <Route path="public/batches/:slug" element={<PublicBatch />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="funds" element={<FundsPage />} />
         </Route>
 
         {LEGACY.map((p) => (

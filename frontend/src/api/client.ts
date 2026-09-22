@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosRequestConfig } from 'axios';
 import type { AuthTokens } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://nearly-bubble-clump.ngrok-free.dev';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const client = axios.create({
   baseURL: API_BASE,

@@ -311,3 +311,108 @@ export interface ErrorResponse {
     request_id: string;
   };
 }
+
+export interface FundSummary {
+  id: string;
+  batch_id: string;
+  name: string;
+  description: string;
+  type: 'BIRTHDAY' | 'EVENT' | 'OTHER';
+  event_id: string | null;
+  currency: 'LKR';
+  status: 'ACTIVE' | 'CLOSED' | 'ARCHIVED';
+  balance_minor: number;
+  total_cash_in_minor: number;
+  total_expense_minor: number;
+  total_transfer_in_minor: number;
+  total_transfer_out_minor: number;
+  outstanding_loans_payable_minor: number;
+  created_at: string;
+  closed_at: string | null;
+}
+
+export interface FundTransaction {
+  id: string;
+  fund_id: string;
+  type: 'CASH_IN' | 'EXPENSE' | 'TRANSFER_IN' | 'TRANSFER_OUT' | 'REVERSAL_IN' | 'REVERSAL_OUT';
+  amount_minor: number;
+  description: string;
+  category: string | null;
+  source_type: string | null;
+  source_name: string | null;
+  reference: string | null;
+  transaction_date: string;
+  status: 'DRAFT' | 'POSTED';
+  transfer_id: string | null;
+  reversal_of_transaction_id: string | null;
+  reversed_by_transaction_id: string | null;
+  created_at: string;
+  posted_at: string | null;
+}
+
+export interface FundManager {
+  id: string;
+  membership_id: string;
+  user_id: string;
+  display_name: string;
+  assigned_at: string;
+}
+
+export interface FundTransfer {
+  id: string;
+  from_fund_id: string;
+  from_fund_name: string;
+  to_fund_id: string;
+  to_fund_name: string;
+  type: 'TRANSFER' | 'LOAN' | 'LOAN_REPAYMENT' | 'REVERSAL';
+  amount_minor: number;
+  description: string;
+  parent_transfer_id: string | null;
+  reversal_of_transfer_id: string | null;
+  reversed_by_transfer_id: string | null;
+  outstanding_minor: number | null;
+  created_at: string;
+}
+
+export interface BirthdaySummary {
+  fund_id: string;
+  name: string;
+  currency: 'LKR';
+  balance_minor: number;
+  total_expected_minor: number;
+  total_collected_minor: number;
+  outstanding_minor: number;
+}
+
+export interface BirthdayPeriod {
+  id: string;
+  year: number;
+  month: number;
+  amount_minor: number;
+  status: 'OPEN' | 'CLOSED';
+  member_count: number;
+  expected_minor: number;
+  collected_minor: number;
+  created_at: string;
+  closed_at: string | null;
+}
+
+export interface BirthdayContribution {
+  id: string;
+  membership_id?: string;
+  user_id?: string;
+  display_name?: string;
+  expected_minor: number;
+  paid_minor: number;
+  outstanding_minor: number;
+  status: 'PAID' | 'PARTIAL' | 'UNPAID';
+}
+
+export interface FundAttachment {
+  id: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  visibility: 'MEMBERS' | 'MANAGERS';
+  created_at: string;
+}

@@ -84,15 +84,31 @@ func (s Service) Create(ctx context.Context, user, batch string, in Input) (stri
 	}
 	var id string
 	e := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if e := authorization.Write(ctx, tx, user, batch, "event.manage"); e != nil {
-			return e
-		}
-		if e := tx.QueryRow(ctx, `INSERT INTO events(batch_id,created_by,title,description,location,starts_at,ends_at,visibility) VALUES($1,$2,COALESCE($3,''),COALESCE($4,''),COALESCE($5,''),$6::timestamptz,$7::timestamptz,COALESCE($8,'MEMBERS_ONLY')) RETURNING id`, batch, user, in.Title, in.Description, in.Location, in.StartsAt, in.EndsAt, in.Visibility).Scan(&id); e != nil {
-			return e
-		}
-		return audit.Record(ctx, tx, batch, user, "EVENT_CREATED", "event", id, nil)
+		var e error
+		id, e = CreateTx(ctx, tx, user, batch, in)
+		return e
 	})
 	return id, e
+}
+
+// CreateTx creates an event inside an existing transaction. It is used by
+// workflows such as event-fund creation that must either complete together or
+// leave no partial event behind.
+func CreateTx(ctx context.Context, tx pgx.Tx, user, batch string, in Input) (string, error) {
+	if e := in.Validate(true); e != nil {
+		return "", e
+	}
+	if e := authorization.Write(ctx, tx, user, batch, "event.manage"); e != nil {
+		return "", e
+	}
+	var id string
+	if e := tx.QueryRow(ctx, `INSERT INTO events(batch_id,created_by,title,description,location,starts_at,ends_at,visibility) VALUES($1,$2,COALESCE($3,''),COALESCE($4,''),COALESCE($5,''),$6::timestamptz,$7::timestamptz,COALESCE($8,'MEMBERS_ONLY')) RETURNING id`, batch, user, in.Title, in.Description, in.Location, in.StartsAt, in.EndsAt, in.Visibility).Scan(&id); e != nil {
+		return "", e
+	}
+	if e := audit.Record(ctx, tx, batch, user, "EVENT_CREATED", "event", id, nil); e != nil {
+		return "", e
+	}
+	return id, nil
 }
 func (s Service) Update(ctx context.Context, user, batch, id string, in Input) error {
 	if e := in.Validate(false); e != nil {

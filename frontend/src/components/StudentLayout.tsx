@@ -8,6 +8,7 @@ import {
   ChatBubbleLeftIcon,
   PhotoIcon,
   BellIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
@@ -18,6 +19,7 @@ const NAV = [
   { to: '/student/dashboard', label: 'Dashboard', Icon: ChartBarIcon, title: 'Dashboard' },
   { to: '/student/courses', label: 'My Courses', Icon: BookOpenIcon, title: 'My Courses' },
   { to: '/student/assessments', label: 'Resources', Icon: ShieldCheckIcon, title: 'Resource Library' },
+  { to: '/student/funds', label: 'Funds', Icon: BanknotesIcon, title: 'Fund Transparency' },
   { to: '/student/meetings', label: 'Video Meetings', Icon: VideoCameraIcon, title: 'Video Meetings' },
   { to: '/student/communication', label: 'Communication', Icon: ChatBubbleLeftIcon, title: 'Communication' },
   { to: '/student/gallery', label: 'Gallery', Icon: PhotoIcon, title: 'Gallery' },

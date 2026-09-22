@@ -146,6 +146,9 @@ func (a *API) fail(w http.ResponseWriter, r *http.Request, e error) {
 	case errors.Is(e, apperror.ErrConflict):
 		status, code, message = 409, "conflict", "Conflict or invalid state"
 	}
+	if domainCode := apperror.Code(e); domainCode != "" {
+		code = domainCode
+	}
 	if status == 500 {
 		a.Log.Error("request failed", "request_id", r.Context().Value(requestIDKey))
 	}

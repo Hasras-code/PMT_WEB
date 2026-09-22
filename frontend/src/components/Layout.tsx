@@ -11,6 +11,7 @@ import {
   CircleStackIcon,
   Cog6ToothIcon,
   BellIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
@@ -23,6 +24,7 @@ const NAV = [
   { to: '/admin/users', label: 'User Management', Icon: UsersIcon, title: 'User Management' },
   { to: '/admin/courses', label: 'Course Management', Icon: BookOpenIcon, title: 'Course Management' },
   { to: '/admin/assessments', label: 'Resources', Icon: ShieldCheckIcon, title: 'Resource Library' },
+  { to: '/admin/funds', label: 'Fund Management', Icon: BanknotesIcon, title: 'Fund Management' },
   { to: '/admin/communication', label: 'Communication', Icon: ChatBubbleLeftIcon, title: 'Communication' },
   { to: '/admin/meetings', label: 'Video Meetings', Icon: VideoCameraIcon, title: 'Video Meetings' },
   { to: '/admin/monitoring', label: 'Monitoring', Icon: PresentationChartLineIcon, title: 'Monitoring' },
@@ -49,6 +51,7 @@ export default function Layout() {
   const visibleNav = NAV.filter((item) => {
     if (item.to.endsWith('/users')) return has('membership.manage') || has('role.assign') || has('platform_user.manage');
     if (item.to.endsWith('/assessments')) return has('resource.create');
+    if (item.to.endsWith('/funds')) return has('fund.view');
     if (item.to.endsWith('/communication')) return has('announcement.create') || has('feedback.view') || has('complaint.view_all');
     if (item.to.endsWith('/meetings')) return has('event.manage');
     if (item.to.endsWith('/monitoring')) return has('audit.view') || has('platform_audit.view');

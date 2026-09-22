@@ -56,6 +56,7 @@ func (a *app) mount() *chi.Mux {
 				api.EventImageRoutes(r)
 				api.PositionRoutes(r)
 				api.SupportRoutes(r)
+				api.FundRoutes(r)
 				r.Get("/audit-logs", api.AuditHandler())
 			})
 		})

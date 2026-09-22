@@ -6,6 +6,7 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
 	"github.com/Hasras-code/PMT_WEB.git/internal/audit"
 	"github.com/Hasras-code/PMT_WEB.git/internal/authorization"
+	"github.com/Hasras-code/PMT_WEB.git/internal/fund"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
 	"github.com/Hasras-code/PMT_WEB.git/internal/upload"
 	"github.com/jackc/pgx/v5"
@@ -44,6 +45,9 @@ func (s Service) Create(ctx context.Context, user string, in Input, operator boo
 			return e
 		}
 		if _, e := tx.Exec(ctx, `INSERT INTO batch_profiles(batch_id) VALUES($1)`, id); e != nil {
+			return e
+		}
+		if e := fund.EnsureBirthdayFund(ctx, tx, id, user); e != nil {
 			return e
 		}
 		return audit.Record(ctx, tx, id, user, "BATCH_CREATED", "batch", id, nil)

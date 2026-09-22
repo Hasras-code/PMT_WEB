@@ -38,6 +38,24 @@ type Object struct {
 	Size                int64
 }
 
+// AuthorizeChecked creates an upload intent after a feature service has
+// performed its resource-specific authorization. It is used when a generic
+// batch permission is insufficient, such as an assignment to one exact fund.
+func (s Service) AuthorizeChecked(ctx context.Context, user, batch, purpose string, in Input) (json.RawMessage, error) {
+	if in.Size < 1 || in.Size > 50<<20 || in.FileName == "" || len(in.FileName) > 255 || strings.ContainsAny(in.FileName, "/\\\r\n\x00") || in.MIME != "application/pdf" || strings.ToLower(filepath.Ext(in.FileName)) != ".pdf" {
+		return nil, apperror.ErrInvalid
+	}
+	id, key := uuid.NewString(), storage.Key()
+	expires := time.Now().Add(15 * time.Minute)
+	if _, err := s.Pool.Exec(ctx, `INSERT INTO upload_intents(id,owner_id,batch_id,purpose,storage_key,mime_type,size_bytes,file_name,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, id, user, batch, purpose, key, in.MIME, in.Size, in.FileName, expires); err != nil {
+		return nil, err
+	}
+	token, err := s.Store.Sign(storage.Grant{Key: key, ID: id, Purpose: "upload", Expiry: time.Now().Add(5 * time.Minute).Unix()})
+	if err != nil { return nil, err }
+	b, err := json.Marshal(map[string]any{"upload_id": id, "upload_url": s.BaseURL + "/v1/files/uploads/" + token, "method": "PUT", "headers": map[string]string{"Content-Type": in.MIME}, "expires_in": 300})
+	return b, err
+}
+
 func (s Service) Authorize(ctx context.Context, user, batch, purpose, permission string, in Input) (json.RawMessage, error) {
 	if in.Size < 1 || len(in.FileName) > 255 || in.FileName == "" || strings.ContainsAny(in.FileName, "/\\\r\n\x00") {
 		return nil, apperror.ErrInvalid
