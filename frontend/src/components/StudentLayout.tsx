@@ -61,21 +61,17 @@ export default function StudentLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-surface">
+    <div className="flex min-h-screen bg-obsidian-dark">
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[300px] bg-white border-r border-line flex flex-col transform transition-transform duration-200 ${
+        className={`fixed inset-y-0 left-0 z-50 w-[300px] bg-charcoal-card border-r border-line flex flex-col transform transition-transform duration-200 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
         <div className="px-7 pt-8 pb-6 border-b border-line">
-          <p className="text-[26px] leading-[1.25] font-semibold text-primary">
-            Learning
-            <br />
-            Management
-            <br />
-            System
+          <p className="text-[32px] tracking-tight leading-tight font-bold text-gold-gradient">
+            PMT Family
           </p>
-          <p className="mt-2 text-xs font-medium text-muted uppercase tracking-wide">Student Portal</p>
+          <p className="mt-1 text-xs font-medium text-muted uppercase tracking-widest">Student Portal</p>
         </div>
         <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-1">
           {NAV.map(({ to, label, Icon }) => (
@@ -121,7 +117,7 @@ export default function StudentLayout() {
       {sidebarOpen && <div className="fixed inset-0 z-40 bg-ink/30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-[300px]">
-        <header className="sticky top-0 z-30 bg-white border-b border-line">
+        <header className="sticky top-0 z-30 bg-charcoal-card/90 backdrop-blur-md border-b border-line">
           <div className="flex items-center justify-between px-8 h-[104px]">
             <div className="flex items-center gap-4">
               <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-ink" aria-label="Open menu">
@@ -139,7 +135,7 @@ export default function StudentLayout() {
               <select
                 value={currentBatchID}
                 onChange={(e) => setCurrentBatchID(e.target.value)}
-                className="px-4 py-2.5 rounded-xl border border-line bg-white text-[15px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 max-w-[220px]"
+                className="px-4 py-2.5 rounded-xl border border-line bg-slate-950/80 text-[15px] text-ink focus:outline-none focus:ring-2 focus:ring-amber-500/50 max-w-[220px]"
                 aria-label="Select cohort"
               >
                 {batches.length === 0 && <option value="">No cohort</option>}

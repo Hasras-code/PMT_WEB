@@ -37,10 +37,11 @@ export default function PasswordReset() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface p-8">
-      <div className="w-full max-w-md bg-white rounded-2xl border border-line p-8 space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-obsidian-dark p-8 relative">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 blur-[100px] pointer-events-none rounded-full" />
+      <div className="w-full max-w-md bg-charcoal-card backdrop-blur-xl rounded-2xl border border-line p-8 space-y-8 shadow-2xl relative z-10">
         <div>
-          <p className="text-xl font-semibold text-primary">Learning Management System</p>
+          <p className="text-[28px] tracking-tight font-bold text-gold-gradient">PMT Family</p>
           <h1 className="mt-3 text-2xl font-semibold text-ink">Reset password</h1>
         </div>
         <form onSubmit={request} className="space-y-4">
