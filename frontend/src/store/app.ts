@@ -16,11 +16,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ batches });
     const { currentBatchID } = get();
     if (!currentBatchID && batches.length > 0) {
-      localStorage.setItem('current_batch_id', batches[0].id);
-      set({ currentBatchID: batches[0].id });
+      const first = batches[0]?.id ?? '';
+      localStorage.setItem('current_batch_id', first);
+      set({ currentBatchID: first });
     }
     if (currentBatchID && !batches.some((b) => b.id === currentBatchID)) {
-      const fallback = batches.length > 0 ? batches[0].id : '';
+      const fallback = batches[0]?.id ?? '';
       localStorage.setItem('current_batch_id', fallback);
       set({ currentBatchID: fallback });
     }

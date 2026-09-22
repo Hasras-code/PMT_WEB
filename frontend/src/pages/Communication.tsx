@@ -181,8 +181,8 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
           </div>
           {attachments[a.id] && (
             <div className="mt-4 rounded-xl bg-surface p-4 space-y-2">
-              {attachments[a.id].length === 0 && <p className="text-sm text-muted">No attachments.</p>}
-              {attachments[a.id].map((attachment) => (
+              {(attachments[a.id] ?? []).length === 0 && <p className="text-sm text-muted">No attachments.</p>}
+              {(attachments[a.id] ?? []).map((attachment) => (
                 <div key={attachment.id} className="flex items-center justify-between gap-3 text-sm">
                   <button onClick={() => downloadAttachment(a.id, attachment.id)} className="text-primary hover:underline">{attachment.file_name}</button>
                   {elevated && <button onClick={() => api.delete(`/v1/batches/${batchID}/announcements/${a.id}/attachments/${attachment.id}`).then(async () => {

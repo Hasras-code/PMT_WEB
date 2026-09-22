@@ -214,7 +214,7 @@ export default function Users() {
                         </select>
                         <button
                           disabled={!assign[m.id]}
-                          onClick={() => setRole(m.id, assign[m.id], false)}
+                          onClick={() => setRole(m.id, assign[m.id] ?? '', false)}
                           className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm disabled:opacity-40"
                         >
                           Add

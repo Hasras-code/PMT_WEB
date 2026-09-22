@@ -1,3 +1,26 @@
+/** Lifecycle statuses returned by the API (see docs; statusTone() maps them). */
+export type Status =
+  | 'PUBLISHED'
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'PENDING'
+  | 'OPEN'
+  | 'IN_REVIEW'
+  | 'RESOLVED'
+  | 'CLOSED'
+  | 'NEW'
+  | 'REVIEWED'
+  | 'ARCHIVED'
+  | 'CURRENT'
+  | 'URGENT'
+  | 'LEFT'
+  | 'GRADUATED';
+
+export type ComplaintStatus = 'OPEN' | 'IN_REVIEW' | 'RESOLVED' | 'CLOSED';
+
+export type FeedbackStatus = 'NEW' | 'REVIEWED' | 'ARCHIVED';
+
 export interface User {
   id: string;
   student_number: string;
@@ -7,7 +30,7 @@ export interface User {
   display_name: string;
   email: string;
   phone_number: string | null;
-  status: string;
+  status: Status;
 }
 
 export interface AuthTokens {
@@ -21,7 +44,7 @@ export interface AccessMembership {
   batch_name: string;
   batch_slug: string;
   entry_year: number;
-  status: string;
+  status: Status;
   roles: string[];
   permissions: string[];
 }
@@ -39,7 +62,7 @@ export interface Batch {
   entry_year: number;
   graduation_year: number | null;
   description: string;
-  status: string;
+  status: Status;
 }
 
 export interface BatchProfile {
@@ -70,7 +93,7 @@ export interface Module {
   name: string;
   description: string;
   lecturer_name: string | null;
-  status: string;
+  status: Status;
   created_at: string;
   updated_at: string;
 }
@@ -84,7 +107,7 @@ export interface Lesson {
   youtube_video_id: string;
   lesson_date: string | null;
   duration_seconds: number | null;
-  status: string;
+  status: Status;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -98,7 +121,7 @@ export interface LinkItem {
   url: string;
   description: string;
   category: string;
-  status: string;
+  status: Status;
   created_at: string;
   updated_at: string;
 }
@@ -109,12 +132,12 @@ export interface Resource {
   module_id: string;
   module_code: string;
   module_name: string;
-  type: string;
+  type: ResourceType;
   title: string;
   description: string;
   academic_year: string | null;
   exam_type: string | null;
-  status: string;
+  status: Status;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -146,7 +169,7 @@ export interface Announcement {
   priority: string;
   pinned: boolean;
   expires_at: string | null;
-  status: string;
+  status: Status;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -161,7 +184,7 @@ export interface LmsEvent {
   starts_at: string;
   ends_at: string | null;
   visibility: string;
-  status: string;
+  status: Status;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -170,7 +193,7 @@ export interface LmsEvent {
 export interface Member {
   id: string;
   user_id: string;
-  status: string;
+  status: Status;
   joined_at: string;
   display_name: string;
   combination: string | null;
@@ -190,7 +213,7 @@ export interface AdminUser {
   last_name: string;
   display_name: string;
   email: string;
-  status: string;
+  status: Status;
   created_at: string;
   platform_roles: string[];
   batch_roles: AdminBatchRole[];
@@ -248,7 +271,7 @@ export interface GalleryImage {
   published_at: string | null;
   display_url: string;
   thumbnail_url: string;
-  status?: string;
+  status?: Status;
 }
 
 export interface Complaint {
@@ -258,7 +281,7 @@ export interface Complaint {
   subject: string;
   message: string;
   is_anonymous: boolean;
-  status: string;
+  status: ComplaintStatus;
   assigned_to: string | null;
   resolved_at: string | null;
   created_at: string;
@@ -270,7 +293,7 @@ export interface FeedbackItem {
   message: string;
   is_anonymous: boolean;
   rating: number | null;
-  status: string;
+  status: FeedbackStatus;
   created_at: string;
 }
 

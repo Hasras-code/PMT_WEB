@@ -581,10 +581,10 @@ function CommitteeTab({ batchID }: { batchID: string }) {
           </div>
           {assignments[position.id] && (
             <div className="mt-4 p-4 rounded-xl bg-surface space-y-2">
-              {assignments[position.id].map((assignment) => (
+              {(assignments[position.id] ?? []).map((assignment) => (
                 <div key={assignment.id} className="flex justify-between text-sm"><span>{assignment.display_name}{assignment.ends_at ? ' · ended' : ''}</span>{canManage && !assignment.ends_at && <button onClick={() => endAssignment(position.id, assignment.id)} className="text-red-600 text-xs">End</button>}</div>
               ))}
-              {assignments[position.id].length === 0 && <p className="text-sm text-muted">No assignments.</p>}
+              {(assignments[position.id] ?? []).length === 0 && <p className="text-sm text-muted">No assignments.</p>}
               {canManage && <div className="flex gap-2 pt-2"><select className={inputCls} value={selectedMembers[position.id] || ''} onChange={(event) => setSelectedMembers({ ...selectedMembers, [position.id]: event.target.value })}><option value="">Select member…</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}</select><button onClick={() => assign(position.id)} className="px-4 rounded-xl bg-primary text-white text-sm">Assign</button></div>}
             </div>
           )}

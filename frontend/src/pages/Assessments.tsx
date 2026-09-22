@@ -292,7 +292,7 @@ export default function Assessments() {
                     {canCreate && item.status !== 'PUBLISHED' && <button onClick={() => publish(item)} className="rounded-lg px-2 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50">Publish</button>}
                     {canCreate && <button onClick={() => archive(item)} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600" title="Archive"><TrashIcon className="h-5 w-5" /></button>}
                   </div>
-                  {versions[item.id] && <div className="mt-4 space-y-2 rounded-xl bg-surface p-3 text-xs">{versions[item.id].map((value) => { const version = value as Record<string, unknown>; return <div key={String(version.id)} className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-0 last:pb-0"><span className="truncate text-ink">v{String(version.version_number)} · {String(version.file_name)}</span><button onClick={() => downloadVersion(item.id, String(version.id))} className="font-medium text-primary hover:underline">Download</button></div>; })}</div>}
+                  {versions[item.id] && <div className="mt-4 space-y-2 rounded-xl bg-surface p-3 text-xs">{(versions[item.id] ?? []).map((value) => { const version = value as Record<string, unknown>; return <div key={String(version.id)} className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-0 last:pb-0"><span className="truncate text-ink">v{String(version.version_number)} · {String(version.file_name)}</span><button onClick={() => downloadVersion(item.id, String(version.id))} className="font-medium text-primary hover:underline">Download</button></div>; })}</div>}
                 </div>
               </Card>
             ))}

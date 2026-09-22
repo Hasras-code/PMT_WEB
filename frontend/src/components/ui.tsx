@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { Status } from '../types';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
@@ -71,7 +72,7 @@ export function Badge({ tone = 'gray', children }: { tone?: 'gray' | 'green' | '
   return <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${tones[tone]}`}>{children}</span>;
 }
 
-export function statusTone(status: string): 'gray' | 'green' | 'blue' | 'orange' | 'red' | 'purple' {
+export function statusTone(status: Status): 'gray' | 'green' | 'blue' | 'orange' | 'red' | 'purple' {
   const s = status.toUpperCase();
   if (s === 'PUBLISHED' || s === 'ACTIVE' || s === 'RESOLVED' || s === 'REVIEWED' || s === 'CURRENT') return 'green';
   if (s === 'DRAFT' || s === 'NEW' || s === 'OPEN') return 'blue';
@@ -131,7 +132,7 @@ const COVER_BG = ['#205BFF', '#7C3AED', '#059669', '#EA580C', '#DB2777', '#0891B
 export function coverColor(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 997;
-  return COVER_BG[h % COVER_BG.length];
+  return COVER_BG[h % COVER_BG.length] ?? '#205BFF';
 }
 
 export function initials(name: string): string {
