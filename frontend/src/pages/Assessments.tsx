@@ -13,6 +13,7 @@ import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { Module, Resource, ResourceType } from '../types';
 import { useAccess, useCan } from '../hooks/useRole';
+import { usePatchEditor } from '../hooks/usePatchEditor';
 import { Badge, Card, CardTitle, Empty, Field, inputCls, statusTone, fmtDate } from '../components/ui';
 
 const TYPES: { code: ResourceType; label: string; plural: string }[] = [
@@ -74,6 +75,7 @@ export default function Assessments() {
       setLoading(false);
     }
   }, [currentBatchID, moduleFilter, query, typeFilter]);
+  const editor = usePatchEditor(load, 'Resource updated');
 
   useEffect(() => {
     const timer = window.setTimeout(load, query ? 250 : 0);
@@ -207,18 +209,11 @@ export default function Assessments() {
     }
   };
 
-  const editResource = async (item: Resource) => {
-    const title = window.prompt('Resource title', item.title);
-    if (title === null || !title.trim()) return;
-    const description = window.prompt('Description', item.description || '');
-    if (description === null) return;
-    try {
-      await api.patch(`/v1/batches/${currentBatchID}/resources/${item.id}`, { title, description });
-      toast.success('Resource updated');
-      load();
-    } catch (err) {
-      toast.error(errMsg(err, 'Update failed'));
-    }
+  const editResource = (item: Resource) => {
+    editor.open('Edit resource', `/v1/batches/${currentBatchID}/resources/${item.id}`, [
+      { key: 'title', label: 'Resource title', value: item.title, required: true },
+      { key: 'description', label: 'Description', value: item.description || '', multiline: true },
+    ]);
   };
 
   const publish = (item: Resource) => api.post(`/v1/batches/${currentBatchID}/resources/${item.id}/publish`)
@@ -299,6 +294,7 @@ export default function Assessments() {
           </div>
         </section>
       ))}
+      {editor.dialog}
     </div>
   );
 }

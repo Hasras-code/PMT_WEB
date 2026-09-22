@@ -5,6 +5,7 @@ import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { LmsEvent } from '../types';
 import { useCan } from '../hooks/useRole';
+import { usePatchEditor } from '../hooks/usePatchEditor';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDateTime } from '../components/ui';
 
 export default function Meetings() {
@@ -19,6 +20,7 @@ export default function Meetings() {
     api.get(`/v1/batches/${currentBatchID}/events`, { limit: 100 }).then((res) => setItems(toList<LmsEvent>(res.data))).catch(() => {});
   };
   useEffect(load, [currentBatchID]);
+  const editor = usePatchEditor(load, 'Meeting updated');
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,18 +55,11 @@ export default function Meetings() {
     }
   };
 
-  const editEvent = async (item: LmsEvent) => {
-    const title = window.prompt('Meeting title', item.title);
-    if (title === null || !title.trim()) return;
-    const location = window.prompt('Location or meeting link', item.location || '');
-    if (location === null) return;
-    try {
-      await api.patch(`/v1/batches/${currentBatchID}/events/${item.id}`, { title, location });
-      toast.success('Meeting updated');
-      load();
-    } catch (err) {
-      toast.error(errMsg(err, 'Update failed'));
-    }
+  const editEvent = (item: LmsEvent) => {
+    editor.open('Edit meeting', `/v1/batches/${currentBatchID}/events/${item.id}`, [
+      { key: 'title', label: 'Meeting title', value: item.title, required: true },
+      { key: 'location', label: 'Location or meeting link', value: item.location || '' },
+    ]);
   };
 
   if (!currentBatchID) {
@@ -146,6 +141,7 @@ export default function Meetings() {
           </Card>
         ))}
       </div>
+      {editor.dialog}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { Status } from '../types';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -84,6 +85,166 @@ export function statusTone(status: Status): 'gray' | 'green' | 'blue' | 'orange'
 
 export function Empty({ message }: { message: string }) {
   return <p className="py-8 text-center text-sm text-muted">{message}</p>;
+}
+
+/** Accessible replacement for window.prompt(): labelled fields in a modal
+ * dialog with Escape-to-close, initial focus, focus trap and inline errors.
+ * Parents must pass a `key` that changes per edited item so values reset. */
+export interface EditDialogField {
+  key: string;
+  label: string;
+  value: string;
+  multiline?: boolean;
+  required?: boolean;
+}
+
+export function EditDialog({
+  title,
+  fields,
+  busy,
+  submitLabel = 'Save',
+  onClose,
+  onSubmit,
+}: {
+  title: string;
+  fields: EditDialogField[];
+  busy: boolean;
+  submitLabel?: string;
+  onClose: () => void;
+  onSubmit: (values: Record<string, string>) => void;
+}) {
+  const titleId = useId();
+  const descId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const firstInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(fields.map((f) => [f.key, f.value])),
+  );
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    firstInputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+        return;
+      }
+      // Minimal focus trap: cycle Tab inside the dialog.
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusables = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const nextErrors: Record<string, string> = {};
+    for (const field of fields) {
+      if (field.required && !(values[field.key] ?? '').trim()) {
+        nextErrors[field.key] = `${field.label} is required.`;
+      }
+    }
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+    onSubmit(values);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
+        className="w-full max-w-lg rounded-2xl border border-line bg-charcoal-card p-7 shadow-2xl"
+      >
+        <h2 id={titleId} className="text-lg font-semibold text-ink">
+          {title}
+        </h2>
+        <p id={descId} className="mt-1 text-sm text-muted">
+          Press Escape or click outside to cancel.
+        </p>
+        <form onSubmit={submit} className="mt-5 space-y-4" noValidate>
+          {fields.map((field, index) => {
+            const errorId = `${descId}-${field.key}`;
+            const invalid = !!errors[field.key];
+            const control = field.multiline ? (
+              <textarea
+                ref={index === 0 ? (el) => { firstInputRef.current = el; } : undefined}
+                value={values[field.key] ?? ''}
+                rows={3}
+                aria-invalid={invalid}
+                aria-describedby={invalid ? errorId : undefined}
+                onChange={(event) => setValues((v) => ({ ...v, [field.key]: event.target.value }))}
+                className={inputCls}
+              />
+            ) : (
+              <input
+                ref={index === 0 ? (el) => { firstInputRef.current = el; } : undefined}
+                value={values[field.key] ?? ''}
+                aria-invalid={invalid}
+                aria-describedby={invalid ? errorId : undefined}
+                onChange={(event) => setValues((v) => ({ ...v, [field.key]: event.target.value }))}
+                className={inputCls}
+              />
+            );
+            return (
+              <div key={field.key}>
+                <Field label={field.required ? `${field.label} *` : field.label}>{control}</Field>
+                {invalid && (
+                  <p id={errorId} role="alert" className="mt-1.5 text-xs text-red-600">
+                    {errors[field.key]}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+          <div className="flex justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-line px-5 py-2.5 text-sm font-medium text-ink hover:bg-surface"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-slate-950 hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? 'Saving…' : submitLabel}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 export function Field({

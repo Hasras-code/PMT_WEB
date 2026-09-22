@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import type { AdminBatch, AdminUser, GalleryImage, PlatformRole } from '../types';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate } from '../components/ui';
 import { useCan } from '../hooks/useRole';
+import { usePatchEditor } from '../hooks/usePatchEditor';
 
 export default function Administration() {
   const canUsers = useCan('platform_user.manage');
@@ -26,6 +27,7 @@ export default function Administration() {
   const loadPlatformRoles = () => api.get('/v1/admin/roles').then((res) => setPlatformRoles(toList<PlatformRole>(res.data))).catch((e) => toast.error(errMsg(e, 'Could not load platform roles')));
   const loadBatches = () => api.get('/v1/admin/batches').then((res) => setBatches(toList<AdminBatch>(res.data))).catch((e) => toast.error(errMsg(e, 'Could not load cohorts')));
   const loadGallery = () => api.get('/v1/admin/gallery', { limit: 100 }).then((res) => setGallery(toList<GalleryImage>(res.data))).catch(() => {});
+  const editor = usePatchEditor(loadGallery, 'Gallery image updated');
   useEffect(() => {
     if (canUsers) {
       loadUsers();
@@ -91,20 +93,12 @@ export default function Administration() {
     }
   };
 
-  const editGallery = async (image: GalleryImage) => {
-    const title = window.prompt('Image title', image.title || '');
-    if (title === null) return;
-    const caption = window.prompt('Caption', image.caption || '');
-    if (caption === null) return;
-    const altText = window.prompt('Alternative text', image.alt_text);
-    if (altText === null || !altText.trim()) return;
-    try {
-      await api.patch(`/v1/admin/gallery/${image.id}`, { title, caption, alt_text: altText });
-      toast.success('Gallery image updated');
-      loadGallery();
-    } catch (err) {
-      toast.error(errMsg(err, 'Update failed'));
-    }
+  const editGallery = (image: GalleryImage) => {
+    editor.open('Edit gallery image', `/v1/admin/gallery/${image.id}`, [
+      { key: 'title', label: 'Image title', value: image.title || '' },
+      { key: 'caption', label: 'Caption', value: image.caption || '', multiline: true },
+      { key: 'alt_text', label: 'Alternative text', value: image.alt_text, required: true },
+    ]);
   };
 
   if (canUsers === false && canGallery === false) return <Card className="p-8"><Empty message="You do not have platform administration permission." /></Card>;
@@ -269,6 +263,7 @@ export default function Administration() {
           </div>
         </div>
       )}
+      {editor.dialog}
     </div>
   );
 }

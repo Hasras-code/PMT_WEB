@@ -4,6 +4,7 @@ import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { Announcement, Complaint, FeedbackItem, Member } from '../types';
 import { useCan } from '../hooks/useRole';
+import { usePatchEditor } from '../hooks/usePatchEditor';
 import { Card, Badge, statusTone, Empty, Field, inputCls, timeAgo } from '../components/ui';
 
 const TABS = ['Announcements', 'Complaints', 'Feedback'] as const;
@@ -51,6 +52,7 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
   const [attachments, setAttachments] = useState<Record<string, { id: string; file_name: string; size_bytes: number }[]>>({});
 
   const load = useCallback(() => api.get(`/v1/batches/${batchID}/announcements`, { limit: 100 }).then((res) => setItems(toList<Announcement>(res.data))).catch(() => {}), [batchID]);
+  const editor = usePatchEditor(load, 'Announcement updated');
   useEffect(() => {
     load();
   }, [load]);
@@ -112,18 +114,11 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
     }
   };
 
-  const editAnnouncement = async (item: Announcement) => {
-    const title = window.prompt('Announcement title', item.title);
-    if (title === null || !title.trim()) return;
-    const body = window.prompt('Announcement body', item.body);
-    if (body === null || !body.trim()) return;
-    try {
-      await api.patch(`/v1/batches/${batchID}/announcements/${item.id}`, { title, body });
-      toast.success('Announcement updated');
-      load();
-    } catch (err) {
-      toast.error(errMsg(err, 'Update failed'));
-    }
+  const editAnnouncement = (item: Announcement) => {
+    editor.open('Edit announcement', `/v1/batches/${batchID}/announcements/${item.id}`, [
+      { key: 'title', label: 'Announcement title', value: item.title, required: true },
+      { key: 'body', label: 'Announcement body', value: item.body, multiline: true, required: true },
+    ]);
   };
 
   return (
@@ -196,6 +191,7 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
           )}
         </Card>
       ))}
+      {editor.dialog}
     </div>
   );
 }

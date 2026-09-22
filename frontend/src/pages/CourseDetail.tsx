@@ -4,25 +4,10 @@ import { api, toList, errMsg, uploadFile } from '../api/client';
 import toast from 'react-hot-toast';
 import type { Batch, BatchProfile, Semester, Module, Lesson, LinkItem, Member, Position } from '../types';
 import { useCan } from '../hooks/useRole';
+import { usePatchEditor } from '../hooks/usePatchEditor';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate, coverColor, initials } from '../components/ui';
 
 const TABS = ['Overview', 'Semesters', 'Modules', 'Lessons', 'Links', 'Committee'] as const;
-
-async function promptEdit(url: string, fields: { key: string; label: string; value: string }[], reload: () => void) {
-  const body: Record<string, string> = {};
-  for (const field of fields) {
-    const value = window.prompt(field.label, field.value);
-    if (value === null) return;
-    body[field.key] = value;
-  }
-  try {
-    await api.patch(url, body);
-    toast.success('Updated');
-    reload();
-  } catch (err) {
-    toast.error(errMsg(err, 'Update failed'));
-  }
-}
 
 export default function CourseDetail() {
   const { batchID = '' } = useParams();
@@ -193,6 +178,7 @@ function Semesters({ batchID }: { batchID: string }) {
   const [show, setShow] = useState(false);
 
   const load = useCallback(() => api.get(`/v1/batches/${batchID}/semesters`).then((res) => setItems(toList<Semester>(res.data))).catch(() => {}), [batchID]);
+  const editor = usePatchEditor(load);
   useEffect(() => {
     load();
   }, [load]);
@@ -244,11 +230,12 @@ function Semesters({ batchID }: { batchID: string }) {
                   Set current
                 </button>
               ) : null}
-              {elevated && <button onClick={() => promptEdit(`/v1/batches/${batchID}/semesters/${s.id}`, [{ key: 'name', label: 'Semester name', value: s.name }, { key: 'academic_year', label: 'Academic year', value: s.academic_year }], load)} className="text-xs text-primary hover:underline">Edit</button>}
+              {elevated && <button onClick={() => editor.open('Edit semester', `/v1/batches/${batchID}/semesters/${s.id}`, [{ key: 'name', label: 'Semester name', value: s.name, required: true }, { key: 'academic_year', label: 'Academic year', value: s.academic_year, required: true }])} className="text-xs text-primary hover:underline">Edit</button>}
             </div>
           </div>
         ))}
       </div>
+      {editor.dialog}
     </Card>
   );
 }
@@ -264,6 +251,7 @@ function ModulesTab({ batchID }: { batchID: string }) {
     api.get(`/v1/batches/${batchID}/modules`, { limit: 100 }).then((res) => setItems(toList<Module>(res.data))).catch(() => {});
     api.get(`/v1/batches/${batchID}/semesters`, { limit: 100 }).then((res) => setSemesters(toList<Semester>(res.data))).catch(() => {});
   }, [batchID]);
+  const editor = usePatchEditor(load);
   useEffect(() => {
     load();
   }, [load]);
@@ -319,12 +307,13 @@ function ModulesTab({ batchID }: { batchID: string }) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge tone={statusTone(m.status)}>{m.status}</Badge>
-              {elevated && <button onClick={() => promptEdit(`/v1/batches/${batchID}/modules/${m.id}`, [{ key: 'name', label: 'Module name', value: m.name }, { key: 'description', label: 'Description', value: m.description || '' }, { key: 'lecturer_name', label: 'Lecturer', value: m.lecturer_name || '' }], load)} className="text-xs text-primary hover:underline">Edit</button>}
+              {elevated && <button onClick={() => editor.open('Edit module', `/v1/batches/${batchID}/modules/${m.id}`, [{ key: 'name', label: 'Module name', value: m.name, required: true }, { key: 'description', label: 'Description', value: m.description || '', multiline: true }, { key: 'lecturer_name', label: 'Lecturer', value: m.lecturer_name || '' }])} className="text-xs text-primary hover:underline">Edit</button>}
               {elevated && (<button onClick={() => api.delete(`/v1/batches/${batchID}/modules/${m.id}`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
             </div>
           </div>
         ))}
       </div>
+      {editor.dialog}
     </Card>
   );
 }
@@ -340,6 +329,7 @@ function LessonsTab({ batchID }: { batchID: string }) {
     api.get(`/v1/batches/${batchID}/lessons`, { limit: 100 }).then((res) => setItems(toList<Lesson>(res.data))).catch(() => {});
     api.get(`/v1/batches/${batchID}/modules`, { limit: 100 }).then((res) => setModules(toList<Module>(res.data))).catch(() => {});
   }, [batchID]);
+  const editor = usePatchEditor(load);
   useEffect(() => {
     load();
   }, [load]);
@@ -396,13 +386,14 @@ function LessonsTab({ batchID }: { batchID: string }) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge tone={statusTone(l.status)}>{l.status}</Badge>
-              {elevated && <button onClick={() => promptEdit(`/v1/batches/${batchID}/lessons/${l.id}`, [{ key: 'title', label: 'Lesson title', value: l.title }, { key: 'description', label: 'Description', value: l.description || '' }, { key: 'youtube_video_id', label: 'YouTube video ID', value: l.youtube_video_id }], load)} className="text-xs text-primary hover:underline">Edit</button>}
+              {elevated && <button onClick={() => editor.open('Edit lesson', `/v1/batches/${batchID}/lessons/${l.id}`, [{ key: 'title', label: 'Lesson title', value: l.title, required: true }, { key: 'description', label: 'Description', value: l.description || '', multiline: true }, { key: 'youtube_video_id', label: 'YouTube video ID', value: l.youtube_video_id, required: true }])} className="text-xs text-primary hover:underline">Edit</button>}
               {elevated && l.status !== 'PUBLISHED' && <button onClick={() => api.post(`/v1/batches/${batchID}/lessons/${l.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-primary font-medium hover:underline">Publish</button>}
               {elevated && (<button onClick={() => api.delete(`/v1/batches/${batchID}/lessons/${l.id}`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
             </div>
           </div>
         ))}
       </div>
+      {editor.dialog}
     </Card>
   );
 }
@@ -418,6 +409,7 @@ function LinksTab({ batchID }: { batchID: string }) {
     api.get(`/v1/batches/${batchID}/links`, { limit: 100 }).then((res) => setItems(toList<LinkItem>(res.data))).catch(() => {});
     api.get(`/v1/batches/${batchID}/modules`, { limit: 100 }).then((res) => setModules(toList<Module>(res.data))).catch(() => {});
   }, [batchID]);
+  const editor = usePatchEditor(load);
   useEffect(() => {
     load();
   }, [load]);
@@ -470,13 +462,14 @@ function LinksTab({ batchID }: { batchID: string }) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge tone={statusTone(l.status)}>{l.status}</Badge>
-              {elevated && <button onClick={() => promptEdit(`/v1/batches/${batchID}/links/${l.id}`, [{ key: 'title', label: 'Link title', value: l.title }, { key: 'url', label: 'URL', value: l.url }, { key: 'description', label: 'Description', value: l.description || '' }], load)} className="text-xs text-primary hover:underline">Edit</button>}
+              {elevated && <button onClick={() => editor.open('Edit link', `/v1/batches/${batchID}/links/${l.id}`, [{ key: 'title', label: 'Link title', value: l.title, required: true }, { key: 'url', label: 'URL', value: l.url, required: true }, { key: 'description', label: 'Description', value: l.description || '', multiline: true }])} className="text-xs text-primary hover:underline">Edit</button>}
               {elevated && l.status !== 'PUBLISHED' && <button onClick={() => api.post(`/v1/batches/${batchID}/links/${l.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-primary font-medium hover:underline">Publish</button>}
               {elevated && (<button onClick={() => api.delete(`/v1/batches/${batchID}/links/${l.id}`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
             </div>
           </div>
         ))}
       </div>
+      {editor.dialog}
     </Card>
   );
 }
@@ -499,6 +492,7 @@ function CommitteeTab({ batchID }: { batchID: string }) {
   const [selectedMembers, setSelectedMembers] = useState<Record<string, string>>({});
 
   const load = useCallback(() => api.get(`/v1/batches/${batchID}/positions`, { limit: 100 }).then((response) => setPositions(toList<Position>(response.data))).catch(() => {}), [batchID]);
+  const editor = usePatchEditor(load);
   useEffect(() => {
     load();
     if (canManage) api.get(`/v1/batches/${batchID}/members`, { limit: 100 }).then((response) => setMembers(toList<Member>(response.data).filter((member) => member.status === 'ACTIVE'))).catch(() => {});
@@ -577,7 +571,7 @@ function CommitteeTab({ batchID }: { batchID: string }) {
         <Card key={position.id} className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div><h3 className="font-semibold text-ink">{position.title}</h3><p className="text-sm text-muted">{position.description || 'No description.'}</p></div>
-            <div className="flex gap-2"><Badge tone={position.is_public ? 'green' : 'gray'}>{position.is_public ? 'PUBLIC' : 'PRIVATE'}</Badge><button onClick={() => toggleAssignments(position.id)} className="text-xs text-primary">Assignments</button>{canManage && <button onClick={() => promptEdit(`/v1/batches/${batchID}/positions/${position.id}`, [{ key: 'title', label: 'Position title', value: position.title }, { key: 'description', label: 'Description', value: position.description || '' }], load)} className="text-xs text-primary">Edit</button>}{canManage && position.is_public && <button onClick={() => api.delete(`/v1/batches/${batchID}/positions/${position.id}`).then(() => { toast.success('Position hidden'); load(); }).catch((err) => toast.error(errMsg(err, 'Update failed')))} className="text-xs text-red-600">Hide</button>}</div>
+            <div className="flex gap-2"><Badge tone={position.is_public ? 'green' : 'gray'}>{position.is_public ? 'PUBLIC' : 'PRIVATE'}</Badge><button onClick={() => toggleAssignments(position.id)} className="text-xs text-primary">Assignments</button>{canManage && <button onClick={() => editor.open('Edit position', `/v1/batches/${batchID}/positions/${position.id}`, [{ key: 'title', label: 'Position title', value: position.title, required: true }, { key: 'description', label: 'Description', value: position.description || '', multiline: true }])} className="text-xs text-primary">Edit</button>}{canManage && position.is_public && <button onClick={() => api.delete(`/v1/batches/${batchID}/positions/${position.id}`).then(() => { toast.success('Position hidden'); load(); }).catch((err) => toast.error(errMsg(err, 'Update failed')))} className="text-xs text-red-600">Hide</button>}</div>
           </div>
           {assignments[position.id] && (
             <div className="mt-4 p-4 rounded-xl bg-surface space-y-2">
@@ -590,6 +584,7 @@ function CommitteeTab({ batchID }: { batchID: string }) {
           )}
         </Card>
       ))}
+      {editor.dialog}
     </div>
   );
 }
