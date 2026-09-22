@@ -98,7 +98,9 @@ JOBS_LOG="/var/log/pmt-jobs.log"
 if [ "$(id -u)" -ne 0 ]; then JOBS_LOG="$ROOT/deploy/vps-temp/jobs.log"; fi
 CRON="*/5 * * * * cd $ROOT && docker compose --env-file $ENV_FILE -f docker-compose.yml -f deploy/vps-temp/docker-compose.vps.yml run --rm jobs >> $JOBS_LOG 2>&1"
 if ! crontab -l 2>/dev/null | grep -q "deploy/vps-temp.* run --rm jobs"; then
-  (crontab -l 2>/dev/null; echo "$CRON") | crontab -
+  # `|| true`: crontab -l exits 1 when the user has no crontab yet; without
+  # this, `set -o pipefail` would abort the whole deploy on fresh accounts.
+  (crontab -l 2>/dev/null || true; echo "$CRON") | crontab -
   echo "==> Installed jobs cron (every 5 min)"
 fi
 
