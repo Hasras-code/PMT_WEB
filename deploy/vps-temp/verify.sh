@@ -21,8 +21,8 @@ fi
 
 echo "==> containers"
 # NOTE: the fallback is scoped to this compose project on purpose — a plain
-# `docker ps` would print EVERY container on the shared box (including the
-# trading stack) into logs that stream back to GitHub. Never broaden this.
+# `docker ps` would print EVERY container on the shared box (including other
+# services) into logs. Never broaden this.
 PROJ="$(basename "$ROOT")"
 docker compose --env-file deploy/vps-temp/.env.vps -f docker-compose.yml -f deploy/vps-temp/docker-compose.vps.yml ps 2>/dev/null || docker ps --filter "label=com.docker.compose.project=$PROJ" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 

@@ -3,10 +3,9 @@
 #   bash deploy/vps-temp/deploy.sh
 # Connection (recovered from previous sessions / repo history):
 #   PMT temp VPS : ssh root@95.211.43.93  (clone repo to /opt/pmt-web, run here)
-#   Occupied on this box — do NOT touch: localhost:8080 (caddy),
-#   8000/8501/6379/443 (trading). This bundle only opens 80, $API_PORT (8090),
+#   Occupied on this box — do NOT touch: localhost:8080 and 8000/8501/6379/443
+#   (other services). This bundle only opens 80, $API_PORT (8090),
 #   8025 (temp Mailpit, lock down after testing). DB stays localhost-only.
-# Separate box 95.211.126.202 (hermes trading agent) is out of scope.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

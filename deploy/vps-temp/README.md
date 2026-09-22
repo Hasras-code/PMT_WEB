@@ -7,9 +7,8 @@
 - PMT ports (this bundle only): `80` (frontend), `8090` (API direct), `8025`
   (Mailpit temp — delete the allow rule after testing). Postgres stays
   `127.0.0.1:5432`.
-- Occupied on this box — do NOT touch: `localhost:8080` (caddy),
-  
-  is out of scope for this bundle — leave it running untouched.
+- Occupied on this box — do NOT touch: `localhost:8080`,
+  `8000/8501/6379/443` (other services on the shared box).
 
 All temp-deploy files live here so they are easy to recognize and delete before
 final production. Nothing in this folder is imported by local dev.
@@ -20,8 +19,8 @@ final production. Nothing in this folder is imported by local dev.
   Opens `80` (frontend+proxy), `${API_PORT:-8090}` (API direct, required because
   upload/download URLs are absolute `PUBLIC_API_URL/v1/files/...`), and
   `8025` (Mailpit temp). Postgres stays `127.0.0.1:5432` on the VPS.
-  Port 8090 (not 8080) because the shared box already runs caddy on
-  localhost:8080 and trading on 8000/8501/6379/443.
+  Port 8090 (not 8080) because the shared box already runs other services on
+  localhost:8080 and 8000/8501/6379/443.
 - `frontend.Dockerfile` — Vite build (`VITE_API_URL=http://<IP>:8090`) + nginx.
 - `nginx.conf` — serves `dist/`, proxies `/v1/`, `/health/`, `/swagger/` to `api:8080`.
 - `.env.vps.example` — template. Real `.env.vps` is gitignored.
@@ -44,11 +43,11 @@ bash deploy/vps-temp/deploy.sh
 bash deploy/vps-temp/verify.sh
 ```
 
-Shared box (`95.211.43.93` also runs trading): the bundle only adds its own
+Shared box: the bundle only adds its own
 containers, volumes (`<project>_postgres_data`, `<project>_files_data`),
 ufw allow rules (additive), and one cron line. It never restarts, edits, or
-prunes anything else. API host port 8090 avoids caddy (:8080) and hermes
-(:8000/:8501).
+prunes anything else. API host port 8090 avoids the box's other occupants
+(:8080, :8000/:8501).
 
 Access links (after deploy prints your IP):
 
