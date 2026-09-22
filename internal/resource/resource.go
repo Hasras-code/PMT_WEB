@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"strings"
 )
 
 type Service struct{ Pool *pgxpool.Pool }
@@ -30,6 +31,36 @@ type Input struct {
 type Update struct {
 	Title       *string `json:"title"`
 	Description *string `json:"description"`
+}
+type Filter struct {
+	ModuleID string
+	Type     string
+	Query    string
+}
+
+func validType(value string) bool {
+	switch value {
+	case "LECTURE_NOTE", "HANDWRITTEN_NOTE", "PAST_PAPER", "TUTORIAL", "ASSIGNMENT", "REFERENCE", "OTHER":
+		return true
+	default:
+		return false
+	}
+}
+
+func (filter *Filter) validate() error {
+	filter.Query = strings.TrimSpace(filter.Query)
+	if filter.ModuleID != "" {
+		if _, e := uuid.Parse(filter.ModuleID); e != nil {
+			return apperror.ErrInvalid
+		}
+	}
+	if filter.Type != "" && !validType(filter.Type) {
+		return apperror.ErrInvalid
+	}
+	if len(filter.Query) > 200 {
+		return apperror.ErrInvalid
+	}
+	return nil
 }
 
 func (in Input) validate() error {
@@ -59,14 +90,12 @@ func (s Service) Create(ctx context.Context, user, batch string, in Input) (stri
 	if in.Title == "" || len(in.Title) > 300 || len(in.Description) > 20000 {
 		return "", apperror.ErrInvalid
 	}
-	switch in.Type {
-	case "LECTURE_NOTE", "HANDWRITTEN_NOTE", "PAST_PAPER", "TUTORIAL", "ASSIGNMENT", "OTHER":
-	default:
+	if !validType(in.Type) {
 		return "", apperror.ErrInvalid
 	}
 	id := uuid.NewString()
 	e := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if e := authorization.Write(ctx, tx, user, batch, "resource.create"); e != nil {
+		if e := authorization.WriteWithPlatform(ctx, tx, user, batch, "resource.create", "platform_user.manage"); e != nil {
 			return e
 		}
 		if _, e := tx.Exec(ctx, `INSERT INTO resources(id,batch_id,module_id,uploaded_by,type,title,description,academic_year,exam_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, id, batch, in.ModuleID, user, in.Type, in.Title, in.Description, in.AcademicYear, in.ExamType); e != nil {
@@ -109,7 +138,7 @@ func (s Service) AddVersion(ctx context.Context, user, batch, id string, in Inpu
 		return e
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if e := authorization.Write(ctx, tx, user, batch, "resource.update"); e != nil {
+		if e := authorization.WriteWithPlatform(ctx, tx, user, batch, "resource.update", "platform_user.manage"); e != nil {
 			return e
 		}
 		var status string
@@ -120,7 +149,7 @@ func (s Service) AddVersion(ctx context.Context, user, batch, id string, in Inpu
 			return apperror.ErrConflict
 		}
 		if status == "PUBLISHED" {
-			if e := authorization.Require(ctx, tx, user, batch, "resource.publish"); e != nil {
+			if e := authorization.RequireWithPlatform(ctx, tx, user, batch, "resource.publish", "platform_user.manage"); e != nil {
 				return e
 			}
 		}
@@ -131,27 +160,30 @@ func (s Service) AddVersion(ctx context.Context, user, batch, id string, in Inpu
 	})
 }
 
-const projection = `r.id,r.batch_id,r.module_id,r.type,r.title,r.description,r.academic_year,r.exam_type,r.status,r.published_at,r.created_at,r.updated_at,v.id AS version_id,v.version_number,v.file_name,v.mime_type,v.size_bytes,v.original_size_bytes,v.compression_profile,v.page_count`
+const projection = `r.id,r.batch_id,r.module_id,m.module_code,m.name AS module_name,r.type,r.title,r.description,r.academic_year,r.exam_type,r.status,r.published_at,r.created_at,r.updated_at,v.id AS version_id,v.version_number,v.file_name,v.mime_type,v.size_bytes,v.original_size_bytes,v.compression_profile,v.page_count`
 
-func (s Service) List(ctx context.Context, user, batch string, limit, offset int) (json.RawMessage, error) {
-	if e := authorization.Require(ctx, s.Pool, user, batch, "resource.view"); e != nil {
+func (s Service) List(ctx context.Context, user, batch string, filter Filter, limit, offset int) (json.RawMessage, error) {
+	if e := filter.validate(); e != nil {
 		return nil, e
 	}
-	manage, e := authorization.Can(ctx, s.Pool, user, batch, "resource.update")
+	if e := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "resource.view", "platform_user.manage"); e != nil {
+		return nil, e
+	}
+	manage, e := authorization.CanWithPlatform(ctx, s.Pool, user, batch, "resource.update", "platform_user.manage")
 	if e != nil {
 		return nil, e
 	}
-	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM (SELECT `+projection+` FROM resources r JOIN resource_versions v ON v.id=r.current_version_id WHERE r.batch_id=$1 AND (r.status='PUBLISHED' OR ($2 AND r.status='DRAFT')) ORDER BY r.created_at DESC,r.id DESC LIMIT $3 OFFSET $4)t`, batch, manage, limit, offset))
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM (SELECT `+projection+` FROM resources r JOIN modules m ON m.id=r.module_id AND m.batch_id=r.batch_id JOIN resource_versions v ON v.id=r.current_version_id WHERE r.batch_id=$1 AND (r.status='PUBLISHED' OR ($2 AND r.status='DRAFT')) AND ($3='' OR r.module_id=NULLIF($3,'')::uuid) AND ($4='' OR r.type=$4) AND ($5='' OR r.title ILIKE '%'||$5||'%' OR r.description ILIKE '%'||$5||'%' OR m.module_code ILIKE '%'||$5||'%' OR m.name ILIKE '%'||$5||'%') ORDER BY m.module_code,r.created_at DESC,r.id DESC LIMIT $6 OFFSET $7)t`, batch, manage, filter.ModuleID, filter.Type, filter.Query, limit, offset))
 }
 func (s Service) Get(ctx context.Context, user, batch, id string) (json.RawMessage, error) {
-	if e := authorization.Require(ctx, s.Pool, user, batch, "resource.view"); e != nil {
+	if e := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "resource.view", "platform_user.manage"); e != nil {
 		return nil, e
 	}
-	manage, e := authorization.Can(ctx, s.Pool, user, batch, "resource.update")
+	manage, e := authorization.CanWithPlatform(ctx, s.Pool, user, batch, "resource.update", "platform_user.manage")
 	if e != nil {
 		return nil, e
 	}
-	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(t) FROM (SELECT `+projection+` FROM resources r JOIN resource_versions v ON v.id=r.current_version_id WHERE r.batch_id=$1 AND r.id=$2 AND (r.status='PUBLISHED' OR ($3 AND r.status='DRAFT')))t`, batch, id, manage))
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(t) FROM (SELECT `+projection+` FROM resources r JOIN modules m ON m.id=r.module_id AND m.batch_id=r.batch_id JOIN resource_versions v ON v.id=r.current_version_id WHERE r.batch_id=$1 AND r.id=$2 AND (r.status='PUBLISHED' OR ($3 AND r.status='DRAFT')))t`, batch, id, manage))
 }
 func (s Service) Versions(ctx context.Context, user, batch, id string, limit, offset int) (json.RawMessage, error) {
 	if _, e := s.Get(ctx, user, batch, id); e != nil {
@@ -175,7 +207,7 @@ func (s Service) Update(ctx context.Context, user, batch, id string, in Update) 
 		return apperror.ErrInvalid
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if e := authorization.Write(ctx, tx, user, batch, "resource.update"); e != nil {
+		if e := authorization.WriteWithPlatform(ctx, tx, user, batch, "resource.update", "platform_user.manage"); e != nil {
 			return e
 		}
 		var state string
@@ -183,7 +215,7 @@ func (s Service) Update(ctx context.Context, user, batch, id string, in Update) 
 			return e
 		}
 		if state == "PUBLISHED" {
-			if e := authorization.Require(ctx, tx, user, batch, "resource.publish"); e != nil {
+			if e := authorization.RequireWithPlatform(ctx, tx, user, batch, "resource.publish", "platform_user.manage"); e != nil {
 				return e
 			}
 		}
@@ -203,7 +235,7 @@ func (s Service) Transition(ctx context.Context, user, batch, id string, publish
 		if publish {
 			perm, target = "resource.publish", "PUBLISHED"
 		}
-		if e := authorization.Write(ctx, tx, user, batch, perm); e != nil {
+		if e := authorization.WriteWithPlatform(ctx, tx, user, batch, perm, "platform_user.manage"); e != nil {
 			return e
 		}
 		var status string

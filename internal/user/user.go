@@ -87,11 +87,104 @@ func (s Service) AdminList(ctx context.Context, actor, id string, limit, offset 
 	if e := authorization.RequirePlatform(ctx, s.Pool, actor, "platform_user.manage"); e != nil {
 		return nil, e
 	}
-	b, e := db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT id,student_number,combination,first_name,last_name,display_name,email,status,created_at FROM users WHERE ($1='' OR id=NULLIF($1,'')::uuid) ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $3)t`, id, limit, offset))
+	b, e := db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT u.id,u.student_number,u.combination,u.first_name,u.last_name,u.display_name,u.email,u.status,u.created_at,COALESCE((SELECT json_agg(r.code ORDER BY r.code) FROM user_platform_roles upr JOIN roles r ON r.id=upr.role_id WHERE upr.user_id=u.id AND upr.scope='PLATFORM'),'[]') AS platform_roles,COALESCE((SELECT json_agg(json_build_object('batch_id',m.batch_id,'batch_name',b.name,'code',r.code) ORDER BY b.entry_year DESC,r.code) FROM batch_memberships m JOIN batches b ON b.id=m.batch_id JOIN membership_roles mr ON mr.membership_id=m.id JOIN roles r ON r.id=mr.role_id WHERE m.user_id=u.id AND m.status='ACTIVE' AND r.code<>'STUDENT'),'[]') AS batch_roles FROM users u WHERE ($1='' OR u.id=NULLIF($1,'')::uuid) ORDER BY u.created_at DESC,u.id DESC LIMIT $2 OFFSET $3)t`, id, limit, offset))
 	if id != "" {
 		return db.One(b, e)
 	}
 	return b, e
+}
+
+func (s Service) AdminStats(ctx context.Context, actor string) (json.RawMessage, error) {
+	if e := authorization.RequirePlatform(ctx, s.Pool, actor, "platform_user.manage"); e != nil {
+		return nil, e
+	}
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT json_build_object('users',count(*)) FROM users`))
+}
+
+func (s Service) PlatformRoles(ctx context.Context, actor string) (json.RawMessage, error) {
+	if e := authorization.RequirePlatform(ctx, s.Pool, actor, "platform_user.manage"); e != nil {
+		return nil, e
+	}
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT code,name,scope FROM roles ORDER BY scope,code)t`))
+}
+
+func (s Service) AdminBatches(ctx context.Context, actor string) (json.RawMessage, error) {
+	if e := authorization.RequirePlatform(ctx, s.Pool, actor, "platform_user.manage"); e != nil {
+		return nil, e
+	}
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT id,name,slug,entry_year FROM batches WHERE status<>'ARCHIVED' ORDER BY entry_year DESC,id DESC)t`))
+}
+
+func (s Service) Role(ctx context.Context, actor, target, role, batchID string, remove bool) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		if e := authorization.RequirePlatform(ctx, tx, actor, "platform_user.manage"); e != nil {
+			return e
+		}
+		var roleID, scope string
+		if e := tx.QueryRow(ctx, `SELECT id,scope FROM roles WHERE code=$1`, role).Scan(&roleID, &scope); e != nil {
+			return apperror.ErrInvalid
+		}
+		var exists bool
+		if e := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)`, target).Scan(&exists); e != nil {
+			return e
+		}
+		if !exists {
+			return apperror.ErrNotFound
+		}
+		if scope == "PLATFORM" {
+			if actor == target {
+				return apperror.ErrConflict
+			}
+			if batchID != "" {
+				return apperror.ErrInvalid
+			}
+			if remove {
+				_, e := tx.Exec(ctx, `DELETE FROM user_platform_roles WHERE user_id=$1 AND role_id=$2`, target, roleID)
+				if e != nil {
+					return e
+				}
+			} else {
+				_, e := tx.Exec(ctx, `INSERT INTO user_platform_roles(user_id,role_id,scope,assigned_by) VALUES($1,$2,'PLATFORM',$3) ON CONFLICT DO NOTHING`, target, roleID, actor)
+				if e != nil {
+					return e
+				}
+			}
+		} else {
+			if batchID == "" {
+				return apperror.ErrInvalid
+			}
+			var membershipID string
+			if e := tx.QueryRow(ctx, `SELECT id FROM batch_memberships WHERE batch_id=$1 AND user_id=$2`, batchID, target).Scan(&membershipID); e != nil {
+				if e != pgx.ErrNoRows {
+					return e
+				}
+				if e := tx.QueryRow(ctx, `INSERT INTO batch_memberships(batch_id,user_id) VALUES($1,$2) RETURNING id`, batchID, target).Scan(&membershipID); e != nil {
+					return e
+				}
+				if _, e := tx.Exec(ctx, `INSERT INTO membership_roles(membership_id,role_id,assigned_by) SELECT $1,id,$2 FROM roles WHERE code='STUDENT' AND scope='BATCH' ON CONFLICT DO NOTHING`, membershipID, actor); e != nil {
+					return e
+				}
+			}
+			if remove {
+				_, e := tx.Exec(ctx, `DELETE FROM membership_roles WHERE membership_id=$1 AND role_id=$2`, membershipID, roleID)
+				if e != nil {
+					return e
+				}
+			} else {
+				_, e := tx.Exec(ctx, `INSERT INTO membership_roles(membership_id,role_id,scope,assigned_by) VALUES($1,$2,'BATCH',$3) ON CONFLICT DO NOTHING`, membershipID, roleID, actor)
+				if e != nil {
+					return e
+				}
+			}
+		}
+		action := map[bool]string{true: "ROLE_REMOVED", false: "ROLE_ASSIGNED"}[remove]
+		auditBatchID := batchID
+		if scope == "PLATFORM" {
+			action = map[bool]string{true: "PLATFORM_ROLE_REMOVED", false: "PLATFORM_ROLE_ASSIGNED"}[remove]
+			auditBatchID = ""
+		}
+		return audit.Record(ctx, tx, auditBatchID, actor, action, "user", target, map[string]string{"role": role})
+	})
 }
 func (s Service) Status(ctx context.Context, actor, id, status string) error {
 	switch status {

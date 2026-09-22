@@ -72,7 +72,7 @@ func (in Input) Validate(create bool) error {
 	return nil
 }
 func (s Service) List(ctx context.Context, user, batch string, limit, offset int) (json.RawMessage, error) {
-	if e := authorization.Require(ctx, s.Pool, user, batch, "module.view"); e != nil {
+	if e := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "module.view", "platform_user.manage"); e != nil {
 		return nil, e
 	}
 	manage, e := authorization.Can(ctx, s.Pool, user, batch, "module.manage")
@@ -82,7 +82,7 @@ func (s Service) List(ctx context.Context, user, batch string, limit, offset int
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM (SELECT id,batch_id,semester_id,module_code,name,description,lecturer_name,status,created_at,updated_at FROM modules WHERE batch_id=$1  AND status<>'ARCHIVED' AND ($3 OR NOT $3) ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $4)t`, batch, limit, manage, offset))
 }
 func (s Service) Get(ctx context.Context, user, batch, id string) (json.RawMessage, error) {
-	if e := authorization.Require(ctx, s.Pool, user, batch, "module.view"); e != nil {
+	if e := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "module.view", "platform_user.manage"); e != nil {
 		return nil, e
 	}
 	manage, e := authorization.Can(ctx, s.Pool, user, batch, "module.manage")

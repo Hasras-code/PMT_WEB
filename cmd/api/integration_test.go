@@ -52,12 +52,13 @@ func (m *mailbox) token(email, purpose string) string {
 }
 
 type fixture struct {
-	t     *testing.T
-	p     *pgxpool.Pool
-	as    *auth.Service
-	mail  *mailbox
-	h     http.Handler
-	store *storage.Local
+	t                   *testing.T
+	p                   *pgxpool.Pool
+	as                  *auth.Service
+	mail                *mailbox
+	h                   http.Handler
+	store               *storage.Local
+	registrationBatchID string
 }
 
 func setup(t *testing.T) *fixture {
@@ -107,6 +108,13 @@ func setup(t *testing.T) *fixture {
 			t.Fatalf("migration %s: %v", path, e)
 		}
 	}
+	var registrationBatchID string
+	if e = p.QueryRow(ctx, `INSERT INTO batches(name,slug,entry_year,description) VALUES('Registration cohort','registration-cohort',2026,'Default integration-test registration cohort') RETURNING id`).Scan(&registrationBatchID); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = p.Exec(ctx, `INSERT INTO batch_profiles(batch_id) VALUES($1)`, registrationBatchID); e != nil {
+		t.Fatal(e)
+	}
 	secret := strings.Repeat("s", 48)
 	store, e := storage.Open(t.TempDir(), secret)
 	if e != nil {
@@ -124,7 +132,7 @@ func setup(t *testing.T) *fixture {
 		uploads: upload.Service{Pool: p, Store: store, BaseURL: "http://api.test"},
 		logger:  log,
 	}
-	return &fixture{t: t, p: p, as: as, mail: mail, h: a.mount(), store: store}
+	return &fixture{t: t, p: p, as: as, mail: mail, h: a.mount(), store: store, registrationBatchID: registrationBatchID}
 }
 func (f *fixture) request(method, path, token string, body any, expected int) []byte {
 	f.t.Helper()
@@ -164,7 +172,7 @@ func (f *fixture) newUser(label string) (string, string, string) {
 	f.t.Helper()
 	ctx := context.Background()
 	email := strings.ToLower(label) + "@example.test"
-	in := auth.RegisterInput{StudentNumber: label, Combination: "PMT-ICT", FirstName: "Test", LastName: "User", DisplayName: label, Email: email, Password: "correct horse battery"}
+	in := auth.RegisterInput{StudentNumber: label, Combination: "PMT-ICT", BatchID: f.registrationBatchID, FirstName: "Test", LastName: "User", DisplayName: label, Email: email, Password: "correct horse battery"}
 	if e := f.as.Register(ctx, in); e != nil {
 		f.t.Fatal(e)
 	}
@@ -222,9 +230,11 @@ func (f *fixture) upload(path, token, name, mime string, b []byte) string {
 func TestAuthLifecycle(t *testing.T) {
 	f := setup(t)
 	ctx := context.Background()
-	f.request("POST", "/v1/auth/register", "", map[string]any{"student_number": "ST-MISSING", "first_name": "A", "last_name": "B", "display_name": "AB", "email": "missing-combination@example.test", "password": "correct horse battery"}, 422)
-	f.request("POST", "/v1/auth/register", "", map[string]any{"student_number": "ST-INVALID", "combination": "PMT-MATH", "first_name": "A", "last_name": "B", "display_name": "AB", "email": "invalid-combination@example.test", "password": "correct horse battery"}, 422)
-	body := map[string]any{"student_number": "ST001", "combination": "pmt-ict", "first_name": "A", "last_name": "B", "display_name": "AB", "email": "User@Example.test", "password": "correct horse battery"}
+	f.request("GET", "/v1/public/batches", "", nil, 200)
+	f.request("POST", "/v1/auth/register", "", map[string]any{"student_number": "ST-MISSING", "batch_id": f.registrationBatchID, "first_name": "A", "last_name": "B", "display_name": "AB", "email": "missing-combination@example.test", "password": "correct horse battery"}, 422)
+	f.request("POST", "/v1/auth/register", "", map[string]any{"student_number": "ST-INVALID", "combination": "PMT-MATH", "batch_id": f.registrationBatchID, "first_name": "A", "last_name": "B", "display_name": "AB", "email": "invalid-combination@example.test", "password": "correct horse battery"}, 422)
+	f.request("POST", "/v1/auth/register", "", map[string]any{"student_number": "ST-NO-BATCH", "combination": "PMT-CS", "first_name": "A", "last_name": "B", "display_name": "AB", "email": "missing-batch@example.test", "password": "correct horse battery"}, 422)
+	body := map[string]any{"student_number": "ST001", "combination": "pmt-ict", "batch_id": f.registrationBatchID, "first_name": "A", "last_name": "B", "display_name": "AB", "email": "User@Example.test", "password": "correct horse battery"}
 	b := f.request("POST", "/v1/auth/register", "", body, 202)
 	if bytes.Contains(b, []byte("token")) {
 		t.Fatal("verification token exposed")
@@ -236,6 +246,10 @@ func TestAuthLifecycle(t *testing.T) {
 	raw := f.mail.token("user@example.test", "EMAIL_VERIFY")
 	f.request("POST", "/v1/auth/verify-email", "", map[string]any{"token": old}, 422)
 	f.request("POST", "/v1/auth/verify-email", "", map[string]any{"token": raw}, 204)
+	var registrationRoles int
+	if e := f.p.QueryRow(ctx, `SELECT count(*) FROM batch_memberships m JOIN membership_roles mr ON mr.membership_id=m.id JOIN roles r ON r.id=mr.role_id WHERE m.user_id=(SELECT id FROM users WHERE lower(email)='user@example.test') AND m.batch_id=$1 AND m.status='ACTIVE' AND r.code='STUDENT'`, f.registrationBatchID).Scan(&registrationRoles); e != nil || registrationRoles != 1 {
+		t.Fatalf("verified registration student role = %d, %v", registrationRoles, e)
+	}
 	f.request("POST", "/v1/auth/verify-email", "", map[string]any{"token": raw}, 422)
 	login := object(t, f.request("POST", "/v1/auth/login", "", map[string]any{"email": "user@example.test", "password": "correct horse battery"}, 200))
 	access := login["access_token"].(string)
@@ -264,7 +278,7 @@ func TestAuthLifecycle(t *testing.T) {
 	f.request("POST", "/v1/auth/logout", "", map[string]any{"refresh_token": tok.RefreshToken}, 204)
 	f.request("GET", "/v1/me", tok.AccessToken, nil, 401)
 	f.mail.fail = true
-	if e = f.as.Register(ctx, auth.RegisterInput{StudentNumber: "MAILFAIL", Combination: "PMT-CS", FirstName: "A", LastName: "B", DisplayName: "AB", Email: "failure@example.test", Password: "correct horse battery"}); e != nil {
+	if e = f.as.Register(ctx, auth.RegisterInput{StudentNumber: "MAILFAIL", Combination: "PMT-CS", BatchID: f.registrationBatchID, FirstName: "A", LastName: "B", DisplayName: "AB", Email: "failure@example.test", Password: "correct horse battery"}); e != nil {
 		t.Fatal(e)
 	}
 	var status string
@@ -292,7 +306,7 @@ func TestTenantRolesAndContent(t *testing.T) {
 	f.member(rep, bid2, student, "")
 	base := "/v1/batches/" + bid
 	access := object(t, f.request("GET", "/v1/me/access", studentToken, nil, 200))
-	if memberships, ok := access["memberships"].([]any); !ok || len(memberships) != 2 {
+	if memberships, ok := access["memberships"].([]any); !ok || len(memberships) != 3 {
 		t.Fatalf("access memberships = %#v", access["memberships"])
 	}
 	candidates := f.request("GET", base+"/members/candidates?query=OTHER", repToken, nil, 200)
@@ -373,6 +387,75 @@ func TestTenantRolesAndContent(t *testing.T) {
 		t.Fatalf("audit count %d %v", auditCount, e)
 	}
 }
+
+func TestRoleAssignmentHierarchy(t *testing.T) {
+	f := setup(t)
+	platformID, platformToken, _ := f.newUser("PLATFORM01")
+	repID, repToken, _ := f.newUser("REP-HIERARCHY")
+	academicID, academicToken, _ := f.newUser("ACADEMIC01")
+	contentID, contentToken, _ := f.newUser("CONTENT01")
+	targetID, _, _ := f.newUser("TARGET01")
+	secondAdminID, _, _ := f.newUser("PLATFORM02")
+
+	f.sql(`INSERT INTO user_platform_roles(user_id,role_id,scope,assigned_by) SELECT $1,id,'PLATFORM',NULL FROM roles WHERE code='PLATFORM_ADMIN'`, platformID)
+	batchID := f.newBatch(platformID, "role-hierarchy")
+	f.member(platformID, batchID, repID, "BATCH_REP")
+	f.member(platformID, batchID, academicID, "ACADEMIC_REP")
+	f.member(platformID, batchID, contentID, "CONTENT_MANAGER")
+	targetMembershipID := f.member(platformID, batchID, targetID, "")
+	base := "/v1/batches/" + batchID + "/members/" + targetMembershipID + "/roles"
+
+	f.request("POST", base, academicToken, map[string]any{"role": "COMPLAINT_MANAGER"}, 200)
+	f.request("POST", base, academicToken, map[string]any{"role": "BATCH_REP"}, 403)
+	f.request("POST", base, contentToken, map[string]any{"role": "ACADEMIC_REP"}, 403)
+	f.request("POST", base, repToken, map[string]any{"role": "BATCH_REP"}, 200)
+	f.request("DELETE", base+"/BATCH_REP", platformToken, nil, 204)
+	f.request("POST", "/v1/admin/users/"+targetID+"/roles", platformToken, map[string]any{"role": "BATCH_REP", "batch_id": batchID}, 204)
+
+	f.request("POST", "/v1/admin/users/"+secondAdminID+"/roles", repToken, map[string]any{"role": "PLATFORM_ADMIN"}, 403)
+	f.request("POST", "/v1/admin/users/"+secondAdminID+"/roles", platformToken, map[string]any{"role": "PLATFORM_ADMIN"}, 204)
+	f.request("POST", "/v1/admin/users/"+platformID+"/roles", platformToken, map[string]any{"role": "PLATFORM_ADMIN"}, 409)
+}
+
+func TestResourceLibraryPermissionsAndFilters(t *testing.T) {
+	f := setup(t)
+	platformID, platformToken, _ := f.newUser("RESOURCE-ADMIN")
+	repID, repToken, _ := f.newUser("RESOURCE-REP")
+	academicID, academicToken, _ := f.newUser("RESOURCE-ACADEMIC")
+	studentID, studentToken, _ := f.newUser("RESOURCE-STUDENT")
+	f.sql(`INSERT INTO user_platform_roles(user_id,role_id,scope,assigned_by) SELECT $1,id,'PLATFORM',NULL FROM roles WHERE code='PLATFORM_ADMIN'`, platformID)
+	batchID := f.newBatch(platformID, "resource-library")
+	f.member(platformID, batchID, repID, "BATCH_REP")
+	f.member(platformID, batchID, academicID, "ACADEMIC_REP")
+	f.member(platformID, batchID, studentID, "")
+	base := "/v1/batches/" + batchID
+	semesterID := idOf(t, f.request("POST", base+"/semesters", repToken, map[string]any{"semester_number": 1, "name": "Semester 1", "academic_year": "2026"}, 201))
+	moduleID := idOf(t, f.request("POST", base+"/modules", repToken, map[string]any{"semester_id": semesterID, "module_code": "PMT1030", "name": "Programming"}, 201))
+
+	f.request("POST", base+"/resources/uploads", studentToken, map[string]any{"file_name": "student.pdf", "mime_type": "application/pdf", "size_bytes": 10}, 403)
+	adminUpload := f.upload(base+"/resources/uploads", platformToken, "reference.pdf", "application/pdf", []byte("%PDF-1.7\nreference"))
+	referenceID := idOf(t, f.request("POST", base+"/resources", platformToken, map[string]any{"upload_id": adminUpload, "module_id": moduleID, "type": "REFERENCE", "title": "Programming reference guide", "description": "Core reference"}, 201))
+	draftView := f.request("GET", base+"/resources?type=REFERENCE", studentToken, nil, 200)
+	if bytes.Contains(draftView, []byte(referenceID)) {
+		t.Fatalf("student can view draft resource: %s", draftView)
+	}
+	f.request("POST", base+"/resources/"+referenceID+"/publish", platformToken, nil, 204)
+
+	academicUpload := f.upload(base+"/resources/uploads", academicToken, "assignment.pdf", "application/pdf", []byte("%PDF-1.7\nassignment"))
+	assignmentID := idOf(t, f.request("POST", base+"/resources", academicToken, map[string]any{"upload_id": academicUpload, "module_id": moduleID, "type": "ASSIGNMENT", "title": "Programming assignment", "description": "Week one"}, 201))
+	f.request("POST", base+"/resources/"+assignmentID+"/publish", academicToken, nil, 204)
+
+	filtered := f.request("GET", base+"/resources?module_id="+moduleID+"&type=REFERENCE&query=guide", studentToken, nil, 200)
+	if !bytes.Contains(filtered, []byte(referenceID)) || !bytes.Contains(filtered, []byte(`"module_code":"PMT1030"`)) || bytes.Contains(filtered, []byte(assignmentID)) {
+		t.Fatalf("resource filters returned unexpected data: %s", filtered)
+	}
+	f.request("GET", base+"/resources?module_id=invalid", studentToken, nil, 422)
+	batches := f.request("GET", "/v1/batches", platformToken, nil, 200)
+	if !bytes.Contains(batches, []byte(batchID)) {
+		t.Fatalf("platform admin cannot select managed cohort: %s", batches)
+	}
+}
+
 func TestAnonymousComplaintsAndFeedback(t *testing.T) {
 	f := setup(t)
 	rep, repToken, _ := f.newUser("REP004")
@@ -659,7 +742,7 @@ func TestSeedPlatformAdminMigrationMapsUserAndRoleIDs(t *testing.T) {
 func TestExpiredVerificationAndInactiveAccounts(t *testing.T) {
 	f := setup(t)
 	ctx := context.Background()
-	if e := f.as.Register(ctx, auth.RegisterInput{StudentNumber: "EXPIRED", Combination: "PMT-CS", FirstName: "A", LastName: "B", DisplayName: "AB", Email: "expired@example.test", Password: "correct horse battery"}); e != nil {
+	if e := f.as.Register(ctx, auth.RegisterInput{StudentNumber: "EXPIRED", Combination: "PMT-CS", BatchID: f.registrationBatchID, FirstName: "A", LastName: "B", DisplayName: "AB", Email: "expired@example.test", Password: "correct horse battery"}); e != nil {
 		t.Fatal(e)
 	}
 	raw := f.mail.token("expired@example.test", "EMAIL_VERIFY")

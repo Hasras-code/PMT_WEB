@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { api, errMsg } from '../api/client';
+import { api, errMsg, toList } from '../api/client';
+import type { Batch } from '../types';
 import toast from 'react-hot-toast';
 import { Field, inputCls, PrimaryButton } from '../components/ui';
 
@@ -9,6 +10,7 @@ export default function Register() {
   const [form, setForm] = useState({
     student_number: '',
     combination: 'PMT-ICT',
+    batch_id: '',
     first_name: '',
     last_name: '',
     display_name: '',
@@ -16,6 +18,15 @@ export default function Register() {
     password: '',
   });
   const [loading, setLoading] = useState(false);
+  const [cohorts, setCohorts] = useState<Batch[]>([]);
+  const [cohortsLoading, setCohortsLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/v1/public/batches')
+      .then((response) => setCohorts(toList<Batch>(response.data)))
+      .catch((err) => toast.error(errMsg(err, 'Could not load cohorts')))
+      .finally(() => setCohortsLoading(false));
+  }, []);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [k]: e.target.value });
@@ -56,7 +67,7 @@ export default function Register() {
           <p className="mt-1 text-sm text-muted">Takes less than a minute.</p>
           <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-2 gap-4">
             <Field label="Student number">
-              <input required placeholder="ST12345" className={inputCls} value={form.student_number} onChange={set('student_number')} />
+              <input required placeholder="AS2025..." className={inputCls} value={form.student_number} onChange={set('student_number')} />
             </Field>
             <Field label="Display name">
               <input required placeholder="John Doe" className={inputCls} value={form.display_name} onChange={set('display_name')} />
@@ -68,6 +79,19 @@ export default function Register() {
                   <option value="PMT-CS">PMT-CS</option>
                 </select>
               </Field>
+            </div>
+            <div className="col-span-2">
+              <Field label="Cohort">
+                <select required disabled={cohortsLoading || cohorts.length === 0} className={inputCls} value={form.batch_id} onChange={(e) => setForm({ ...form, batch_id: e.target.value })}>
+                  <option value="">{cohortsLoading ? 'Loading cohorts…' : 'Select your cohort…'}</option>
+                  {cohorts.map((cohort) => (
+                    <option key={cohort.id} value={cohort.id}>
+                      {cohort.name} ({cohort.entry_year})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {!cohortsLoading && cohorts.length === 0 && <p className="mt-2 text-sm text-red-600">No active cohort is available for registration.</p>}
             </div>
             <Field label="First name">
               <input required className={inputCls} value={form.first_name} onChange={set('first_name')} />
@@ -86,7 +110,7 @@ export default function Register() {
               </Field>
             </div>
             <div className="col-span-2">
-              <PrimaryButton type="submit" disabled={loading}>
+              <PrimaryButton type="submit" disabled={loading || cohortsLoading || cohorts.length === 0}>
                 {loading ? 'Creating…' : 'Create account'}
               </PrimaryButton>
             </div>

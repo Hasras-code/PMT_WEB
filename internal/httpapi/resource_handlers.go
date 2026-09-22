@@ -37,6 +37,9 @@ func (a *API) resourceRoutes(r chi.Router) {
 //	@Tags resources
 //	@Produce json
 //	@Param batchID path string true "Batch ID"
+//	@Param module_id query string false "Filter by subject/module UUID"
+//	@Param type query string false "Filter by resource type"
+//	@Param query query string false "Search title, description, or subject"
 //	@Param limit query int false "Limit"
 //	@Param offset query int false "Offset"
 //	@Success 200 {array} map[string]any
@@ -47,7 +50,11 @@ func (a *API) listResourcesHandler(w http.ResponseWriter, r *http.Request) error
 	if e != nil {
 		return e
 	}
-	v, e := (resource.Service{Pool: a.Pool}).List(r.Context(), userID(r), batchID(r), l, o)
+	v, e := (resource.Service{Pool: a.Pool}).List(r.Context(), userID(r), batchID(r), resource.Filter{
+		ModuleID: r.URL.Query().Get("module_id"),
+		Type:     r.URL.Query().Get("type"),
+		Query:    r.URL.Query().Get("query"),
+	}, l, o)
 	if e != nil {
 		return e
 	}

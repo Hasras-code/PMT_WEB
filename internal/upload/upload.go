@@ -60,7 +60,13 @@ func (s Service) Authorize(ctx context.Context, user, batch, purpose, permission
 		return nil, apperror.ErrInvalid
 	}
 	if batch != "" {
-		if e := authorization.Require(ctx, s.Pool, user, batch, permission); e != nil {
+		var e error
+		if purpose == "resource" {
+			e = authorization.RequireWithPlatform(ctx, s.Pool, user, batch, permission, "platform_user.manage")
+		} else {
+			e = authorization.Require(ctx, s.Pool, user, batch, permission)
+		}
+		if e != nil {
 			return nil, e
 		}
 	} else if purpose == "gallery" {

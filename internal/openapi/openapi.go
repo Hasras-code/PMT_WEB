@@ -104,7 +104,7 @@ func operationMetadata(method, path string) (string, string, string) {
 	description := "Manage " + name + "."
 	switch path {
 	case "/v1/auth/register":
-		summary, description = "Register a user", "Create a pending account and send an email verification message."
+		summary, description = "Register a user", "Create a pending account for a selected cohort and send an email verification message."
 	case "/v1/auth/login":
 		summary, description = "Log in", "Authenticate with email and password. Use token transport for JSON refresh credentials or cookie transport for browser sessions."
 	case "/v1/auth/refresh":
@@ -112,7 +112,7 @@ func operationMetadata(method, path string) (string, string, string) {
 	case "/v1/auth/logout":
 		summary, description = "Log out", "Revoke the current refresh session."
 	case "/v1/auth/verify-email":
-		summary, description = "Verify an email address", "Activate a pending account using its email verification token."
+		summary, description = "Verify an email address", "Activate a pending account and add it to its selected cohort as a student."
 	case "/v1/auth/reset-password":
 		summary, description = "Reset a password", "Set a new password using a password reset token."
 	}
@@ -257,6 +257,13 @@ func Generate(r chi.Routes) (M, error) {
 				params = append(params, M{"name": "offset", "in": "query", "schema": M{"type": "integer", "minimum": 0, "maximum": 100000, "default": 0}})
 			}
 		}
+		if method == "GET" && path == "/v1/batches/{batchID}/resources" {
+			params = append(params,
+				M{"name": "module_id", "in": "query", "schema": M{"type": "string", "format": "uuid"}},
+				M{"name": "type", "in": "query", "schema": M{"type": "string", "enum": []string{"LECTURE_NOTE", "PAST_PAPER", "ASSIGNMENT", "REFERENCE"}}},
+				M{"name": "query", "in": "query", "schema": M{"type": "string", "maxLength": 200}},
+			)
+		}
 		if len(params) > 0 {
 			op["parameters"] = params
 		}
@@ -348,7 +355,7 @@ func requiredFields(method, path string) []string {
 	case strings.HasSuffix(path, "/uploads"):
 		return []string{"file_name", "mime_type", "size_bytes"}
 	case path == "/v1/auth/register":
-		return []string{"student_number", "combination", "first_name", "last_name", "display_name", "email", "password"}
+		return []string{"student_number", "combination", "batch_id", "first_name", "last_name", "display_name", "email", "password"}
 	case path == "/v1/auth/login":
 		return []string{"email", "password"}
 	case path == "/v1/auth/verify-email":

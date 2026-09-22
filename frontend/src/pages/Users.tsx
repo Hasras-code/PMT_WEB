@@ -4,7 +4,7 @@ import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { Member, RoleCatalogEntry } from '../types';
 import { Card, Badge, statusTone, Empty, inputCls, fmtDate } from '../components/ui';
-import { useCan } from '../hooks/useRole';
+import { useAccess, useCan } from '../hooks/useRole';
 
 const LIFECYCLE = ['suspend', 'reactivate', 'graduate', 'leave'] as const;
 
@@ -27,6 +27,14 @@ export default function Users() {
   const [assign, setAssign] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const canManage = useCan('membership.manage', currentBatchID);
+  const canAssignBatchRoles = useCan('role.assign', currentBatchID);
+  const access = useAccess();
+  const platformAdmin = access?.platform_roles.includes('PLATFORM_ADMIN') ?? false;
+  const currentRoles = access?.memberships.find((membership) => membership.batch_id === currentBatchID)?.roles || [];
+  const batchRep = currentRoles.includes('BATCH_REP');
+  const academicRep = currentRoles.includes('ACADEMIC_REP');
+  const canAssignRoles = platformAdmin || canAssignBatchRoles === true;
+  const canChangeRole = (role: string) => platformAdmin || batchRep || (academicRep && role !== 'BATCH_REP');
 
   const load = useCallback(async () => {
     if (!currentBatchID) return;
@@ -160,7 +168,7 @@ export default function Users() {
                   <th className="py-3 pr-4 font-medium">Status</th>
                   <th className="py-3 pr-4 font-medium">Roles</th>
                   <th className="py-3 pr-4 font-medium">Joined</th>
-                  {canManage && <th className="py-3 pr-4 font-medium">Assign role</th>}
+                  {canAssignRoles && <th className="py-3 pr-4 font-medium">Assign role</th>}
                   {canManage && <th className="py-3 font-medium">Lifecycle</th>}
                 </tr>
               </thead>
@@ -180,7 +188,7 @@ export default function Users() {
                         {m.roles.map((r) => (
                           <span key={r} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-light text-primary">
                             {r}
-                            {canManage && r !== 'STUDENT' && (
+                            {canAssignRoles && r !== 'STUDENT' && canChangeRole(r) && (
                               <button onClick={() => setRole(m.id, r, true)} className="hover:text-red-600" title={`Remove ${r}`}>
                                 ×
                               </button>
@@ -190,7 +198,7 @@ export default function Users() {
                       </div>
                     </td>
                     <td className="py-3.5 pr-4 text-muted text-sm">{fmtDate(m.joined_at)}</td>
-                    {canManage && <td className="py-3.5 pr-4">
+                    {canAssignRoles && <td className="py-3.5 pr-4">
                       <div className="flex gap-2">
                         <select
                           className="px-3 py-1.5 rounded-lg border border-line bg-white text-sm"
@@ -198,7 +206,7 @@ export default function Users() {
                           onChange={(e) => setAssign({ ...assign, [m.id]: e.target.value })}
                         >
                           <option value="">Select…</option>
-                          {roles.filter((r) => r.code !== 'STUDENT').map((r) => (
+                          {roles.filter((r) => r.code !== 'STUDENT' && canChangeRole(r.code)).map((r) => (
                             <option key={r.code} value={r.code}>
                               {r.name || r.code}
                             </option>

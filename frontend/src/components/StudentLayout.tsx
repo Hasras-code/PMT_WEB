@@ -17,7 +17,7 @@ import type { Batch, NotificationItem } from '../types';
 const NAV = [
   { to: '/student/dashboard', label: 'Dashboard', Icon: ChartBarIcon, title: 'Dashboard' },
   { to: '/student/courses', label: 'My Courses', Icon: BookOpenIcon, title: 'My Courses' },
-  { to: '/student/assessments', label: 'Assessments', Icon: ShieldCheckIcon, title: 'Assessments' },
+  { to: '/student/assessments', label: 'Resources', Icon: ShieldCheckIcon, title: 'Resource Library' },
   { to: '/student/meetings', label: 'Video Meetings', Icon: VideoCameraIcon, title: 'Video Meetings' },
   { to: '/student/communication', label: 'Communication', Icon: ChatBubbleLeftIcon, title: 'Communication' },
   { to: '/student/gallery', label: 'Gallery', Icon: PhotoIcon, title: 'Gallery' },

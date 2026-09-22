@@ -62,13 +62,45 @@ func (s Service) Role(ctx context.Context, actor, batch, member, role string, re
 		return apperror.ErrConflict
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		var roleID string
+		if e := tx.QueryRow(ctx, `SELECT id FROM roles WHERE code=$1 AND scope='BATCH'`, role).Scan(&roleID); e != nil {
+			return apperror.ErrInvalid
+		}
+		platformAdmin := false
 		if operator {
 			var id string
 			if e := tx.QueryRow(ctx, `SELECT id FROM batches WHERE id=$1 FOR UPDATE`, batch).Scan(&id); e != nil {
 				return e
 			}
-		} else if e := authorization.Write(ctx, tx, actor, batch, "role.assign"); e != nil {
-			return e
+		} else {
+			var e error
+			platformAdmin, e = authorization.Platform(ctx, tx, actor, "platform_user.manage")
+			if e != nil {
+				return e
+			}
+			if platformAdmin {
+				var id string
+				if e = tx.QueryRow(ctx, `SELECT id FROM batches WHERE id=$1 FOR UPDATE`, batch).Scan(&id); e != nil {
+					return db.Error(e)
+				}
+			} else {
+				if e = authorization.Write(ctx, tx, actor, batch, "role.assign"); e != nil {
+					return e
+				}
+				var actorRank int
+				if e = tx.QueryRow(ctx, `SELECT COALESCE(min(CASE r.code WHEN 'BATCH_REP' THEN 2 WHEN 'ACADEMIC_REP' THEN 3 ELSE 4 END),99) FROM batch_memberships m JOIN membership_roles mr ON mr.membership_id=m.id JOIN roles r ON r.id=mr.role_id WHERE m.batch_id=$1 AND m.user_id=$2 AND m.status='ACTIVE' AND r.code IN ('BATCH_REP','ACADEMIC_REP')`, batch, actor).Scan(&actorRank); e != nil {
+					return e
+				}
+				targetRank := 4
+				if role == "BATCH_REP" {
+					targetRank = 2
+				} else if role == "ACADEMIC_REP" {
+					targetRank = 3
+				}
+				if actorRank > targetRank {
+					return apperror.ErrForbidden
+				}
+			}
 		}
 		var status string
 		if e := tx.QueryRow(ctx, `SELECT m.status FROM batch_memberships m JOIN users u ON u.id=m.user_id WHERE m.id=$1 AND m.batch_id=$2 AND u.status='ACTIVE'`, member, batch).Scan(&status); e != nil {
@@ -77,11 +109,7 @@ func (s Service) Role(ctx context.Context, actor, batch, member, role string, re
 		if status != "ACTIVE" {
 			return apperror.ErrConflict
 		}
-		var rid string
-		if e := tx.QueryRow(ctx, `SELECT id FROM roles WHERE code=$1 AND scope='BATCH'`, role).Scan(&rid); e != nil {
-			return apperror.ErrInvalid
-		}
-		if remove && role == "BATCH_REP" && !operator {
+		if remove && role == "BATCH_REP" && !operator && !platformAdmin {
 			if e := protectRep(ctx, tx, batch, member); e != nil {
 				return e
 			}
@@ -89,14 +117,14 @@ func (s Service) Role(ctx context.Context, actor, batch, member, role string, re
 		action := "ROLE_ASSIGNED"
 		var changed int64
 		if remove {
-			tag, e := tx.Exec(ctx, `DELETE FROM membership_roles WHERE membership_id=$1 AND role_id=$2`, member, rid)
+			tag, e := tx.Exec(ctx, `DELETE FROM membership_roles WHERE membership_id=$1 AND role_id=$2`, member, roleID)
 			if e != nil {
 				return e
 			}
 			changed = tag.RowsAffected()
 			action = "ROLE_REMOVED"
 		} else {
-			tag, e := tx.Exec(ctx, `INSERT INTO membership_roles(membership_id,role_id,assigned_by) VALUES($1,$2,NULLIF($3,'')::uuid) ON CONFLICT DO NOTHING`, member, rid, actor)
+			tag, e := tx.Exec(ctx, `INSERT INTO membership_roles(membership_id,role_id,assigned_by) VALUES($1,$2,NULLIF($3,'')::uuid) ON CONFLICT DO NOTHING`, member, roleID, actor)
 			if e != nil {
 				return e
 			}

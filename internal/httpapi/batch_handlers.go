@@ -11,10 +11,26 @@ import (
 )
 
 func (a *API) publicBatchRoutes(r chi.Router) {
+	r.Get("/public/batches", a.wrap(a.publicBatchesHandler))
 	r.Get("/public/batches/{slug}", a.wrap(a.publicBatchHandler))
 	r.Get("/public/batches/{slug}/events", a.wrap(a.publicBatchEventsHandler))
 	r.Get("/public/batches/{slug}/events/{eventID}", a.wrap(a.publicBatchEventHandler))
 	r.Get("/public/batches/{slug}/positions", a.wrap(a.publicBatchPositionsHandler))
+}
+
+// publicBatchesHandler godoc
+//
+//	@Summary List cohorts available for registration
+//	@Tags batches
+//	@Produce json
+//	@Success 200 {array} map[string]any
+//	@Router /v1/public/batches [get]
+func (a *API) publicBatchesHandler(w http.ResponseWriter, r *http.Request) error {
+	value, err := (batch.Service{Pool: a.Pool}).RegistrationCatalog(r.Context())
+	if err != nil {
+		return err
+	}
+	return send(w, http.StatusOK, value)
 }
 
 // publicBatchHandler godoc

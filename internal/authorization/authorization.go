@@ -44,6 +44,33 @@ func RequirePlatform(ctx context.Context, q Querier, user, permission string) er
 	return nil
 }
 
+func CanWithPlatform(ctx context.Context, q Querier, user, batch, batchPermission, platformPermission string) (bool, error) {
+	platform, e := Platform(ctx, q, user, platformPermission)
+	if e != nil || platform {
+		return platform, e
+	}
+	return Can(ctx, q, user, batch, batchPermission)
+}
+
+func RequireWithPlatform(ctx context.Context, q Querier, user, batch, batchPermission, platformPermission string) error {
+	ok, e := CanWithPlatform(ctx, q, user, batch, batchPermission, platformPermission)
+	if e != nil {
+		return e
+	}
+	if !ok {
+		return apperror.ErrForbidden
+	}
+	return nil
+}
+
+func WriteWithPlatform(ctx context.Context, tx pgx.Tx, user, batch, batchPermission, platformPermission string) error {
+	var id string
+	if e := tx.QueryRow(ctx, `SELECT id FROM batches WHERE id=$1 FOR UPDATE`, batch).Scan(&id); e != nil {
+		return db.Error(e)
+	}
+	return RequireWithPlatform(ctx, tx, user, batch, batchPermission, platformPermission)
+}
+
 // Batch write operations share this lock with role and membership mutations.
 func Write(ctx context.Context, tx pgx.Tx, user, batch, permission string) error {
 	var id string

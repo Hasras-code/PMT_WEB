@@ -40,10 +40,16 @@ export default function Dashboard() {
       } catch {
         next.uptime = 'Down';
       }
+      try {
+        const platformStats = await api.get('/v1/admin/stats');
+        next.users = String(platformStats.data.users ?? '—');
+      } catch {
+        /* Non-platform admins use the selected cohort count below. */
+      }
       if (currentBatchID) {
         try {
           const summary = await api.get(`/v1/batches/${currentBatchID}/summary`);
-          next.users = String(summary.data.members ?? '—');
+          if (next.users === '—') next.users = String(summary.data.members ?? '—');
           next.assessments = String(summary.data.resources ?? '—');
         } catch {
           /* ignore */

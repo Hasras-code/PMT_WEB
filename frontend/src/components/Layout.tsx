@@ -22,7 +22,7 @@ const NAV = [
   { to: '/admin/dashboard', label: 'Dashboard', Icon: ChartBarIcon, title: 'Dashboard' },
   { to: '/admin/users', label: 'User Management', Icon: UsersIcon, title: 'User Management' },
   { to: '/admin/courses', label: 'Course Management', Icon: BookOpenIcon, title: 'Course Management' },
-  { to: '/admin/assessments', label: 'Assessments', Icon: ShieldCheckIcon, title: 'Assessments' },
+  { to: '/admin/assessments', label: 'Resources', Icon: ShieldCheckIcon, title: 'Resource Library' },
   { to: '/admin/communication', label: 'Communication', Icon: ChatBubbleLeftIcon, title: 'Communication' },
   { to: '/admin/meetings', label: 'Video Meetings', Icon: VideoCameraIcon, title: 'Video Meetings' },
   { to: '/admin/monitoring', label: 'Monitoring', Icon: PresentationChartLineIcon, title: 'Monitoring' },
@@ -47,7 +47,7 @@ export default function Layout() {
 
   const has = (permission: string) => Boolean(access?.platform_permissions.includes(permission) || access?.memberships.some((membership) => membership.permissions.includes(permission)));
   const visibleNav = NAV.filter((item) => {
-    if (item.to.endsWith('/users')) return has('membership.manage');
+    if (item.to.endsWith('/users')) return has('membership.manage') || has('role.assign') || has('platform_user.manage');
     if (item.to.endsWith('/assessments')) return has('resource.create');
     if (item.to.endsWith('/communication')) return has('announcement.create') || has('feedback.view') || has('complaint.view_all');
     if (item.to.endsWith('/meetings')) return has('event.manage');

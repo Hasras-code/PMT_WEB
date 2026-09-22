@@ -51,7 +51,11 @@ func (s Service) Create(ctx context.Context, user string, in Input, operator boo
 	return id, e
 }
 func (s Service) List(ctx context.Context, user string, limit, offset int) (json.RawMessage, error) {
-	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT b.id,b.name,b.slug,b.entry_year,b.graduation_year,b.description,b.status FROM batches b JOIN batch_memberships m ON m.batch_id=b.id WHERE m.user_id=$1 AND m.status='ACTIVE' AND b.status<>'ARCHIVED' ORDER BY b.entry_year DESC,b.id DESC LIMIT $2 OFFSET $3)t`, user, limit, offset))
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT b.id,b.name,b.slug,b.entry_year,b.graduation_year,b.description,b.status FROM batches b WHERE b.status<>'ARCHIVED' AND (EXISTS(SELECT 1 FROM batch_memberships m WHERE m.batch_id=b.id AND m.user_id=$1 AND m.status='ACTIVE') OR EXISTS(SELECT 1 FROM user_platform_roles upr JOIN role_permissions rp ON rp.role_id=upr.role_id JOIN permissions p ON p.id=rp.permission_id WHERE upr.user_id=$1 AND p.code='platform_user.manage' AND p.scope='PLATFORM')) ORDER BY b.entry_year DESC,b.id DESC LIMIT $2 OFFSET $3)t`, user, limit, offset))
+}
+
+func (s Service) RegistrationCatalog(ctx context.Context) (json.RawMessage, error) {
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT id,name,slug,entry_year,graduation_year,description FROM batches WHERE status='ACTIVE' ORDER BY entry_year DESC,name,id)t`))
 }
 func (s Service) Get(ctx context.Context, user, id string) (json.RawMessage, error) {
 	if e := authorization.Require(ctx, s.Pool, user, id, "batch.view"); e != nil {

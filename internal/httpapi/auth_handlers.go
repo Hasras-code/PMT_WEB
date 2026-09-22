@@ -24,7 +24,7 @@ func (a *API) authRoutes(r chi.Router) {
 // registerHandler godoc
 //
 //	@Summary		Register a new user
-//	@Description	Creates a pending account and sends an email verification message.
+//	@Description	Creates a pending account for the selected cohort and sends an email verification message. Verification activates the membership with the STUDENT role.
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
@@ -46,7 +46,7 @@ func (a *API) registerHandler(w http.ResponseWriter, r *http.Request) error {
 // verifyEmailHandler godoc
 //
 //	@Summary		Verify an email address
-//	@Description	Activates a pending account using its verification token.
+//	@Description	Activates a pending account and adds it to its selected cohort with the STUDENT role.
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json

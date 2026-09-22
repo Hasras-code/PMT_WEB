@@ -1,0 +1,5 @@
+UPDATE resources SET type='OTHER' WHERE type='REFERENCE';
+ALTER TABLE resources DROP CONSTRAINT resources_type_check;
+ALTER TABLE resources ADD CONSTRAINT resources_type_check CHECK(type IN (
+ 'LECTURE_NOTE','HANDWRITTEN_NOTE','PAST_PAPER','TUTORIAL','ASSIGNMENT','OTHER'
+));

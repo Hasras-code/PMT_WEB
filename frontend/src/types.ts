@@ -107,6 +107,8 @@ export interface Resource {
   id: string;
   batch_id: string;
   module_id: string;
+  module_code: string;
+  module_name: string;
   type: string;
   title: string;
   description: string;
@@ -132,6 +134,7 @@ export type ResourceType =
   | 'PAST_PAPER'
   | 'TUTORIAL'
   | 'ASSIGNMENT'
+  | 'REFERENCE'
   | 'OTHER';
 
 export interface Announcement {
@@ -189,6 +192,27 @@ export interface AdminUser {
   email: string;
   status: string;
   created_at: string;
+  platform_roles: string[];
+  batch_roles: AdminBatchRole[];
+}
+
+export interface AdminBatchRole {
+  batch_id: string;
+  batch_name: string;
+  code: string;
+}
+
+export interface PlatformRole {
+  code: string;
+  name: string;
+  scope: 'PLATFORM' | 'BATCH';
+}
+
+export interface AdminBatch {
+  id: string;
+  name: string;
+  slug: string;
+  entry_year: number;
 }
 
 export interface NotificationItem {

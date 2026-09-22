@@ -15,6 +15,11 @@ func (a *API) adminRoutes(r chi.Router) {
 	r.Post("/admin/batches/{batchID}/archive", a.wrap(a.adminArchiveBatchHandler))
 	r.Get("/admin/users", a.wrap(a.adminListUsersHandler))
 	r.Get("/admin/users/{userID}", a.wrap(a.adminListUserHandler))
+	r.Get("/admin/stats", a.wrap(a.adminStatsHandler))
+	r.Get("/admin/roles", a.wrap(a.adminListRolesHandler))
+	r.Get("/admin/batches", a.wrap(a.adminListBatchesHandler))
+	r.Post("/admin/users/{userID}/roles", a.wrap(a.adminSetUserRoleHandler))
+	r.Delete("/admin/users/{userID}/roles/{roleCode}", a.wrap(a.adminDeleteUserRoleHandler))
 	r.Post("/admin/users/{userID}/suspend", a.wrap(a.adminSuspendUserHandler))
 	r.Post("/admin/users/{userID}/reactivate", a.wrap(a.adminReactivateUserHandler))
 	r.Post("/admin/users/{userID}/archive", a.wrap(a.adminArchiveUserHandler))
@@ -83,6 +88,23 @@ func (a *API) adminListUsersHandler(w http.ResponseWriter, r *http.Request) erro
 	return send(w, 200, v)
 }
 
+// adminStatsHandler godoc
+//
+//	@Summary Get platform administration statistics
+//	@Tags admin
+//	@Produce json
+//	@Success 200 {object} map[string]int
+//	@Security bearerAuth
+//	@Router /v1/admin/stats [get]
+func (a *API) adminStatsHandler(w http.ResponseWriter, r *http.Request) error {
+	u := user.Service{Pool: a.Pool}
+	v, e := u.AdminStats(r.Context(), userID(r))
+	if e != nil {
+		return e
+	}
+	return send(w, 200, v)
+}
+
 // adminListUserHandler godoc
 //
 //	@Summary Get a user's admin view
@@ -105,6 +127,48 @@ func (a *API) adminListUserHandler(w http.ResponseWriter, r *http.Request) error
 		return e
 	}
 	return send(w, 200, v)
+}
+
+func (a *API) adminListRolesHandler(w http.ResponseWriter, r *http.Request) error {
+	u := user.Service{Pool: a.Pool}
+	v, e := u.PlatformRoles(r.Context(), userID(r))
+	if e != nil {
+		return e
+	}
+	return send(w, 200, v)
+}
+
+func (a *API) adminListBatchesHandler(w http.ResponseWriter, r *http.Request) error {
+	u := user.Service{Pool: a.Pool}
+	v, e := u.AdminBatches(r.Context(), userID(r))
+	if e != nil {
+		return e
+	}
+	return send(w, 200, v)
+}
+
+func (a *API) adminSetUserRoleHandler(w http.ResponseWriter, r *http.Request) error {
+	in, e := decode[struct {
+		Role    string `json:"role"`
+		BatchID string `json:"batch_id"`
+	}](w, r)
+	if e != nil {
+		return e
+	}
+	u := user.Service{Pool: a.Pool}
+	if e = u.Role(r.Context(), userID(r), param(r, "userID"), in.Role, in.BatchID, false); e != nil {
+		return e
+	}
+	return send(w, 204, nil)
+}
+
+func (a *API) adminDeleteUserRoleHandler(w http.ResponseWriter, r *http.Request) error {
+	batchID := r.URL.Query().Get("batch_id")
+	u := user.Service{Pool: a.Pool}
+	if e := u.Role(r.Context(), userID(r), param(r, "userID"), param(r, "roleCode"), batchID, true); e != nil {
+		return e
+	}
+	return send(w, 204, nil)
 }
 
 func (a *API) adminSetUserStatusHandler(w http.ResponseWriter, r *http.Request, status string) error {
