@@ -13,6 +13,10 @@
 # - Shared-box note (95.211.43.93 also runs trading): caddy owns localhost:8080,
 #   hermes owns 8000/8501/6379/443. PMT therefore publishes the API on host
 #   ${API_PORT:-8090} (container port stays 8080, so nginx.conf is unchanged).
+# - Share-link mode: set TUNNEL_URL=https://<tunnel> in .env.vps to make the
+#   frontend, PUBLIC_API_URL (absolute file URLs) and CORS all use the public
+#   HTTPS tunnel. Empty = plain IP mode. Required because browsers block
+#   mixed-content (https page calling http://IP:port API).
 # - APP_ENV stays `development` on purpose: config.go rejects
 #   APP_ENV=production without https + COOKIE_SECURE=true. Temp has neither.
 # - Postgres keeps its base 127.0.0.1:5432 binding (localhost-only on VPS).
@@ -46,7 +50,7 @@ services:
     environment:
       APP_ENV: development
       HTTP_ADDR: :8080
-      PUBLIC_API_URL: http://${VPS_IP:?set VPS_IP in deploy/vps-temp/.env.vps}:${API_PORT:-8090}
+      PUBLIC_API_URL: ${TUNNEL_URL:-http://${VPS_IP:?set VPS_IP in deploy/vps-temp/.env.vps}:${API_PORT:-8090}}
       DATABASE_URL: postgres://lms:${POSTGRES_PASSWORD:?required}@postgres:5432/lms?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in deploy/vps-temp/.env.vps}
       JWT_ISSUER: pmt-api
@@ -55,7 +59,7 @@ services:
       SMTP_ADDR: mailpit:1025
       MAIL_FROM: lms@localhost
       STORAGE_DIR: /data/files
-      CORS_ALLOWED_ORIGINS: http://${VPS_IP}:80,http://${VPS_IP},http://${VPS_IP}:${API_PORT:-8090}
+      CORS_ALLOWED_ORIGINS: http://${VPS_IP}:80,http://${VPS_IP},http://${VPS_IP}:${API_PORT:-8090},${TUNNEL_URL:-}
       COOKIE_SECURE: "false"
       AUTH_BASIC_USER: ${AUTH_BASIC_USER:-admin}
       AUTH_BASIC_PASS: ${AUTH_BASIC_PASS:?set AUTH_BASIC_PASS in deploy/vps-temp/.env.vps}
@@ -75,7 +79,7 @@ services:
       context: .
       dockerfile: deploy/vps-temp/frontend.Dockerfile
       args:
-        VITE_API_URL: http://${VPS_IP:?set VPS_IP}:${API_PORT:-8090}
+        VITE_API_URL: ${TUNNEL_URL:-http://${VPS_IP:?set VPS_IP}:${API_PORT:-8090}}
     profiles: [app]
     ports:
       - "80:80"
