@@ -51,7 +51,9 @@ func (s Service) AuthorizeChecked(ctx context.Context, user, batch, purpose stri
 		return nil, err
 	}
 	token, err := s.Store.Sign(storage.Grant{Key: key, ID: id, Purpose: "upload", Expiry: time.Now().Add(5 * time.Minute).Unix()})
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	b, err := json.Marshal(map[string]any{"upload_id": id, "upload_url": s.BaseURL + "/v1/files/uploads/" + token, "method": "PUT", "headers": map[string]string{"Content-Type": in.MIME}, "expires_in": 300})
 	return b, err
 }
