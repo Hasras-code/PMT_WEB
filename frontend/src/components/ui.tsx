@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`bg-white rounded-2xl border border-line shadow-[0_1px_2px_rgba(16,24,64,0.05)] ${className}`}>
+    <div className={`bg-charcoal-card backdrop-blur-md rounded-2xl border border-line shadow-lg ${className}`}>
       {children}
     </div>
   );
@@ -30,7 +30,7 @@ export function PrimaryButton({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`w-full px-5 py-3 rounded-xl bg-primary text-white text-[15px] font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 ${className}`}
+      className={`w-full px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 text-[15px] font-bold hover:shadow-gold-glow hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100 ${className}`}
     >
       {children}
     </button>
@@ -52,7 +52,7 @@ export function OutlineButton({
     <button
       type={type}
       onClick={onClick}
-      className={`w-full px-5 py-3 rounded-xl border border-line bg-white text-ink text-[15px] font-medium hover:bg-surface transition-colors ${className}`}
+      className={`w-full px-5 py-3 rounded-xl border border-amber-500/40 bg-charcoal-card text-primary text-[15px] font-medium hover:bg-primary-light transition-colors ${className}`}
     >
       {children}
     </button>
@@ -101,7 +101,7 @@ export function Field({
 }
 
 export const inputCls =
-  'w-full px-3.5 py-2.5 rounded-xl border border-line bg-white text-[15px] text-ink placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
+  'w-full px-3.5 py-2.5 rounded-xl border border-line bg-slate-950/80 text-[15px] text-ink placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500';
 
 export function timeAgo(iso: string | null | undefined): string {
   if (!iso) return '';
