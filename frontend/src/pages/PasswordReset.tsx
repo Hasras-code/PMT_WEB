@@ -47,7 +47,7 @@ export default function PasswordReset() {
         <form onSubmit={request} className="space-y-4">
           <h2 className="text-sm font-semibold text-ink">Step 1 — request a reset email</h2>
           <Field label="Email">
-            <input type="email" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="email" required autoComplete="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <PrimaryButton type="submit" disabled={loading}>
             Send reset email
@@ -56,10 +56,10 @@ export default function PasswordReset() {
         <form onSubmit={reset} className="space-y-4">
           <h2 className="text-sm font-semibold text-ink">Step 2 — set a new password</h2>
           <Field label="Reset token">
-            <input required className={inputCls} value={token} onChange={(e) => setToken(e.target.value)} />
+            <input required autoComplete="one-time-code" className={inputCls} value={token} onChange={(e) => setToken(e.target.value)} />
           </Field>
           <Field label="New password (min 12 characters)">
-            <input type="password" required minLength={12} className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input type="password" required minLength={12} autoComplete="new-password" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} />
           </Field>
           <PrimaryButton type="submit" disabled={loading}>
             Change password

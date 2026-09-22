@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import type { Batch, BatchProfile, Semester, Module, Lesson, LinkItem, Member, Position } from '../types';
 import { useCan } from '../hooks/useRole';
 import { usePatchEditor } from '../hooks/usePatchEditor';
-import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate, coverColor, initials } from '../components/ui';
+import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate, coverColor, initials, Tabs } from '../components/ui';
 
 const TABS = ['Overview', 'Semesters', 'Modules', 'Lessons', 'Links', 'Committee'] as const;
 
@@ -34,18 +34,8 @@ export default function CourseDetail() {
             </p>
           </div>
         </div>
-        <div className="flex gap-1 px-4 pt-3 border-b border-line overflow-x-auto">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-3 text-[15px] whitespace-nowrap border-b-2 -mb-px ${
-                tab === t ? 'border-primary text-primary font-medium' : 'border-transparent text-muted hover:text-ink'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="px-4 pt-3 border-b border-line">
+          <Tabs tabs={TABS} active={tab} onChange={setTab} />
         </div>
       </Card>
 
@@ -146,7 +136,7 @@ function Overview({ batchID, batch, onUpdate }: { batchID: string; batch: Batch;
       </Card>}
       {canManageProfile && <Card className="p-7 space-y-4">
         <h2 className="text-lg font-semibold text-ink">Public profile</h2>
-        {heroAvailable && <img src={`/v1/public/batches/${batch.slug}/image?v=${heroVersion}`} alt="Public course cover" className="w-full h-32 rounded-xl object-cover bg-surface" onError={() => setHeroAvailable(false)} />}
+        {heroAvailable && <img src={`/v1/public/batches/${batch.slug}/image?v=${heroVersion}`} alt={`${batch.name} cover image`} className="w-full h-32 rounded-xl object-cover bg-surface" loading="lazy" decoding="async" onError={() => setHeroAvailable(false)} />}
         <Field label="Headline">
           <input className={inputCls} value={profile.headline || ''} onChange={set('headline')} />
         </Field>
@@ -579,7 +569,7 @@ function CommitteeTab({ batchID }: { batchID: string }) {
                 <div key={assignment.id} className="flex justify-between text-sm"><span>{assignment.display_name}{assignment.ends_at ? ' · ended' : ''}</span>{canManage && !assignment.ends_at && <button onClick={() => endAssignment(position.id, assignment.id)} className="text-red-600 text-xs">End</button>}</div>
               ))}
               {(assignments[position.id] ?? []).length === 0 && <p className="text-sm text-muted">No assignments.</p>}
-              {canManage && <div className="flex gap-2 pt-2"><select className={inputCls} value={selectedMembers[position.id] || ''} onChange={(event) => setSelectedMembers({ ...selectedMembers, [position.id]: event.target.value })}><option value="">Select member…</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}</select><button onClick={() => assign(position.id)} className="px-4 rounded-xl bg-primary text-white text-sm">Assign</button></div>}
+              {canManage && <div className="flex gap-2 pt-2"><select aria-label={`Select member for ${position.title}`} className={inputCls} value={selectedMembers[position.id] || ''} onChange={(event) => setSelectedMembers({ ...selectedMembers, [position.id]: event.target.value })}><option value="">Select member…</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}</select><button onClick={() => assign(position.id)} className="px-4 rounded-xl bg-primary text-white text-sm">Assign</button></div>}
             </div>
           )}
         </Card>

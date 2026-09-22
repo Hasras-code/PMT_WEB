@@ -47,6 +47,15 @@ export default function Layout() {
   const [unread, setUnread] = useState(0);
   const access = useAccess();
 
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [sidebarOpen]);
+
   const has = (permission: string) => Boolean(access?.platform_permissions.includes(permission) || access?.memberships.some((membership) => membership.permissions.includes(permission)));
   const visibleNav = NAV.filter((item) => {
     if (item.to.endsWith('/users')) return has('membership.manage') || has('role.assign') || has('platform_user.manage');
@@ -89,6 +98,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen bg-obsidian-dark">
       <aside
+        id="admin-sidebar"
         className={`fixed inset-y-0 left-0 z-50 w-[300px] bg-charcoal-card border-r border-line flex flex-col transform transition-transform duration-200 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
@@ -141,15 +151,15 @@ export default function Layout() {
       </aside>
 
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-ink/30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <button type="button" aria-label="Close menu" className="fixed inset-0 z-40 bg-ink/30 lg:hidden cursor-default" onClick={() => setSidebarOpen(false)} />
       )}
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-[300px]">
         <header className="sticky top-0 z-30 bg-charcoal-card/90 backdrop-blur-md border-b border-line">
-          <div className="flex items-center justify-between px-8 h-[104px]">
+          <div className="flex items-center justify-between px-4 sm:px-8 h-[104px]">
             <div className="flex items-center gap-4">
-              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-ink" aria-label="Open menu">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-ink" aria-label="Open menu" aria-expanded={sidebarOpen} aria-controls="admin-sidebar">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
@@ -159,10 +169,10 @@ export default function Layout() {
               <button
                 onClick={() => navigate('/admin/notifications')}
                 className="relative p-2 text-ink hover:text-primary"
-                aria-label="Notifications"
+                aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
               >
-                <BellIcon className="w-6 h-6" strokeWidth={1.7} />
-                {unread > 0 && <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500" />}
+                <BellIcon className="w-6 h-6" strokeWidth={1.7} aria-hidden="true" />
+                {unread > 0 && <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500" aria-hidden="true" />}
               </button>
               <select
                 value={currentBatchID}
@@ -180,7 +190,7 @@ export default function Layout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 px-8 py-8">
+        <main className="flex-1 px-4 sm:px-8 py-8">
           <div className="max-w-[1400px] mx-auto">
             <Outlet />
           </div>

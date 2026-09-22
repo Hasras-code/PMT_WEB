@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { api, errMsg } from '../api/client';
 import { useAppStore } from '../store/app';
 import { usePortalBase, useCan } from '../hooks/useRole';
@@ -9,7 +9,6 @@ import CreateCourse from '../components/CreateCourse';
 import toast from 'react-hot-toast';
 
 export default function Courses() {
-  const navigate = useNavigate();
   const base = usePortalBase();
   const elevated = useCan('batch.create');
   const canArchive = useCan('batch.archive');
@@ -39,10 +38,10 @@ export default function Courses() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {batches.map((b) => (
-            <Card key={b.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" >
-              <div onClick={() => navigate(`${base}/courses/${b.id}`)}>
+            <Card key={b.id} className="overflow-hidden hover:shadow-md transition-shadow" >
+              <Link to={`${base}/courses/${b.id}`} className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label={`${b.name}, ${b.slug}`}>
                 <div className="h-28 flex items-center justify-center" style={{ background: coverColor(b.slug) }}>
-                  <span className="text-white text-3xl font-bold">{initials(b.name)}</span>
+                  <span className="text-white text-3xl font-bold" aria-hidden="true">{initials(b.name)}</span>
                 </div>
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-3">
@@ -54,12 +53,11 @@ export default function Courses() {
                     {b.graduation_year ? ` → ${b.graduation_year}` : ''}
                   </p>
                   <p className="mt-2 text-sm text-muted line-clamp-2">{b.description || 'No description.'}</p>
-                  {canArchive && <button onClick={(event) => {
-                    event.stopPropagation();
-                    api.post(`/v1/admin/batches/${b.id}/archive`).then(() => { toast.success('Course archived'); load(); }).catch((err) => toast.error(errMsg(err, 'Archive failed')));
-                  }} className="mt-3 text-xs text-red-600 hover:underline">Archive course</button>}
                 </div>
-              </div>
+              </Link>
+              {canArchive && <div className="px-5 pb-5"><button onClick={() => {
+                api.post(`/v1/admin/batches/${b.id}/archive`).then(() => { toast.success('Course archived'); load(); }).catch((err) => toast.error(errMsg(err, 'Archive failed')));
+              }} className="text-xs text-red-600 hover:underline">Archive course</button></div>}
             </Card>
           ))}
         </div>

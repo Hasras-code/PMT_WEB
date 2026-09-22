@@ -44,7 +44,7 @@ export default function Gallery() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-muted text-[15px]">Published moments from across the platform</p>
-        <select value={month} onChange={(e) => setMonth(e.target.value)} className="px-4 py-2.5 rounded-xl border border-line bg-white text-[15px] text-ink">
+        <select aria-label="Filter by month" value={month} onChange={(e) => setMonth(e.target.value)} className="px-4 py-2.5 rounded-xl border border-line bg-charcoal-card text-[15px] text-ink">
           {monthOptions().map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
       </div>
@@ -57,7 +57,7 @@ export default function Gallery() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {images.map((g) => (
               <Card key={g.id} className="overflow-hidden">
-                <img src={g.thumbnail_url || g.display_url} alt={g.alt_text} className="w-full h-52 object-cover" loading="lazy" />
+                <img src={g.thumbnail_url || g.display_url} alt={g.alt_text} width={g.width || undefined} height={g.height || undefined} className="w-full h-52 object-cover" loading="lazy" decoding="async" />
                 <div className="p-4">
                   <p className="font-medium text-ink">{g.title || g.alt_text}</p>
                   {g.caption && <p className="text-sm text-muted mt-0.5 line-clamp-2">{g.caption}</p>}
@@ -67,7 +67,7 @@ export default function Gallery() {
           </div>
           {cursor && (
             <div className="flex justify-center">
-              <button onClick={() => load(false, cursor)} className="px-6 py-2.5 rounded-xl border border-line bg-white text-[15px] font-medium text-ink hover:bg-surface">
+              <button onClick={() => load(false, cursor)} className="px-6 py-2.5 rounded-xl border border-line bg-charcoal-card text-[15px] font-medium text-ink hover:bg-surface">
                 Load more
               </button>
             </div>

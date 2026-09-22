@@ -27,6 +27,14 @@
   box-shadow: 0 0 25px rgba(245, 158, 11, 0.15);
 }
 
+/* Visible keyboard focus for links, buttons and tabs (inputs keep their ring). */
+a:focus-visible,
+button:focus-visible,
+[role='tab']:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 html, body {
   margin: 0;
   padding: 0;

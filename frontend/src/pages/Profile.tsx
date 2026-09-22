@@ -68,7 +68,7 @@ export default function Profile() {
     <div className="max-w-3xl mx-auto space-y-6">
       <Card className="p-7">
         <div className="flex items-center gap-4">
-          {imageURL ? <img src={imageURL} alt="Profile" className="w-16 h-16 rounded-2xl object-cover" /> : (
+          {imageURL ? <img src={imageURL} alt="Your profile photo" className="w-16 h-16 rounded-2xl object-cover" /> : (
             <div className="w-16 h-16 rounded-2xl bg-primary-light text-primary text-2xl font-bold flex items-center justify-center">
               {user.display_name[0]?.toUpperCase()}
             </div>

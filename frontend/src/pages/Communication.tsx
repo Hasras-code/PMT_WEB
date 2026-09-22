@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import type { Announcement, Complaint, FeedbackItem, Member } from '../types';
 import { useCan } from '../hooks/useRole';
 import { usePatchEditor } from '../hooks/usePatchEditor';
-import { Card, Badge, statusTone, Empty, Field, inputCls, timeAgo } from '../components/ui';
+import { Card, Badge, statusTone, Empty, Field, inputCls, timeAgo, Tabs } from '../components/ui';
 
 const TABS = ['Announcements', 'Complaints', 'Feedback'] as const;
 const PRIORITIES = ['NORMAL', 'IMPORTANT', 'URGENT'];
@@ -24,18 +24,8 @@ export default function Communication() {
 
   return (
     <div className="space-y-6">
-      <Card className="px-4 pt-2 flex gap-1 overflow-x-auto">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-3 text-[15px] whitespace-nowrap border-b-2 -mb-px ${
-              tab === t ? 'border-primary text-primary font-medium' : 'border-transparent text-muted hover:text-ink'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+      <Card className="px-4 pt-2">
+        <Tabs tabs={TABS} active={tab} onChange={setTab} />
       </Card>
       {tab === 'Announcements' && <AnnouncementsTab batchID={currentBatchID} />}
       {tab === 'Complaints' && <ComplaintsTab batchID={currentBatchID} />}
@@ -309,7 +299,7 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
           </div>
           {canManage && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <select value={c.assigned_to || ''} onChange={(event) => assignComplaint(c.id, event.target.value)} className="px-2 py-1.5 rounded-lg border border-line bg-white">
+              <select aria-label={`Assign manager for complaint ${c.subject}`} value={c.assigned_to || ''} onChange={(event) => assignComplaint(c.id, event.target.value)} className="px-2 py-1.5 rounded-lg border border-line bg-charcoal-card text-ink text-xs">
                 <option value="">Assign manager…</option>
                 {managers.map((manager) => <option key={manager.user_id} value={manager.user_id}>{manager.display_name}</option>)}
               </select>
@@ -326,7 +316,7 @@ function ComplaintsTab({ batchID }: { batchID: string }) {
               ))}
               {thread.messages.length === 0 && <p className="text-sm text-muted">No messages yet.</p>}
               <div className="flex gap-2 pt-1">
-                <input className={inputCls} placeholder="Write a reply…" value={reply} onChange={(e) => setReply(e.target.value)} />
+                <input aria-label="Write a reply" className={inputCls} placeholder="Write a reply…" value={reply} onChange={(e) => setReply(e.target.value)} />
                 <button onClick={sendReply} className="px-4 rounded-xl bg-primary text-white text-sm font-medium whitespace-nowrap">Send</button>
               </div>
             </div>

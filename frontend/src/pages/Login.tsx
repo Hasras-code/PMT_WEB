@@ -62,10 +62,10 @@ export default function Login() {
               <p className="px-4 py-3 rounded-xl bg-red-50 text-red-700 text-sm font-medium">{error}</p>
             )}
             <Field label="Email">
-              <input type="email" required placeholder="you@example.com" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input type="email" required autoComplete="email" placeholder="you@example.com" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>
             <Field label="Password">
-              <input type="password" required placeholder="••••••••••••" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input type="password" required autoComplete="current-password" placeholder="••••••••••••" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} />
             </Field>
             <PrimaryButton type="submit" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}

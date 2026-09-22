@@ -92,19 +92,19 @@ export default function Register() {
               {!cohortsLoading && cohorts.length === 0 && <p className="mt-2 text-sm text-red-600">No active cohort is available for registration.</p>}
             </div>
             <Field label="First name">
-              <input required className={inputCls} value={form.first_name} onChange={set('first_name')} />
+              <input required autoComplete="given-name" className={inputCls} value={form.first_name} onChange={set('first_name')} />
             </Field>
             <Field label="Last name">
-              <input required className={inputCls} value={form.last_name} onChange={set('last_name')} />
+              <input required autoComplete="family-name" className={inputCls} value={form.last_name} onChange={set('last_name')} />
             </Field>
             <div className="col-span-2">
               <Field label="Email">
-                <input type="email" required placeholder="you@example.com" className={inputCls} value={form.email} onChange={set('email')} />
+                <input type="email" required autoComplete="email" placeholder="you@example.com" className={inputCls} value={form.email} onChange={set('email')} />
               </Field>
             </div>
             <div className="col-span-2">
               <Field label="Password (min 12 characters)">
-                <input type="password" required minLength={12} className={inputCls} value={form.password} onChange={set('password')} />
+                <input type="password" required minLength={12} autoComplete="new-password" className={inputCls} value={form.password} onChange={set('password')} />
               </Field>
             </div>
             <div className="col-span-2">

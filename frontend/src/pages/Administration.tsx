@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, toList, errMsg, uploadFile } from '../api/client';
 import toast from 'react-hot-toast';
 import type { AdminBatch, AdminUser, GalleryImage, PlatformRole } from '../types';
-import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate } from '../components/ui';
+import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate, Tabs } from '../components/ui';
 import { useCan } from '../hooks/useRole';
 import { usePatchEditor } from '../hooks/usePatchEditor';
 
@@ -105,16 +105,13 @@ export default function Administration() {
 
   return (
     <div className="space-y-6">
-      <Card className="px-4 pt-2 flex gap-1">
-        {(['users', 'gallery'] as const).filter((item) => item === 'users' ? canUsers : canGallery).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-3 text-[15px] capitalize border-b-2 -mb-px ${tab === t ? 'border-primary text-primary font-medium' : 'border-transparent text-muted hover:text-ink'}`}
-          >
-            {t === 'users' ? 'Platform users' : 'Gallery'}
-          </button>
-        ))}
+      <Card className="px-4 pt-2">
+        <Tabs
+          tabs={(['users', 'gallery'] as const).filter((item) => (item === 'users' ? canUsers : canGallery))}
+          active={tab}
+          onChange={setTab}
+          labels={{ users: 'Platform users', gallery: 'Gallery' }}
+        />
       </Card>
 
       {tab === 'users' && (
@@ -125,14 +122,15 @@ export default function Administration() {
           ) : (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left text-[15px]">
+                <caption className="sr-only">Platform users</caption>
                 <thead>
                   <tr className="text-muted text-sm border-b border-line">
-                    <th className="py-3 pr-4 font-medium">User</th>
-                    <th className="py-3 pr-4 font-medium">Student #</th>
-                    <th className="py-3 pr-4 font-medium">Combination</th>
-                    <th className="py-3 pr-4 font-medium">Status</th>
-                    <th className="py-3 pr-4 font-medium">Joined</th>
-                    <th className="py-3 font-medium">Actions</th>
+                    <th scope="col" className="py-3 pr-4 font-medium">User</th>
+                    <th scope="col" className="py-3 pr-4 font-medium">Student #</th>
+                    <th scope="col" className="py-3 pr-4 font-medium">Combination</th>
+                    <th scope="col" className="py-3 pr-4 font-medium">Status</th>
+                    <th scope="col" className="py-3 pr-4 font-medium">Joined</th>
+                    <th scope="col" className="py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -185,7 +183,7 @@ export default function Administration() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {gallery.map((g) => (
                 <Card key={g.id} className="overflow-hidden">
-                  <img src={g.thumbnail_url || g.display_url} alt={g.alt_text} className="w-full h-44 object-cover" />
+                  <img src={g.thumbnail_url || g.display_url} alt={g.alt_text} className="w-full h-44 object-cover" loading="lazy" decoding="async" />
                   <div className="p-4">
                     <div className="flex items-center justify-between">
                       <p className="font-medium text-ink">{g.title || g.alt_text}</p>
@@ -205,14 +203,22 @@ export default function Administration() {
       )}
 
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditingUser(null); }}>
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="edit-user-title">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditingUser(null); }}>
+          <div
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-line bg-charcoal-card shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-user-title"
+            onKeyDown={(event) => { if (event.key === 'Escape') setEditingUser(null); }}
+            tabIndex={-1}
+            ref={(el) => { el?.focus(); }}
+          >
             <div className="flex items-center justify-between border-b border-line px-6 py-5">
               <div>
                 <h2 id="edit-user-title" className="text-xl font-semibold text-ink">Edit User: {editingUser.display_name}</h2>
                 <p className="mt-1 text-sm text-muted">Manage this user&apos;s platform administration roles.</p>
               </div>
-              <button onClick={() => setEditingUser(null)} className="text-2xl leading-none text-muted hover:text-ink" aria-label="Close">×</button>
+              <button onClick={() => setEditingUser(null)} className="text-2xl leading-none text-muted hover:text-ink" aria-label="Close user editor"><span aria-hidden="true">×</span></button>
             </div>
             <div className="grid gap-5 px-6 py-6 sm:grid-cols-2">
               <Field label="Full Name"><input className={inputCls} value={editingUser.display_name} readOnly /></Field>
@@ -231,7 +237,7 @@ export default function Administration() {
                       ))}
                     </select>
                     {platformRoles.find((role) => role.code === selectedRole)?.scope === 'BATCH' && (
-                      <select className="min-w-48 rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink" value={selectedBatch} onChange={(event) => setSelectedBatch(event.target.value)}>
+                      <select aria-label="Select cohort for batch role" className="min-w-48 rounded-xl border border-line bg-charcoal-card px-3.5 py-2.5 text-[15px] text-ink" value={selectedBatch} onChange={(event) => setSelectedBatch(event.target.value)}>
                         <option value="">Select cohort…</option>
                         {batches.map((batch) => <option key={batch.id} value={batch.id}>{batch.name}</option>)}
                       </select>
@@ -243,13 +249,13 @@ export default function Administration() {
                   {(editingUser.platform_roles || []).map((role) => (
                     <span key={role} className="inline-flex items-center gap-2 rounded-full bg-primary-light px-3 py-1.5 text-sm font-medium text-primary">
                       {platformRoles.find((item) => item.code === role)?.name || role}
-                      <button onClick={() => changePlatformRole(role, true)} className="text-base leading-none hover:text-red-600" title={`Remove ${role}`} aria-label={`Remove ${role}`}>×</button>
+                      <button onClick={() => changePlatformRole(role, true)} className="text-base leading-none hover:text-red-600" title={`Remove ${role}`} aria-label={`Remove ${role}`}><span aria-hidden="true">×</span></button>
                     </span>
                   ))}
                   {(editingUser.batch_roles || []).map((role) => (
                     <span key={`${role.batch_id}-${role.code}`} className="inline-flex items-center gap-2 rounded-full bg-primary-light px-3 py-1.5 text-sm font-medium text-primary">
                       {role.code} · {role.batch_name}
-                      <button onClick={() => changePlatformRole(role.code, true, role.batch_id)} className="text-base leading-none hover:text-red-600" title={`Remove ${role.code}`} aria-label={`Remove ${role.code}`}>×</button>
+                      <button onClick={() => changePlatformRole(role.code, true, role.batch_id)} className="text-base leading-none hover:text-red-600" title={`Remove ${role.code}`} aria-label={`Remove ${role.code}`}><span aria-hidden="true">×</span></button>
                     </span>
                   ))}
                   {editingUser.platform_roles.length === 0 && editingUser.batch_roles.length === 0 && <p className="text-sm text-muted">No roles assigned.</p>}
@@ -257,7 +263,7 @@ export default function Administration() {
               </div>
             </div>
             <div className="flex justify-end gap-3 border-t border-line bg-surface px-6 py-4">
-              <button onClick={() => setEditingUser(null)} className="rounded-xl border border-line bg-white px-5 py-2.5 text-[15px] font-medium text-ink hover:bg-surface">Cancel</button>
+              <button onClick={() => setEditingUser(null)} className="rounded-xl border border-line bg-charcoal-card px-5 py-2.5 text-[15px] font-medium text-ink hover:bg-surface">Cancel</button>
               <button onClick={() => setEditingUser(null)} className="rounded-xl bg-primary px-5 py-2.5 text-[15px] font-medium text-white hover:bg-primary-dark">Done</button>
             </div>
           </div>

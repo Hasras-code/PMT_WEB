@@ -87,6 +87,61 @@ export function Empty({ message }: { message: string }) {
   return <p className="py-8 text-center text-sm text-muted">{message}</p>;
 }
 
+/** Accessible tab bar: tablist pattern with arrow-key navigation. */
+export function Tabs<T extends string>({
+  tabs,
+  active,
+  onChange,
+  labels,
+}: {
+  tabs: readonly T[];
+  active: T;
+  onChange: (tab: T) => void;
+  labels?: Partial<Record<T, string>>;
+}) {
+  const refs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const move = (event: React.KeyboardEvent, index: number) => {
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    const target = tabs[next];
+    if (target === undefined) return;
+    refs.current[next]?.focus();
+    onChange(target);
+  };
+
+  return (
+    <div role="tablist" aria-label="Sections" className="flex gap-1 overflow-x-auto">
+      {tabs.map((t, index) => {
+        const selected = t === active;
+        return (
+          <button
+            key={t}
+            ref={(el) => {
+              refs.current[index] = el;
+            }}
+            role="tab"
+            aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(t)}
+            onKeyDown={(event) => move(event, index)}
+            className={`px-4 py-3 text-[15px] whitespace-nowrap border-b-2 -mb-px ${
+              selected ? 'border-primary text-primary font-medium' : 'border-transparent text-muted hover:text-ink'
+            }`}
+          >
+            {labels?.[t] ?? t}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Accessible replacement for window.prompt(): labelled fields in a modal
  * dialog with Escape-to-close, initial focus, focus trap and inline errors.
  * Parents must pass a `key` that changes per edited item so values reset. */
