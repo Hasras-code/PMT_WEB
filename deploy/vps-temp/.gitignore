@@ -1,2 +1,6 @@
 # Isolated secrets — never commit the real file.
 .env.vps
+# Non-root cron job log (see deploy.sh JOBS_LOG).
+jobs.log
+# Local backups (see backup.sh).
+backups/

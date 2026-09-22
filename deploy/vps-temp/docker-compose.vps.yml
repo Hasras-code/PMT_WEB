@@ -13,6 +13,8 @@
 # - Shared-box note (95.211.43.93 also runs trading): caddy owns localhost:8080,
 #   hermes owns 8000/8501/6379/443. PMT therefore publishes the API on host
 #   ${API_PORT:-8090} (container port stays 8080, so nginx.conf is unchanged).
+#   Do NOT touch those trading/caddy ports. Separate box 95.211.126.202
+#   (hermes trading agent) is out of scope.
 # - Share-link mode: set TUNNEL_URL=https://<tunnel> in .env.vps to make the
 #   frontend, PUBLIC_API_URL (absolute file URLs) and CORS all use the public
 #   HTTPS tunnel. Empty = plain IP mode. Required because browsers block

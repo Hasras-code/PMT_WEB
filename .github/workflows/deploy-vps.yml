@@ -1,0 +1,44 @@
+name: deploy-vps
+
+# Live-update: every push to main that passes CI ("backend" workflow)
+# triggers a deploy on the temp VPS. Manual runs also supported.
+on:
+  workflow_run:
+    workflows: ["backend"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two deploys at once; queue them instead.
+concurrency:
+  group: vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only deploy green CI (manual runs always allowed).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Deploy to temp VPS (deploy-only SSH key)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/pmt_deploy
+          chmod 600 ~/.ssh/pmt_deploy
+          # The server ignores the command and always runs
+          # deploy/vps-temp/remote-deploy.sh (forced command): pull --ff-only,
+          # deploy.sh, verify.sh. The key cannot open a shell, read secrets,
+          # or touch anything outside the PMT deployment.
+          ssh -o StrictHostKeyChecking=accept-new \
+              -o ConnectTimeout=15 \
+              -i ~/.ssh/pmt_deploy \
+              "${VPS_USER}@${VPS_HOST}" true

@@ -1,5 +1,17 @@
 # Temp VPS deploy (IP-only, no domain) — isolated bundle
 
+## Connection details (recovered from previous sessions)
+
+- PMT temp VPS IP: `95.211.43.93` (public IPv4, no scheme, no port)
+- SSH: `ssh root@95.211.43.93`, repo path `/opt/pmt-web` (clone then run below)
+- PMT ports (this bundle only): `80` (frontend), `8090` (API direct), `8025`
+  (Mailpit temp — delete the allow rule after testing). Postgres stays
+  `127.0.0.1:5432`.
+- Occupied on this box — do NOT touch: `localhost:8080` (caddy),
+  `8000/8501/6379/443` (trading).
+- Separate box `95.211.126.202` (hermes trading agent, key `~/.ssh/hermes_vps`)
+  is out of scope for this bundle — leave it running untouched.
+
 All temp-deploy files live here so they are easy to recognize and delete before
 final production. Nothing in this folder is imported by local dev.
 
