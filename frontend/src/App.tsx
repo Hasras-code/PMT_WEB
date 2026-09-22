@@ -1,9 +1,8 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, type JSX } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth';
 import { useElevated } from './hooks/useRole';
-import { lazy, Suspense, type JSX } from 'react';
 import Layout from './components/Layout';
 import StudentLayout from './components/StudentLayout';
 import ErrorBoundary from './components/ErrorBoundary';
