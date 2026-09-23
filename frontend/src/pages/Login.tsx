@@ -47,8 +47,8 @@ export default function Login() {
           PMT Family
         </p>
         <div className="relative z-10">
-          <h2 className="text-4xl font-bold leading-tight text-ink">Welcome to the PMT Batch Trip Portal.</h2>
-          <p className="mt-4 text-muted text-lg">Manage your memories, journeys, and community — all in one place.</p>
+          <h2 className="text-4xl font-bold leading-tight text-ink">Welcome to the PMT Portal.</h2>
+          <p className="mt-4 text-muted text-lg">Manage your learning, community, and funds — all in one place.</p>
         </div>
         <p className="text-muted text-sm relative z-10">PMT Batch Trip</p>
       </div>
