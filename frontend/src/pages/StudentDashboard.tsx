@@ -76,7 +76,7 @@ export default function StudentDashboard() {
   }, [batches]);
 
   const tiles = [
-    { label: 'My Courses', value: String(batches.length), Icon: BookOpenIcon, tile: 'bg-blue-50 text-primary' },
+    { label: 'My Courses', value: String(batches.length), Icon: BookOpenIcon, tile: 'bg-primary-light text-primary' },
     { label: 'Kuppis', value: String(kuppis.length), Icon: VideoCameraIcon, tile: 'bg-emerald-50 text-emerald-600' },
     { label: 'Announcements', value: String(announcements.length), Icon: MegaphoneIcon, tile: 'bg-purple-50 text-purple-600' },
     { label: 'Unread Notifications', value: String(unread), Icon: BellIcon, tile: 'bg-orange-50 text-orange-600' },

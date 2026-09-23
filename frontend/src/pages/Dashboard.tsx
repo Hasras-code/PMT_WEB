@@ -71,7 +71,7 @@ export default function Dashboard() {
   }, [currentBatchID, batches.length]);
 
   const tiles = [
-    { label: 'Total Users', value: stats.users, Icon: UsersIcon, tile: 'bg-blue-50 text-primary' },
+    { label: 'Total Users', value: stats.users, Icon: UsersIcon, tile: 'bg-primary-light text-primary' },
     { label: 'Active Courses', value: stats.courses, Icon: BookOpenIcon, tile: 'bg-emerald-50 text-emerald-600' },
     { label: 'Resources', value: stats.assessments, Icon: AcademicCapIcon, tile: 'bg-purple-50 text-purple-600' },
     { label: 'System Uptime', value: stats.uptime, Icon: ArrowTrendingUpIcon, tile: 'bg-orange-50 text-orange-600' },

@@ -364,12 +364,12 @@ export function fmtDateTime(iso: string | null | undefined): string {
   return new Date(iso).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-const COVER_BG = ['#205BFF', '#7C3AED', '#059669', '#EA580C', '#DB2777', '#0891B2'];
+const COVER_BG = ['#D4AF37', '#7C3AED', '#059669', '#EA580C', '#DB2777', '#F59E0B'];
 
 export function coverColor(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 997;
-  return COVER_BG[h % COVER_BG.length] ?? '#205BFF';
+  return COVER_BG[h % COVER_BG.length] ?? '#D4AF37';
 }
 
 export function initials(name: string): string {
