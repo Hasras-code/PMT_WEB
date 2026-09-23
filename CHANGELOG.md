@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.0.0...v1.1.0) (2026-09-23)
+
+
+### Features
+
+* add empty hello world file ([8dc5c8d](https://github.com/Hasras-code/PMT_WEB/commit/8dc5c8d7bb8c64b45c75180164e025a2451ee8b5))
+
 ## 1.0.0 (2026-09-23)
 
 
