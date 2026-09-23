@@ -69,7 +69,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
             {/* CTA */}
             <div className="hidden md:flex items-center space-x-4">
-              <Link to="/login">
+              <Link to="/portal">
                 <PrimaryButton className="!py-2.5 !px-5 !text-sm !w-auto">
                   {isAuthenticated ? 'Go to Portal' : 'Portal Login'}
                 </PrimaryButton>
@@ -123,7 +123,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 )
               ))}
               <div className="pt-6 border-t border-amber-500/20">
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                <Link to="/portal" onClick={() => setMobileMenuOpen(false)}>
                   <PrimaryButton className="w-full">
                     {isAuthenticated ? 'Go to Portal' : 'Portal Login'}
                   </PrimaryButton>
@@ -170,7 +170,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <div>
             <h3 className="text-sm font-semibold text-white tracking-wider uppercase mb-5">Legal</h3>
             <ul className="space-y-3">
-              <li><Link to="/login" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">Student & Admin Portal</Link></li>
+              <li><Link to="/portal" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">Student & Admin Portal</Link></li>
             </ul>
           </div>
         </div>

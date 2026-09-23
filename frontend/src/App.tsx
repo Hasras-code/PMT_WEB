@@ -95,8 +95,24 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 /** Keeps signed-in users out of auth pages (they land in their portal). */
 function GuestOnly({ children }: { children: JSX.Element }) {
   const { isAuthenticated } = useAuthStore();
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) return <Navigate to="/portal" replace />;
   return children;
+}
+
+/** Sends visitors through login, then opens the portal that matches their access. */
+function PortalEntry() {
+  const { isAuthenticated } = useAuthStore();
+  const elevated = useElevated();
+
+  if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: '/portal' }} />;
+  if (elevated === null)
+    return (
+      <div className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+        <div className="w-10 h-10 rounded-full border-2 border-line border-t-primary animate-spin" aria-hidden="true" />
+        <span className="sr-only">Opening portal…</span>
+      </div>
+    );
+  return <Navigate to={elevated ? '/admin/dashboard' : '/student/dashboard'} replace />;
 }
 
 function RequireAdmin({ children }: { children: JSX.Element }) {
@@ -140,6 +156,7 @@ function App() {
       <ErrorBoundary>
         <Suspense fallback={<PageFallback />}>
           <Routes>
+            <Route path="/portal" element={<PortalEntry />} />
             <Route
               path="/login"
               element={

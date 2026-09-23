@@ -32,7 +32,8 @@ export default function Login() {
       const me = await api.get('/v1/me');
       setUser(me.data);
       toast.success('Welcome back!');
-      const from = (location.state as { from?: string } | null)?.from || '/';
+      const requestedPath = (location.state as { from?: string } | null)?.from;
+      const from = requestedPath?.startsWith('/') && !requestedPath.startsWith('//') ? requestedPath : '/portal';
       navigate(from, { replace: true });
     } catch (err) {
       const msg = errMsg(err, 'Login failed');
