@@ -27,6 +27,9 @@ const PublicBatch = lazy(() => import('./pages/PublicBatch'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const PublicLayout = lazy(() => import('./components/layout/PublicLayout'));
+const PublicHome = lazy(() => import('./pages/PublicHome'));
+const PublicContent = lazy(() => import('./pages/PublicContent'));
 
 function PageFallback() {
   return (
@@ -109,20 +112,7 @@ function RequireAdmin({ children }: { children: JSX.Element }) {
   return children;
 }
 
-/** Sends signed-in users to their portal, guests to login. */
-function Landing() {
-  const { isAuthenticated } = useAuthStore();
-  const elevated = useElevated();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (elevated === null)
-    return (
-      <div className="p-8" role="status" aria-live="polite">
-        <div className="w-10 h-10 rounded-full border-2 border-line border-t-primary animate-spin" aria-hidden="true" />
-        <span className="sr-only">Loading…</span>
-      </div>
-    );
-  return <Navigate to={elevated ? '/admin/dashboard' : '/student/dashboard'} replace />;
-}
+/* Landing route is now the Public Homepage */
 
 const LEGACY = [
   'dashboard',
@@ -182,7 +172,14 @@ function App() {
                 </GuestOnly>
               }
             />
-            <Route path="/" element={<Landing />} />
+            <Route
+              path="/"
+              element={
+                <PublicLayout>
+                  <PublicHome />
+                </PublicLayout>
+              }
+            />
 
             {/* Public batch profiles need no login. */}
             <Route path="/public/batches/:slug" element={<PublicBatch />} />
@@ -208,6 +205,7 @@ function App() {
           <Route path="monitoring" element={<Monitoring />} />
           <Route path="system" element={<System />} />
           <Route path="administration" element={<Administration />} />
+          <Route path="public-content" element={<PublicContent />} />
           <Route path="gallery" element={<Gallery />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />

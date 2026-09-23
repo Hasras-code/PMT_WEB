@@ -16,7 +16,7 @@ export default function Verify() {
     try {
       await api.post('/v1/auth/verify-email', { token });
       toast.success('Email verified! You can sign in now.');
-      navigate('/login');
+      navigate('/');
     } catch (err) {
       toast.error(errMsg(err, 'Verification failed'));
     } finally {

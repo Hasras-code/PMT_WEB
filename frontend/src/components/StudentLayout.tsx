@@ -67,7 +67,7 @@ export default function StudentLayout() {
       /* ignore */
     }
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { api, errMsg } from '../api/client';
 import { useAuthStore } from '../store/auth';
@@ -13,6 +13,10 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    document.title = 'Sign In - PMT Family Portal';
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,10 +51,10 @@ export default function Login() {
           PMT Family
         </p>
         <div className="relative z-10">
-          <h2 className="text-4xl font-bold leading-tight text-ink">Welcome to the PMT Portal.</h2>
-          <p className="mt-4 text-muted text-lg">Manage your learning, community, and funds — all in one place.</p>
+          <h2 className="text-4xl font-bold leading-tight text-ink">Welcome to the PMT Batch Trip Portal.</h2>
+          <p className="mt-4 text-muted text-lg">Manage your memories, journeys, and community — all in one place.</p>
         </div>
-        <p className="text-muted text-sm relative z-10">©  All Rights Reserved. Designed and developed by 24/25 PMT Batch</p>
+        <p className="text-muted text-sm relative z-10">PMT Batch Trip</p>
       </div>
       <div className="flex-1 flex items-center justify-center p-8 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 blur-[100px] pointer-events-none rounded-full" />
