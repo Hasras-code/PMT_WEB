@@ -115,7 +115,10 @@ export const api = {
 };
 
 export async function uploadFile(uploadURL: string, file: File, init?: { signal?: AbortSignal }): Promise<void> {
-  const response = await fetch(uploadURL, {
+  const target = new URL(uploadURL, API_BASE);
+  const apiURL = new URL(API_BASE);
+  const uploadTarget = new URL(target.pathname + target.search, apiURL.origin);
+  const response = await fetch(uploadTarget, {
     method: 'PUT',
     body: file,
     signal: init?.signal,

@@ -20,7 +20,7 @@ const NAV = [
   { to: '/student/courses', label: 'My Courses', Icon: BookOpenIcon, title: 'My Courses' },
   { to: '/student/assessments', label: 'Resources', Icon: ShieldCheckIcon, title: 'Resource Library' },
   { to: '/student/funds', label: 'Funds', Icon: BanknotesIcon, title: 'Fund Transparency' },
-  { to: '/student/meetings', label: 'Video Meetings', Icon: VideoCameraIcon, title: 'Video Meetings' },
+  { to: '/student/meetings', label: 'Kuppis', Icon: VideoCameraIcon, title: 'Kuppis' },
   { to: '/student/communication', label: 'Communication', Icon: ChatBubbleLeftIcon, title: 'Communication' },
   { to: '/student/gallery', label: 'Gallery', Icon: PhotoIcon, title: 'Gallery' },
 ];

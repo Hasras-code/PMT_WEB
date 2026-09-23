@@ -7,7 +7,7 @@ import { useAppStore } from '../store/app';
 import type { AuditLog, Batch } from '../types';
 import { Card, CardTitle, PrimaryButton, OutlineButton, timeAgo } from '../components/ui';
 import CreateCourse from '../components/CreateCourse';
-import { useCan } from '../hooks/useRole';
+import { useAccess, useCan } from '../hooks/useRole';
 
 const DOTS = ['bg-primary', 'bg-orange-500', 'bg-emerald-500', 'bg-purple-500'];
 
@@ -21,8 +21,9 @@ export default function Dashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const canCreateBatch = useCan('batch.create');
   const canManageMembers = useCan('membership.manage', currentBatchID);
-  const canViewBatchAudit = useCan('audit.view', currentBatchID);
   const canViewPlatformAudit = useCan('platform_audit.view');
+  const access = useAccess();
+  const platformAdmin = access?.platform_roles.includes('PLATFORM_ADMIN') ?? false;
 
   useEffect(() => {
     api.get('/v1/batches').then((res) => setBatches(res.data as Batch[])).catch(() => {});
@@ -72,7 +73,7 @@ export default function Dashboard() {
   const tiles = [
     { label: 'Total Users', value: stats.users, Icon: UsersIcon, tile: 'bg-blue-50 text-primary' },
     { label: 'Active Courses', value: stats.courses, Icon: BookOpenIcon, tile: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Assessments', value: stats.assessments, Icon: AcademicCapIcon, tile: 'bg-purple-50 text-purple-600' },
+    { label: 'Resources', value: stats.assessments, Icon: AcademicCapIcon, tile: 'bg-purple-50 text-purple-600' },
     { label: 'System Uptime', value: stats.uptime, Icon: ArrowTrendingUpIcon, tile: 'bg-orange-50 text-orange-600' },
   ];
 
@@ -118,7 +119,7 @@ export default function Dashboard() {
           <div className="mt-5 space-y-4">
             {canManageMembers && <PrimaryButton onClick={() => navigate('/admin/users')}>Add New User</PrimaryButton>}
             {canCreateBatch && <OutlineButton onClick={() => setShowCreate(true)}>Create Course</OutlineButton>}
-            {(canViewBatchAudit || canViewPlatformAudit) && <OutlineButton onClick={() => navigate('/admin/monitoring')}>View System Logs</OutlineButton>}
+            {platformAdmin && canViewPlatformAudit && <OutlineButton onClick={() => navigate('/admin/monitoring')}>View System Logs</OutlineButton>}
           </div>
         </Card>
       </div>

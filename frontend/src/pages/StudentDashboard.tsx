@@ -10,8 +10,8 @@ import {
 import { api, toList } from '../api/client';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
-import type { Announcement, LmsEvent, NotificationItem } from '../types';
-import { Card, CardTitle, PrimaryButton, OutlineButton, Badge, timeAgo, fmtDateTime, coverColor, initials, Skeleton } from '../components/ui';
+import type { Announcement, Kuppi, NotificationItem } from '../types';
+import { Card, CardTitle, PrimaryButton, OutlineButton, Badge, timeAgo, coverColor, initials, Skeleton } from '../components/ui';
 
 const DOTS = ['bg-primary', 'bg-orange-500', 'bg-emerald-500', 'bg-purple-500'];
 
@@ -28,7 +28,7 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { batches } = useAppStore();
-  const [meetings, setMeetings] = useState<(LmsEvent & { batchName: string })[]>([]);
+  const [kuppis, setKuppis] = useState<(Kuppi & { batchName: string })[]>([]);
   const [announcements, setAnnouncements] = useState<(Announcement & { batchName: string })[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [unread, setUnread] = useState(0);
@@ -38,13 +38,13 @@ export default function StudentDashboard() {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const evs: (LmsEvent & { batchName: string })[] = [];
+      const recordings: (Kuppi & { batchName: string })[] = [];
       const anns: (Announcement & { batchName: string })[] = [];
       await Promise.all(
         batches.map(async (b) => {
           try {
-            const r = await api.get(`/v1/batches/${b.id}/events`, { limit: 20 });
-            toList<LmsEvent>(r.data).forEach((e) => evs.push({ ...e, batchName: b.name }));
+            const r = await api.get(`/v1/batches/${b.id}/kuppis`, { limit: 20 });
+            toList<Kuppi>(r.data).forEach((kuppi) => recordings.push({ ...kuppi, batchName: b.name }));
           } catch { /* ignore */ }
           try {
             const r = await api.get(`/v1/batches/${b.id}/announcements`, { limit: 20 });
@@ -62,11 +62,10 @@ export default function StudentDashboard() {
       } catch { /* ignore */ }
       if (cancelled) return;
       setLoading(false);
-      const now = Date.now();
-      setMeetings(
-        evs
-          .filter((e) => e.status === 'PUBLISHED' && new Date(e.starts_at).getTime() >= now - 3600_000)
-          .sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at))
+      setKuppis(
+        recordings
+          .filter((kuppi) => kuppi.status === 'PUBLISHED')
+          .sort((a, b) => +new Date(b.recorded_at || b.published_at || b.created_at) - +new Date(a.recorded_at || a.published_at || a.created_at))
           .slice(0, 5),
       );
       setAnnouncements(anns.slice(0, 5));
@@ -78,7 +77,7 @@ export default function StudentDashboard() {
 
   const tiles = [
     { label: 'My Courses', value: String(batches.length), Icon: BookOpenIcon, tile: 'bg-blue-50 text-primary' },
-    { label: 'Upcoming Meetings', value: String(meetings.length), Icon: VideoCameraIcon, tile: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Kuppis', value: String(kuppis.length), Icon: VideoCameraIcon, tile: 'bg-emerald-50 text-emerald-600' },
     { label: 'Announcements', value: String(announcements.length), Icon: MegaphoneIcon, tile: 'bg-purple-50 text-purple-600' },
     { label: 'Unread Notifications', value: String(unread), Icon: BellIcon, tile: 'bg-orange-50 text-orange-600' },
   ];
@@ -124,8 +123,8 @@ export default function StudentDashboard() {
           )}
         </Card>
         <Card className="p-7">
-          <CardTitle>Upcoming Meetings</CardTitle>
-          <div className="mt-4 divide-y divide-line" role="status" aria-live="polite" aria-label="Upcoming meetings">
+          <CardTitle>Latest Kuppis</CardTitle>
+          <div className="mt-4 divide-y divide-line" role="status" aria-live="polite" aria-label="Latest Kuppis">
             {loading ? (
               <div className="space-y-3 py-2" aria-hidden="true">
                 <Skeleton className="h-4 w-3/4" />
@@ -134,14 +133,14 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <>
-                {meetings.length === 0 && <p className="py-6 text-sm text-muted">No upcoming meetings.</p>}
-                {meetings.map((m, i) => (
+                {kuppis.length === 0 && <p className="py-6 text-sm text-muted">No published Kuppis.</p>}
+                {kuppis.map((m, i) => (
                   <div key={m.id} className="py-3.5 first:pt-1">
                     <div className="flex items-start gap-3">
                       <span className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${DOTS[i % DOTS.length]}`} />
                       <p className="text-[15px] text-ink leading-snug">{m.title}</p>
                     </div>
-                    <p className="ml-[22px] mt-1 text-sm text-muted">{fmtDateTime(m.starts_at)} · {m.batchName}</p>
+                    <p className="ml-[22px] mt-1 text-sm text-muted">{m.module.code} · {m.batchName}</p>
                   </div>
                 ))}
               </>
@@ -198,7 +197,7 @@ export default function StudentDashboard() {
           </div>
           <div className="mt-5 space-y-4">
             <PrimaryButton onClick={() => navigate('/student/courses')}>Browse Courses</PrimaryButton>
-            <OutlineButton onClick={() => navigate('/student/meetings')}>View Meetings</OutlineButton>
+            <OutlineButton onClick={() => navigate('/student/meetings')}>View Kuppis</OutlineButton>
             <OutlineButton onClick={() => navigate('/student/communication')}>Get Support</OutlineButton>
           </div>
         </Card>

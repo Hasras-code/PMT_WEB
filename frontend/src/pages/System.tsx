@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { CheckCircleIcon, XCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { api, basicAuthHeader } from '../api/client';
 import { useAppStore } from '../store/app';
+import { useAccess } from '../hooks/useRole';
 import { Card, CardTitle, Field, inputCls } from '../components/ui';
 
 export default function System() {
   const { currentBatchID } = useAppStore();
+  const access = useAccess();
+  const platformAdmin = access?.platform_roles.includes('PLATFORM_ADMIN') ?? false;
   const [live, setLive] = useState<boolean | null>(null);
   const [ready, setReady] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
@@ -134,14 +137,16 @@ export default function System() {
         </div>
       </Card>
 
-      <Card className="p-7">
-        <CardTitle>Backup &amp; recovery</CardTitle>
-        <p className="mt-2 text-[15px] text-muted leading-relaxed">
-          Database backups, file-store snapshots and restore procedures are handled at the infrastructure level. See{' '}
-          <code className="px-1.5 py-0.5 rounded bg-surface text-ink text-sm">docs/operations.md</code> in the project
-          repository for the backup schedule, retention policy and disaster-recovery runbook.
-        </p>
-      </Card>
+      {platformAdmin && (
+        <Card className="p-7">
+          <CardTitle>Backup &amp; recovery</CardTitle>
+          <p className="mt-2 text-[15px] text-muted leading-relaxed">
+            Database backups, file-store snapshots and restore procedures are handled at the infrastructure level. See{' '}
+            <code className="px-1.5 py-0.5 rounded bg-surface text-ink text-sm">docs/operations.md</code> in the project
+            repository for the backup schedule, retention policy and disaster-recovery runbook.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }

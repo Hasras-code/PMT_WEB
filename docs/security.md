@@ -8,10 +8,10 @@ All active members receive STUDENT. Additional columns below describe additive b
 
 | Role | Permissions |
 |---|---|
-| STUDENT | batch.view, membership.view, semester.view, module.view, announcement.view, resource.view, lesson.view, link.view, event.view, position.view, complaint.create, complaint.view_own, feedback.create, fund.view |
-| BATCH_REP | batch.manage, batch.profile.manage, membership.manage, role.assign, semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, lesson.manage, link.manage, event.manage, position.manage, feedback.view/manage, audit.view, fund.create/update/close, fund.transaction.create/reverse, fund.manager.assign/remove, fund.transfer.create/reverse, birthday_fund.manage, birthday_contribution.record |
-| CONTENT_MANAGER | announcement.create/update/delete/publish, resource.create/update/delete/publish, lesson.manage, link.manage, event.manage, position.manage, batch.profile.manage |
-| ACADEMIC_REP | semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, lesson.manage, link.manage |
+| STUDENT | batch.view, membership.view, semester.view, module.view, announcement.view, resource.view, kuppi.view, link.view, event.view, position.view, complaint.create, complaint.view_own, feedback.create, fund.view |
+| BATCH_REP | batch.manage, batch.profile.manage, membership.manage, role.assign, semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, kuppi.view/create/update/publish/archive, link.manage, event.manage, position.manage, feedback.view/manage, audit.view, fund.create/update/close, fund.transaction.create/reverse, fund.manager.assign/remove, fund.transfer.create/reverse, birthday_fund.manage, birthday_contribution.record |
+| CONTENT_MANAGER | announcement.create/update/delete/publish, resource.create/update/delete/publish, link.manage, event.manage, position.manage, batch.profile.manage |
+| ACADEMIC_REP | semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, kuppi.view/create/update/publish/archive, link.manage |
 | COMPLAINT_MANAGER | complaint.view_all/respond/resolve |
 | PLATFORM_ADMIN | batch.create, batch.archive, platform_user.manage, gallery.manage, platform_audit.view |
 

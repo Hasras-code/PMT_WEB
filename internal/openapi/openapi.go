@@ -18,7 +18,7 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/feedback"
 	"github.com/Hasras-code/PMT_WEB.git/internal/fund"
 	"github.com/Hasras-code/PMT_WEB.git/internal/gallery"
-	"github.com/Hasras-code/PMT_WEB.git/internal/lesson"
+	"github.com/Hasras-code/PMT_WEB.git/internal/kuppi"
 	"github.com/Hasras-code/PMT_WEB.git/internal/link"
 	"github.com/Hasras-code/PMT_WEB.git/internal/module"
 	"github.com/Hasras-code/PMT_WEB.git/internal/position"
@@ -228,8 +228,8 @@ func Request(method, path string) M {
 			return schema(reflect.TypeFor[resource.Update]())
 		}
 		return schema(reflect.TypeFor[resource.Input]())
-	case strings.Contains(path, "/lessons"):
-		return schema(reflect.TypeFor[lesson.Input]())
+	case strings.Contains(path, "/kuppis"):
+		return schema(reflect.TypeFor[kuppi.Input]())
 	case strings.Contains(path, "/links"):
 		return schema(reflect.TypeFor[link.Input]())
 	case strings.Contains(path, "/events"):
@@ -291,6 +291,15 @@ func Generate(r chi.Routes) (M, error) {
 				M{"name": "module_id", "in": "query", "schema": M{"type": "string", "format": "uuid"}},
 				M{"name": "type", "in": "query", "schema": M{"type": "string", "enum": []string{"LECTURE_NOTE", "PAST_PAPER", "ASSIGNMENT", "REFERENCE"}}},
 				M{"name": "query", "in": "query", "schema": M{"type": "string", "maxLength": 200}},
+			)
+		}
+		if method == "GET" && path == "/v1/batches/{batchID}/kuppis" {
+			params = append(params,
+				M{"name": "module_id", "in": "query", "schema": M{"type": "string", "format": "uuid"}},
+				M{"name": "search", "in": "query", "schema": M{"type": "string", "maxLength": 200}},
+				M{"name": "date_from", "in": "query", "schema": M{"type": "string", "format": "date-time"}},
+				M{"name": "date_to", "in": "query", "schema": M{"type": "string", "format": "date-time"}},
+				M{"name": "include_archived", "in": "query", "schema": M{"type": "boolean", "default": false}},
 			)
 		}
 		if method == "GET" && strings.HasSuffix(path, "/funds/{fundID}/transactions") {
@@ -430,8 +439,8 @@ func requiredFields(method, path string) []string {
 		return []string{"upload_id", "module_id", "type", "title"}
 	case strings.HasSuffix(path, "/versions") || strings.HasSuffix(path, "/attachments") || strings.HasSuffix(path, "/image"):
 		return []string{"upload_id"}
-	case strings.HasSuffix(path, "/lessons"):
-		return []string{"module_id", "title", "youtube_video_id"}
+	case strings.HasSuffix(path, "/kuppis"):
+		return []string{"module_id", "title", "youtube_url"}
 	case strings.HasSuffix(path, "/links"):
 		return []string{"title", "url"}
 	case strings.HasSuffix(path, "/events"):

@@ -98,14 +98,19 @@ export interface Module {
   updated_at: string;
 }
 
-export interface Lesson {
+export interface Kuppi {
   id: string;
   batch_id: string;
   module_id: string;
   title: string;
   description: string;
   youtube_video_id: string;
-  lesson_date: string | null;
+  recorded_at: string | null;
+  sort_order: number;
+  module: { id: string; code: string; name: string };
+  embed_url: string;
+  watch_url: string;
+  archived_at?: string | null;
   duration_seconds: number | null;
   status: Status;
   published_at: string | null;

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, toList, errMsg, uploadFile } from '../api/client';
 import toast from 'react-hot-toast';
-import type { Batch, BatchProfile, Semester, Module, Lesson, LinkItem, Member, Position } from '../types';
-import { useCan } from '../hooks/useRole';
+import type { Batch, BatchProfile, Semester, Module, Kuppi, LinkItem, Member, Position } from '../types';
+import { useAccess, useCan } from '../hooks/useRole';
 import { usePatchEditor } from '../hooks/usePatchEditor';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate, coverColor, initials, Tabs } from '../components/ui';
+import KuppiPlayer from '../components/KuppiPlayer';
 
-const TABS = ['Overview', 'Semesters', 'Modules', 'Lessons', 'Links', 'Committee'] as const;
+const TABS = ['Overview', 'Semesters', 'Modules', 'Kuppis', 'Links', 'Committee'] as const;
 
 export default function CourseDetail() {
   const { batchID = '' } = useParams();
@@ -42,7 +43,7 @@ export default function CourseDetail() {
       {tab === 'Overview' && <Overview batchID={batchID} batch={batch} onUpdate={setBatch} />}
       {tab === 'Semesters' && <Semesters batchID={batchID} />}
       {tab === 'Modules' && <ModulesTab batchID={batchID} />}
-      {tab === 'Lessons' && <LessonsTab batchID={batchID} />}
+      {tab === 'Kuppis' && <KuppisTab batchID={batchID} />}
       {tab === 'Links' && <LinksTab batchID={batchID} />}
       {tab === 'Committee' && <CommitteeTab batchID={batchID} />}
     </div>
@@ -318,16 +319,18 @@ function ModulesTab({ batchID }: { batchID: string }) {
   );
 }
 
-function LessonsTab({ batchID }: { batchID: string }) {
-  const [items, setItems] = useState<Lesson[]>([]);
-  const elevated = useCan('lesson.manage', batchID);
+function KuppisTab({ batchID }: { batchID: string }) {
+  const [items, setItems] = useState<Kuppi[]>([]);
+  const access = useAccess();
+  const membershipRoles = access?.memberships.find((membership) => membership.batch_id === batchID)?.roles || [];
+  const elevated = useCan('kuppi.create', batchID) || membershipRoles.some((role) => role === 'BATCH_REP' || role === 'ACADEMIC_REP') || access?.platform_roles.includes('PLATFORM_ADMIN') === true;
   const [modules, setModules] = useState<Module[]>([]);
-  const [form, setForm] = useState({ module_id: '', title: '', description: '', youtube_video_id: '', lesson_date: '', duration_seconds: '' });
+  const [form, setForm] = useState({ module_id: '', title: '', description: '', youtube_url: '', recorded_at: '', duration_seconds: '' });
   const [show, setShow] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(() => {
-    api.get(`/v1/batches/${batchID}/lessons`, { limit: 100 }).then((res) => setItems(toList<Lesson>(res.data))).catch(() => {});
+    api.get(`/v1/batches/${batchID}/kuppis`, { limit: 100 }).then((res) => setItems(toList<Kuppi>(res.data))).catch(() => {});
     api.get(`/v1/batches/${batchID}/modules`, { limit: 100 }).then((res) => setModules(toList<Module>(res.data))).catch(() => {});
   }, [batchID]);
   const editor = usePatchEditor(load);
@@ -338,13 +341,13 @@ function LessonsTab({ batchID }: { batchID: string }) {
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (creating) return;
-    const body: Record<string, unknown> = { module_id: form.module_id, title: form.title, description: form.description, youtube_video_id: form.youtube_video_id };
-    if (form.lesson_date) body.lesson_date = form.lesson_date;
+    const body: Record<string, unknown> = { module_id: form.module_id, title: form.title, description: form.description, youtube_url: form.youtube_url };
+    if (form.recorded_at) body.recorded_at = new Date(form.recorded_at).toISOString();
     if (form.duration_seconds) body.duration_seconds = Number(form.duration_seconds);
     setCreating(true);
     try {
-      await api.post(`/v1/batches/${batchID}/lessons`, body);
-      toast.success('Lesson created');
+      await api.post(`/v1/batches/${batchID}/kuppis`, body);
+      toast.success('Kuppi created');
       setShow(false);
       load();
     } catch (err) {
@@ -357,7 +360,7 @@ function LessonsTab({ batchID }: { batchID: string }) {
   return (
     <Card className="p-7">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ink">Recorded lessons</h2>
+        <h2 className="text-lg font-semibold text-ink">Kuppi recordings</h2>
         {elevated && (<button onClick={() => setShow(!show)} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">+ New</button>)}
       </div>
       {show && (
@@ -369,9 +372,9 @@ function LessonsTab({ batchID }: { batchID: string }) {
             </select>
           </Field>
           <Field label="Title"><input required className={inputCls} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
-          <Field label="YouTube video ID"><input required placeholder="dQw4w9WgXcQ" className={inputCls} value={form.youtube_video_id} onChange={(e) => setForm({ ...form, youtube_video_id: e.target.value })} /></Field>
+          <Field label="YouTube URL"><input required type="url" placeholder="https://youtu.be/..." className={inputCls} value={form.youtube_url} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} /></Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Date"><input type="date" className={inputCls} value={form.lesson_date} onChange={(e) => setForm({ ...form, lesson_date: e.target.value })} /></Field>
+            <Field label="Recorded at"><input type="datetime-local" className={inputCls} value={form.recorded_at} onChange={(e) => setForm({ ...form, recorded_at: e.target.value })} /></Field>
             <Field label="Duration (sec)"><input type="number" min={1} className={inputCls} value={form.duration_seconds} onChange={(e) => setForm({ ...form, duration_seconds: e.target.value })} /></Field>
           </div>
           <div className="col-span-2"><Field label="Description"><textarea rows={2} className={inputCls} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field></div>
@@ -379,21 +382,26 @@ function LessonsTab({ batchID }: { batchID: string }) {
         </form>
       )}
       <div className="mt-4 divide-y divide-line">
-        {items.length === 0 && <Empty message="No lessons yet." />}
+        {items.length === 0 && <Empty message="No Kuppis yet." />}
         {items.map((l) => (
-          <div key={l.id} className="py-3.5 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-medium text-ink">{l.title}</p>
-              <p className="text-sm text-muted">
-                {fmtDate(l.lesson_date)}{l.duration_seconds ? ` · ${Math.round(l.duration_seconds / 60)} min` : ''} ·{' '}
-                <a className="text-primary hover:underline" href={`https://www.youtube.com/watch?v=${l.youtube_video_id}`} target="_blank" rel="noreferrer">Watch</a>
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge tone={statusTone(l.status)}>{l.status}</Badge>
-              {elevated && <button onClick={() => editor.open('Edit lesson', `/v1/batches/${batchID}/lessons/${l.id}`, [{ key: 'title', label: 'Lesson title', value: l.title, required: true }, { key: 'description', label: 'Description', value: l.description || '', multiline: true }, { key: 'youtube_video_id', label: 'YouTube video ID', value: l.youtube_video_id, required: true }])} className="text-xs text-primary hover:underline">Edit</button>}
-              {elevated && l.status !== 'PUBLISHED' && <button onClick={() => api.post(`/v1/batches/${batchID}/lessons/${l.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-primary font-medium hover:underline">Publish</button>}
-              {elevated && (<button onClick={() => api.delete(`/v1/batches/${batchID}/lessons/${l.id}`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
+          <div key={l.id} className="py-5 grid grid-cols-1 xl:grid-cols-[minmax(0,320px)_1fr] items-start gap-5">
+            <KuppiPlayer embedUrl={l.embed_url} title={l.title} />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium text-ink">{l.title}</p>
+                  <p className="mt-1 text-sm text-muted">
+                    {fmtDate(l.recorded_at)}{l.duration_seconds ? ` · ${Math.round(l.duration_seconds / 60)} min` : ''} ·{' '}
+                    <a className="text-primary hover:underline" href={l.watch_url} target="_blank" rel="noreferrer">Watch</a>
+                  </p>
+                </div>
+                <Badge tone={statusTone(l.status)}>{l.status}</Badge>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+                {elevated && <button onClick={() => editor.open('Edit Kuppi', `/v1/batches/${batchID}/kuppis/${l.id}`, [{ key: 'title', label: 'Kuppi title', value: l.title, required: true }, { key: 'description', label: 'Description', value: l.description || '', multiline: true }, { key: 'youtube_url', label: 'YouTube URL', value: l.watch_url, required: true }])} className="text-xs text-primary hover:underline">Edit</button>}
+                {elevated && l.status === 'DRAFT' && <button onClick={() => api.post(`/v1/batches/${batchID}/kuppis/${l.id}/publish`).then(() => { toast.success('Published'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-primary font-medium hover:underline">Publish</button>}
+                {elevated && l.status !== 'ARCHIVED' && (<button onClick={() => api.post(`/v1/batches/${batchID}/kuppis/${l.id}/archive`).then(() => { toast.success('Archived'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')))} className="text-xs text-red-600 hover:underline">Archive</button>)}
+              </div>
             </div>
           </div>
         ))}

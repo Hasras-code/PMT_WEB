@@ -14455,10 +14455,10 @@
         ]
       }
     },
-    "/v1/batches/{batchID}/lessons": {
+    "/v1/batches/{batchID}/kuppis": {
       "get": {
-        "description": "Manage lessons.",
-        "operationId": "get_v1_batches__batchID__lessons",
+        "description": "Manage kuppis.",
+        "operationId": "get_v1_batches__batchID__kuppis",
         "parameters": [
           {
             "in": "path",
@@ -14487,6 +14487,46 @@
               "maximum": 100000,
               "minimum": 0,
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "module_id",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_archived",
+            "schema": {
+              "default": false,
+              "type": "boolean"
             }
           }
         ],
@@ -14600,14 +14640,14 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Get lessons",
+        "summary": "Get kuppis",
         "tags": [
           "Batches"
         ]
       },
       "post": {
-        "description": "Manage lessons.",
-        "operationId": "post_v1_batches__batchID__lessons",
+        "description": "Manage kuppis.",
+        "operationId": "post_v1_batches__batchID__kuppis",
         "parameters": [
           {
             "in": "path",
@@ -14631,23 +14671,26 @@
                   "duration_seconds": {
                     "type": "integer"
                   },
-                  "lesson_date": {
-                    "type": "string"
-                  },
                   "module_id": {
                     "type": "string"
+                  },
+                  "recorded_at": {
+                    "type": "string"
+                  },
+                  "sort_order": {
+                    "type": "integer"
                   },
                   "title": {
                     "type": "string"
                   },
-                  "youtube_video_id": {
+                  "youtube_url": {
                     "type": "string"
                   }
                 },
                 "required": [
                   "module_id",
                   "title",
-                  "youtube_video_id"
+                  "youtube_url"
                 ],
                 "type": "object"
               }
@@ -14768,144 +14811,16 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Post lessons",
+        "summary": "Post kuppis",
         "tags": [
           "Batches"
         ]
       }
     },
-    "/v1/batches/{batchID}/lessons/{lessonID}": {
-      "delete": {
-        "description": "Manage lessonID.",
-        "operationId": "delete_v1_batches__batchID__lessons__lessonID_",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "batchID",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "lessonID",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Success"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Request Entity Too Large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Too Many Requests"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Internal Server Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Delete lessonID",
-        "tags": [
-          "Batches"
-        ]
-      },
+    "/v1/batches/{batchID}/kuppis/{kuppiID}": {
       "get": {
-        "description": "Manage lessonID.",
-        "operationId": "get_v1_batches__batchID__lessons__lessonID_",
+        "description": "Manage kuppiID.",
+        "operationId": "get_v1_batches__batchID__kuppis__kuppiID_",
         "parameters": [
           {
             "in": "path",
@@ -14918,7 +14833,7 @@
           },
           {
             "in": "path",
-            "name": "lessonID",
+            "name": "kuppiID",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -15033,14 +14948,14 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Get lessonID",
+        "summary": "Get kuppiID",
         "tags": [
           "Batches"
         ]
       },
       "patch": {
-        "description": "Manage lessonID.",
-        "operationId": "patch_v1_batches__batchID__lessons__lessonID_",
+        "description": "Manage kuppiID.",
+        "operationId": "patch_v1_batches__batchID__kuppis__kuppiID_",
         "parameters": [
           {
             "in": "path",
@@ -15053,7 +14968,7 @@
           },
           {
             "in": "path",
-            "name": "lessonID",
+            "name": "kuppiID",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -15073,16 +14988,19 @@
                   "duration_seconds": {
                     "type": "integer"
                   },
-                  "lesson_date": {
-                    "type": "string"
-                  },
                   "module_id": {
                     "type": "string"
+                  },
+                  "recorded_at": {
+                    "type": "string"
+                  },
+                  "sort_order": {
+                    "type": "integer"
                   },
                   "title": {
                     "type": "string"
                   },
-                  "youtube_video_id": {
+                  "youtube_url": {
                     "type": "string"
                   }
                 },
@@ -15192,16 +15110,16 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Patch lessonID",
+        "summary": "Patch kuppiID",
         "tags": [
           "Batches"
         ]
       }
     },
-    "/v1/batches/{batchID}/lessons/{lessonID}/publish": {
+    "/v1/batches/{batchID}/kuppis/{kuppiID}/archive": {
       "post": {
-        "description": "Manage publish.",
-        "operationId": "post_v1_batches__batchID__lessons__lessonID__publish",
+        "description": "Manage archive.",
+        "operationId": "post_v1_batches__batchID__kuppis__kuppiID__archive",
         "parameters": [
           {
             "in": "path",
@@ -15214,7 +15132,137 @@
           },
           {
             "in": "path",
-            "name": "lessonID",
+            "name": "kuppiID",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Post archive",
+        "tags": [
+          "Batches"
+        ]
+      }
+    },
+    "/v1/batches/{batchID}/kuppis/{kuppiID}/publish": {
+      "post": {
+        "description": "Manage publish.",
+        "operationId": "post_v1_batches__batchID__kuppis__kuppiID__publish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batchID",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kuppiID",
             "required": true,
             "schema": {
               "format": "uuid",

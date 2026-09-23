@@ -26,7 +26,7 @@ const NAV = [
   { to: '/admin/assessments', label: 'Resources', Icon: ShieldCheckIcon, title: 'Resource Library' },
   { to: '/admin/funds', label: 'Fund Management', Icon: BanknotesIcon, title: 'Fund Management' },
   { to: '/admin/communication', label: 'Communication', Icon: ChatBubbleLeftIcon, title: 'Communication' },
-  { to: '/admin/meetings', label: 'Video Meetings', Icon: VideoCameraIcon, title: 'Video Meetings' },
+  { to: '/admin/meetings', label: 'Kuppis', Icon: VideoCameraIcon, title: 'Kuppis' },
   { to: '/admin/monitoring', label: 'Monitoring', Icon: PresentationChartLineIcon, title: 'Monitoring' },
   { to: '/admin/system', label: 'Backup & Recovery', Icon: CircleStackIcon, title: 'Backup & Recovery' },
   { to: '/admin/administration', label: 'Administration', Icon: Cog6ToothIcon, title: 'Administration' },
@@ -57,13 +57,15 @@ export default function Layout() {
   }, [sidebarOpen]);
 
   const has = (permission: string) => Boolean(access?.platform_permissions.includes(permission) || access?.memberships.some((membership) => membership.permissions.includes(permission)));
+  const platformAdmin = access?.platform_roles.includes('PLATFORM_ADMIN') ?? false;
   const visibleNav = NAV.filter((item) => {
+    if (item.to.endsWith('/system')) return platformAdmin;
     if (item.to.endsWith('/users')) return has('membership.manage') || has('role.assign') || has('platform_user.manage');
     if (item.to.endsWith('/assessments')) return has('resource.create');
     if (item.to.endsWith('/funds')) return has('fund.view');
     if (item.to.endsWith('/communication')) return has('announcement.create') || has('feedback.view') || has('complaint.view_all');
     if (item.to.endsWith('/meetings')) return has('event.manage');
-    if (item.to.endsWith('/monitoring')) return has('audit.view') || has('platform_audit.view');
+    if (item.to.endsWith('/monitoring')) return platformAdmin;
     if (item.to.endsWith('/administration')) return has('platform_user.manage') || has('gallery.manage');
     return true;
   });

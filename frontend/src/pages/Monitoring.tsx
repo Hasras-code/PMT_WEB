@@ -1,25 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, toList, errMsg } from '../api/client';
-import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { AuditLog } from '../types';
 import { Card, Badge, Empty, fmtDateTime } from '../components/ui';
-import { useCan } from '../hooks/useRole';
+import { useAccess, useCan } from '../hooks/useRole';
 
 export default function Monitoring() {
-  const { currentBatchID, currentBatch } = useAppStore();
+  const access = useAccess();
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [scope, setScope] = useState<'cohort' | 'platform'>('cohort');
   const [loading, setLoading] = useState(false);
-  const canBatchAudit = useCan('audit.view', currentBatchID);
   const canPlatformAudit = useCan('platform_audit.view');
+  const platformAdmin = access?.platform_roles.includes('PLATFORM_ADMIN') ?? false;
 
   const load = useCallback(async () => {
-    if ((scope === 'cohort' && !canBatchAudit) || (scope === 'platform' && !canPlatformAudit)) return;
+    if (!platformAdmin || !canPlatformAudit) return;
     setLoading(true);
     try {
-      const url = scope === 'cohort' && currentBatchID ? `/v1/batches/${currentBatchID}/audit-logs` : '/v1/admin/audit-logs';
-      const res = await api.get(url, { limit: 100 });
+      const res = await api.get('/v1/admin/audit-logs', { limit: 100 });
       setLogs(toList<AuditLog>(res.data));
     } catch (err) {
       toast.error(errMsg(err, 'Could not load system logs'));
@@ -27,34 +24,20 @@ export default function Monitoring() {
     } finally {
       setLoading(false);
     }
-  }, [canBatchAudit, canPlatformAudit, currentBatchID, scope]);
-
-  useEffect(() => {
-    if (!canBatchAudit && canPlatformAudit) setScope('platform');
-  }, [canBatchAudit, canPlatformAudit]);
+  }, [canPlatformAudit, platformAdmin]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  if (canBatchAudit === false && canPlatformAudit === false) return <Card className="p-8"><Empty message="You do not have permission to view audit logs." /></Card>;
+  if (!platformAdmin || canPlatformAudit === false) return <Card className="p-8"><Empty message="You do not have permission to view audit logs." /></Card>;
 
   return (
     <Card className="p-7">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-ink">System Logs</h2>
-          <p className="text-sm text-muted mt-0.5">
-            {scope === 'cohort' ? `Audit trail for ${currentBatch()?.name || 'this cohort'}` : 'Platform-wide audit trail'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {canBatchAudit && <button onClick={() => setScope('cohort')} className={`px-4 py-2 rounded-xl text-sm font-medium ${scope === 'cohort' ? 'bg-primary text-white' : 'border border-line text-muted'}`}>
-            Cohort
-          </button>}
-          {canPlatformAudit && <button onClick={() => setScope('platform')} className={`px-4 py-2 rounded-xl text-sm font-medium ${scope === 'platform' ? 'bg-primary text-white' : 'border border-line text-muted'}`}>
-            Platform
-          </button>}
+          <p className="text-sm text-muted mt-0.5">Platform-wide audit trail</p>
         </div>
       </div>
       {loading ? (

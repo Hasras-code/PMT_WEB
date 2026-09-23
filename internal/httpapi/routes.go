@@ -81,7 +81,7 @@ func (a *API) SemesterRoutes(r chi.Router)      { a.semesterRoutes(r) }
 func (a *API) ModuleRoutes(r chi.Router)        { a.moduleRoutes(r) }
 func (a *API) AnnouncementRoutes(r chi.Router)  { a.announcementRoutes(r) }
 func (a *API) ResourceRoutes(r chi.Router)      { a.resourceRoutes(r) }
-func (a *API) LessonRoutes(r chi.Router)        { a.lessonRoutes(r) }
+func (a *API) KuppiRoutes(r chi.Router)         { a.kuppiRoutes(r) }
 func (a *API) LinkRoutes(r chi.Router)          { a.linkRoutes(r) }
 func (a *API) EventRoutes(r chi.Router)         { a.eventRoutes(r) }
 func (a *API) EventImageRoutes(r chi.Router)    { a.eventImageRoutes(r) }

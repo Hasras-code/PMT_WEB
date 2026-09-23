@@ -5,17 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Hasras-code/PMT_WEB.git/internal/auth"
-	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
-	"github.com/Hasras-code/PMT_WEB.git/internal/fund"
-	"github.com/Hasras-code/PMT_WEB.git/internal/membership"
-	"github.com/Hasras-code/PMT_WEB.git/internal/notification"
-	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
-	"github.com/Hasras-code/PMT_WEB.git/internal/platform/storage"
-	appstore "github.com/Hasras-code/PMT_WEB.git/internal/store"
-	"github.com/Hasras-code/PMT_WEB.git/internal/upload"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"image"
 	"image/png"
 	"io"
@@ -29,6 +18,18 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/Hasras-code/PMT_WEB.git/internal/auth"
+	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
+	"github.com/Hasras-code/PMT_WEB.git/internal/fund"
+	"github.com/Hasras-code/PMT_WEB.git/internal/membership"
+	"github.com/Hasras-code/PMT_WEB.git/internal/notification"
+	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
+	"github.com/Hasras-code/PMT_WEB.git/internal/platform/storage"
+	appstore "github.com/Hasras-code/PMT_WEB.git/internal/store"
+	"github.com/Hasras-code/PMT_WEB.git/internal/upload"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type mailbox struct {
@@ -467,7 +468,7 @@ func TestTenantRolesAndContent(t *testing.T) {
 	for _, x := range []struct {
 		path string
 		body map[string]any
-	}{{"lessons", map[string]any{"module_id": module, "title": "Lesson", "youtube_video_id": "dQw4w9WgXcQ"}}, {"links", map[string]any{"title": "Reference", "url": "https://example.com"}}, {"events", map[string]any{"title": "Orientation", "starts_at": "2026-09-20T10:00:00Z", "visibility": "PUBLIC"}}} {
+	}{{"kuppis", map[string]any{"module_id": module, "title": "Kuppi", "youtube_url": "https://youtu.be/dQw4w9WgXcQ"}}, {"links", map[string]any{"title": "Reference", "url": "https://example.com"}}, {"events", map[string]any{"title": "Orientation", "starts_at": "2026-09-20T10:00:00Z", "visibility": "PUBLIC"}}} {
 		id := idOf(t, f.request("POST", base+"/"+x.path, repToken, x.body, 201))
 		f.request("GET", base+"/"+x.path+"/"+id, repToken, nil, 200)
 		f.request("POST", base+"/"+x.path+"/"+id+"/publish", repToken, nil, 204)
@@ -551,6 +552,53 @@ func TestResourceLibraryPermissionsAndFilters(t *testing.T) {
 	batches := f.request("GET", "/v1/batches", platformToken, nil, 200)
 	if !bytes.Contains(batches, []byte(batchID)) {
 		t.Fatalf("platform admin cannot select managed cohort: %s", batches)
+	}
+}
+
+func TestKuppiLifecycleVisibilityAndIsolation(t *testing.T) {
+	f := setup(t)
+	platformID, _, _ := f.newUser("KUPPI-PLATFORM")
+	repID, repToken, _ := f.newUser("KUPPI-REP")
+	academicID, academicToken, _ := f.newUser("KUPPI-ACADEMIC")
+	studentID, studentToken, _ := f.newUser("KUPPI-STUDENT")
+	otherID, otherToken, _ := f.newUser("KUPPI-OTHER")
+	f.sql(`INSERT INTO user_platform_roles(user_id,role_id,scope,assigned_by) SELECT $1,id,'PLATFORM',NULL FROM roles WHERE code='PLATFORM_ADMIN'`, platformID)
+	batchID := f.newBatch(platformID, "kuppi-lifecycle")
+	otherBatchID := f.newBatch(platformID, "kuppi-other")
+	f.member(platformID, batchID, repID, "BATCH_REP")
+	f.member(platformID, batchID, academicID, "ACADEMIC_REP")
+	f.member(platformID, batchID, studentID, "")
+	f.member(platformID, otherBatchID, otherID, "BATCH_REP")
+	base := "/v1/batches/" + batchID
+	semesterID := idOf(t, f.request("POST", base+"/semesters", repToken, map[string]any{"semester_number": 1, "name": "Semester 1", "academic_year": "2026"}, 201))
+	moduleID := idOf(t, f.request("POST", base+"/modules", repToken, map[string]any{"semester_id": semesterID, "module_code": "KUP101", "name": "Kuppi Module"}, 201))
+
+	f.request("POST", base+"/kuppis", studentToken, map[string]any{"module_id": moduleID, "title": "No", "youtube_url": "https://youtu.be/abcdefghijk"}, 403)
+	f.request("POST", base+"/kuppis", repToken, map[string]any{"module_id": moduleID, "title": "No", "youtube_url": "https://example.com/video/abcdefghijk"}, 422)
+	kuppiID := idOf(t, f.request("POST", base+"/kuppis", repToken, map[string]any{"module_id": moduleID, "title": "Algebra Kuppi", "description": "Revision", "youtube_url": "https://youtu.be/abcdefghijk", "sort_order": 4}, 201))
+	f.request("POST", base+"/kuppis", repToken, map[string]any{"module_id": moduleID, "title": "Duplicate", "youtube_url": "https://www.youtube.com/watch?v=abcdefghijk"}, 409)
+	studentDraft := f.request("GET", base+"/kuppis", studentToken, nil, 200)
+	if bytes.Contains(studentDraft, []byte(kuppiID)) {
+		t.Fatalf("student can view draft Kuppi: %s", studentDraft)
+	}
+	f.request("GET", "/v1/batches/"+otherBatchID+"/kuppis/"+kuppiID, otherToken, nil, 404)
+	f.request("POST", base+"/kuppis/"+kuppiID+"/publish", academicToken, nil, 204)
+	studentPublished := f.request("GET", base+"/kuppis", studentToken, nil, 200)
+	if !bytes.Contains(studentPublished, []byte(kuppiID)) {
+		t.Fatalf("student cannot view published Kuppi: %s", studentPublished)
+	}
+	var notificationCount int
+	if err := f.p.QueryRow(context.Background(), `SELECT count(*) FROM notification_events WHERE entity_id=$1 AND event_type='KUPPI_PUBLISHED'`, kuppiID).Scan(&notificationCount); err != nil || notificationCount != 1 {
+		t.Fatalf("publication notification count %d: %v", notificationCount, err)
+	}
+	f.request("POST", base+"/kuppis/"+kuppiID+"/archive", repToken, nil, 204)
+	studentArchived := f.request("GET", base+"/kuppis", studentToken, nil, 200)
+	if bytes.Contains(studentArchived, []byte(kuppiID)) {
+		t.Fatalf("student can view archived Kuppi: %s", studentArchived)
+	}
+	managerArchived := f.request("GET", base+"/kuppis?include_archived=true", repToken, nil, 200)
+	if !bytes.Contains(managerArchived, []byte(kuppiID)) {
+		t.Fatalf("manager cannot view archived Kuppi: %s", managerArchived)
 	}
 }
 

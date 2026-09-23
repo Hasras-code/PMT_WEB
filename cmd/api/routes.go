@@ -50,7 +50,7 @@ func (a *app) mount() *chi.Mux {
 				api.ModuleRoutes(r)
 				api.AnnouncementRoutes(r)
 				api.ResourceRoutes(r)
-				api.LessonRoutes(r)
+				api.KuppiRoutes(r)
 				api.LinkRoutes(r)
 				api.EventRoutes(r)
 				api.EventImageRoutes(r)
