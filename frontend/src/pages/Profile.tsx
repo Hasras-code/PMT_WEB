@@ -59,7 +59,7 @@ export default function Profile() {
       clearSession();
       setUser(null);
       toast.success('Signed out everywhere');
-      navigate('/login');
+      navigate('/');
     }).catch((e) => toast.error(errMsg(e, 'Failed')));
 
   if (!user) return <p className="text-sm text-muted" role="status">Loading…</p>;
