@@ -13,6 +13,7 @@ import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { Module, Resource, ResourceType } from '../types';
 import { useAccess, useCan } from '../hooks/useRole';
+import { usePatchEditor } from '../hooks/usePatchEditor';
 import { Badge, Card, CardTitle, Empty, Field, inputCls, statusTone, fmtDate } from '../components/ui';
 
 const TYPES: { code: ResourceType; label: string; plural: string }[] = [
@@ -74,6 +75,7 @@ export default function Assessments() {
       setLoading(false);
     }
   }, [currentBatchID, moduleFilter, query, typeFilter]);
+  const editor = usePatchEditor(load, 'Resource updated');
 
   useEffect(() => {
     const timer = window.setTimeout(load, query ? 250 : 0);
@@ -207,18 +209,11 @@ export default function Assessments() {
     }
   };
 
-  const editResource = async (item: Resource) => {
-    const title = window.prompt('Resource title', item.title);
-    if (title === null || !title.trim()) return;
-    const description = window.prompt('Description', item.description || '');
-    if (description === null) return;
-    try {
-      await api.patch(`/v1/batches/${currentBatchID}/resources/${item.id}`, { title, description });
-      toast.success('Resource updated');
-      load();
-    } catch (err) {
-      toast.error(errMsg(err, 'Update failed'));
-    }
+  const editResource = (item: Resource) => {
+    editor.open('Edit resource', `/v1/batches/${currentBatchID}/resources/${item.id}`, [
+      { key: 'title', label: 'Resource title', value: item.title, required: true },
+      { key: 'description', label: 'Description', value: item.description || '', multiline: true },
+    ]);
   };
 
   const publish = (item: Resource) => api.post(`/v1/batches/${currentBatchID}/resources/${item.id}/publish`)
@@ -246,9 +241,9 @@ export default function Assessments() {
 
       <Card className="p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(180px,0.8fr)_minmax(180px,0.8fr)_minmax(240px,1.4fr)]">
-          <select className={inputCls} value={moduleFilter} onChange={(event) => setModuleFilter(event.target.value)}><option value="">All subjects</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.module_code} — {module.name}</option>)}</select>
-          <select className={inputCls} value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}><option value="">All types</option>{TYPES.map((type) => <option key={type.code} value={type.code}>{type.plural}</option>)}</select>
-          <div className="relative"><MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input className={`${inputCls} pl-11`} placeholder="Search title, description, or subject…" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+          <select aria-label="Filter by subject" className={inputCls} value={moduleFilter} onChange={(event) => setModuleFilter(event.target.value)}><option value="">All subjects</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.module_code} — {module.name}</option>)}</select>
+          <select aria-label="Filter by resource type" className={inputCls} value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}><option value="">All types</option>{TYPES.map((type) => <option key={type.code} value={type.code}>{type.plural}</option>)}</select>
+          <div className="relative"><MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" /><input aria-label="Search resources" className={`${inputCls} pl-11`} placeholder="Search title, description, or subject…" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
           <button onClick={() => setTypeFilter('')} className={`rounded-lg px-3.5 py-2 text-sm font-medium ${!typeFilter ? 'bg-primary text-white' : 'bg-surface text-muted hover:text-ink'}`}>All Resources</button>
@@ -267,8 +262,8 @@ export default function Assessments() {
             <div className="sm:col-span-2"><Field label="Description"><textarea rows={3} className={inputCls} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field></div>
             <Field label="Academic year (optional)"><input className={inputCls} value={form.academic_year} onChange={(event) => setForm({ ...form, academic_year: event.target.value })} /></Field>
             <Field label="Exam type (optional)"><input className={inputCls} value={form.exam_type} onChange={(event) => setForm({ ...form, exam_type: event.target.value })} /></Field>
-            <div className="sm:col-span-2"><Field label="PDF file (maximum 50 MB)"><input required type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} className="block w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink" /></Field></div>
-            <div className="sm:col-span-2 flex justify-end gap-3"><button type="button" onClick={() => setShowUpload(false)} className="rounded-xl border border-line bg-white px-5 py-2.5 text-sm font-medium text-ink hover:bg-surface">Cancel</button><button disabled={busy} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50">{busy ? 'Uploading…' : 'Upload resource'}</button></div>
+            <div className="sm:col-span-2"><Field label="PDF file (maximum 50 MB)"><input required type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} className="block w-full rounded-xl border border-line bg-slate-950/80 px-3.5 py-2.5 text-sm text-ink" /></Field></div>
+            <div className="sm:col-span-2 flex justify-end gap-3"><button type="button" onClick={() => setShowUpload(false)} className="rounded-xl border border-line bg-charcoal-card px-5 py-2.5 text-sm font-medium text-ink hover:bg-surface">Cancel</button><button disabled={busy} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-50">{busy ? 'Uploading…' : 'Upload resource'}</button></div>
           </form>
         </Card>
       )}
@@ -279,26 +274,27 @@ export default function Assessments() {
           <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
             {group.items.map((item) => (
               <Card key={item.id} className="overflow-hidden">
-                <div className="flex h-32 items-center justify-center border-b border-line bg-surface"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-primary shadow-sm"><DocumentTextIcon className="h-9 w-9" /></div></div>
+                <div className="flex h-32 items-center justify-center border-b border-line bg-surface"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-charcoal-card text-primary shadow-sm" aria-hidden="true"><DocumentTextIcon className="h-9 w-9" /></div></div>
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate font-semibold text-ink">{item.title}</h3><p className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-muted">{item.description || 'No description provided.'}</p></div>{canUpdate && <Badge tone={statusTone(item.status)}>{item.status}</Badge>}</div>
                   <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted"><span className="rounded-md bg-primary-light px-2 py-1 font-medium text-primary">{typeLabel(item.type)}</span><span>{fmtSize(item.size_bytes)}</span><span>v{item.version_number}</span><span>{fmtDate(item.created_at)}</span></div>
                   <div className="mt-5 flex items-center gap-1 border-t border-line pt-4">
-                    <button onClick={() => download(item)} className="rounded-lg p-2 text-primary hover:bg-primary-light" title="Download"><ArrowDownTrayIcon className="h-5 w-5" /></button>
-                    <button onClick={() => toggleBookmark(item)} className={`rounded-lg p-2 hover:bg-primary-light ${saved.has(item.id) ? 'text-primary' : 'text-muted hover:text-primary'}`} title={saved.has(item.id) ? 'Remove bookmark' : 'Bookmark'}><BookmarkIcon className="h-5 w-5" /></button>
-                    <button onClick={() => toggleVersions(item)} className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted hover:bg-surface hover:text-ink">Versions</button><div className="flex-1" />
-                    {canUpdate && <label className="cursor-pointer rounded-lg p-2 text-muted hover:bg-primary-light hover:text-primary" title="Upload new version"><CloudArrowUpIcon className="h-5 w-5" /><input type="file" accept="application/pdf,.pdf" disabled={busy} className="hidden" onChange={(event) => addVersion(item.id, event.target.files?.[0])} /></label>}
-                    {canUpdate && <button onClick={() => editResource(item)} className="rounded-lg p-2 text-muted hover:bg-primary-light hover:text-primary" title="Edit"><PencilSquareIcon className="h-5 w-5" /></button>}
+                    <button onClick={() => download(item)} className="rounded-lg p-2 text-primary hover:bg-primary-light" title="Download" aria-label={`Download ${item.title}`}><ArrowDownTrayIcon className="h-5 w-5" aria-hidden="true" /></button>
+                    <button onClick={() => toggleBookmark(item)} className={`rounded-lg p-2 hover:bg-primary-light ${saved.has(item.id) ? 'text-primary' : 'text-muted hover:text-primary'}`} title={saved.has(item.id) ? 'Remove bookmark' : 'Bookmark'} aria-label={saved.has(item.id) ? `Remove bookmark for ${item.title}` : `Bookmark ${item.title}`} aria-pressed={saved.has(item.id)}><BookmarkIcon className="h-5 w-5" aria-hidden="true" /></button>
+                    <button onClick={() => toggleVersions(item)} aria-expanded={!!versions[item.id]} className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted hover:bg-surface hover:text-ink">Versions</button><div className="flex-1" />
+                    {canUpdate && <label className="cursor-pointer rounded-lg p-2 text-muted hover:bg-primary-light hover:text-primary" title="Upload new version"><span className="sr-only">Upload new version of {item.title}</span><CloudArrowUpIcon className="h-5 w-5" aria-hidden="true" /><input type="file" accept="application/pdf,.pdf" disabled={busy} className="hidden" onChange={(event) => addVersion(item.id, event.target.files?.[0])} /></label>}
+                    {canUpdate && <button onClick={() => editResource(item)} className="rounded-lg p-2 text-muted hover:bg-primary-light hover:text-primary" title="Edit" aria-label={`Edit ${item.title}`}><PencilSquareIcon className="h-5 w-5" aria-hidden="true" /></button>}
                     {canCreate && item.status !== 'PUBLISHED' && <button onClick={() => publish(item)} className="rounded-lg px-2 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50">Publish</button>}
-                    {canCreate && <button onClick={() => archive(item)} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600" title="Archive"><TrashIcon className="h-5 w-5" /></button>}
+                    {canCreate && <button onClick={() => archive(item)} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600" title="Archive" aria-label={`Archive ${item.title}`}><TrashIcon className="h-5 w-5" aria-hidden="true" /></button>}
                   </div>
-                  {versions[item.id] && <div className="mt-4 space-y-2 rounded-xl bg-surface p-3 text-xs">{versions[item.id].map((value) => { const version = value as Record<string, unknown>; return <div key={String(version.id)} className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-0 last:pb-0"><span className="truncate text-ink">v{String(version.version_number)} · {String(version.file_name)}</span><button onClick={() => downloadVersion(item.id, String(version.id))} className="font-medium text-primary hover:underline">Download</button></div>; })}</div>}
+                  {versions[item.id] && <div className="mt-4 space-y-2 rounded-xl bg-surface p-3 text-xs">{(versions[item.id] ?? []).map((value) => { const version = value as Record<string, unknown>; return <div key={String(version.id)} className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-0 last:pb-0"><span className="truncate text-ink">v{String(version.version_number)} · {String(version.file_name)}</span><button onClick={() => downloadVersion(item.id, String(version.id))} className="font-medium text-primary hover:underline">Download</button></div>; })}</div>}
                 </div>
               </Card>
             ))}
           </div>
         </section>
       ))}
+      {editor.dialog}
     </div>
   );
 }

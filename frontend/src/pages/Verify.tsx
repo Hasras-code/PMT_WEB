@@ -46,7 +46,7 @@ export default function Verify() {
         <p className="mt-1 text-sm text-muted">Paste the one-time token from your email.</p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <Field label="Verification token">
-            <input required placeholder="Token from email" className={inputCls} value={token} onChange={(e) => setToken(e.target.value)} />
+            <input required autoComplete="one-time-code" placeholder="Token from email" className={inputCls} value={token} onChange={(e) => setToken(e.target.value)} />
           </Field>
           <PrimaryButton type="submit" disabled={loading}>
             {loading ? 'Verifying…' : 'Verify email'}
@@ -54,7 +54,7 @@ export default function Verify() {
         </form>
         <div className="mt-6 pt-6 border-t border-line space-y-3">
           <Field label="Need another email?">
-            <input type="email" placeholder="Your registration email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="email" autoComplete="email" placeholder="Your registration email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <button type="button" disabled={loading || !email} onClick={resend} className="text-sm text-primary font-medium hover:underline disabled:opacity-50">
             Resend verification email

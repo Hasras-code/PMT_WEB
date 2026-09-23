@@ -27,12 +27,12 @@ export default function PublicBatch() {
     api.get(`/v1/public/batches/${slug}/positions`).then((res) => setPositions(toList(res.data))).catch(() => {});
   }, [slug]);
 
-  if (!batch) return <p className="text-sm text-muted">Loading…</p>;
+  if (!batch) return <p className="text-sm text-muted" role="status">Loading…</p>;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="bg-primary rounded-2xl px-8 py-9">
-        {batch.hero_image_url && <img src={batch.hero_image_url} alt="" className="mb-6 w-full h-56 rounded-xl object-cover" />}
+        {batch.hero_image_url && <img src={batch.hero_image_url} alt={`${batch.name} cover image`} className="mb-6 w-full h-56 rounded-xl object-cover" loading="lazy" decoding="async" />}
         <h1 className="text-[26px] font-bold text-white">{batch.name}</h1>
         <p className="mt-2 text-white/85 text-[16px]">{batch.headline || batch.description}</p>
       </div>
@@ -47,7 +47,7 @@ export default function PublicBatch() {
           <div className="mt-3 divide-y divide-line">
             {events.map((e) => (
               <div key={e.id} className="py-3 flex gap-4">
-                {e.cover_image_url && <img src={e.cover_image_url} alt="" className="w-20 h-16 rounded-lg object-cover" />}
+                {e.cover_image_url && <img src={e.cover_image_url} alt="" role="presentation" className="w-20 h-16 rounded-lg object-cover" loading="lazy" decoding="async" />}
                 <div>
                 <p className="font-medium text-ink">{e.title}</p>
                 <p className="text-sm text-muted">{fmtDateTime(e.starts_at)}{e.location ? ` · ${e.location}` : ''}</p>

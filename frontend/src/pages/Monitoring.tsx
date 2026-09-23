@@ -58,18 +58,19 @@ export default function Monitoring() {
         </div>
       </div>
       {loading ? (
-        <p className="py-6 text-sm text-muted">Loading…</p>
+          <p className="py-6 text-sm text-muted" role="status">Loading…</p>
       ) : logs.length === 0 ? (
         <Empty message="No log entries." />
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-[15px]">
+            <caption className="sr-only">Audit log entries</caption>
             <thead>
               <tr className="text-muted text-sm border-b border-line">
-                <th className="py-3 pr-4 font-medium">Time</th>
-                <th className="py-3 pr-4 font-medium">Action</th>
-                <th className="py-3 pr-4 font-medium">Entity</th>
-                <th className="py-3 pr-4 font-medium">Actor</th>
+                <th scope="col" className="py-3 pr-4 font-medium">Time</th>
+                <th scope="col" className="py-3 pr-4 font-medium">Action</th>
+                <th scope="col" className="py-3 pr-4 font-medium">Entity</th>
+                <th scope="col" className="py-3 pr-4 font-medium">Actor</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -77,8 +78,8 @@ export default function Monitoring() {
                 <tr key={l.id}>
                   <td className="py-3 pr-4 text-muted text-sm whitespace-nowrap">{fmtDateTime(l.created_at)}</td>
                   <td className="py-3 pr-4"><Badge tone="blue">{l.action.replaceAll('_', ' ')}</Badge></td>
-                  <td className="py-3 pr-4 text-sm text-ink font-mono">{l.entity_type}{l.entity_id ? ` · ${l.entity_id.slice(0, 8)}…` : ''}</td>
-                  <td className="py-3 text-sm text-muted font-mono">{l.actor_user_id ? l.actor_user_id.slice(0, 8) + '…' : '—'}</td>
+                  <td className="py-3 pr-4 text-sm text-ink font-mono" title={l.entity_id || undefined}>{l.entity_type}{l.entity_id ? ` · ${l.entity_id.slice(0, 8)}…` : ''}</td>
+                  <td className="py-3 text-sm text-muted font-mono" title={l.actor_user_id || undefined}>{l.actor_user_id ? l.actor_user_id.slice(0, 8) + '…' : '—'}</td>
                 </tr>
               ))}
             </tbody>

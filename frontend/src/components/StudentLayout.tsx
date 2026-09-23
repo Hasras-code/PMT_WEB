@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
-import { api, clearSession, toList } from '../api/client';
+import { api, toList } from '../api/client';
 import type { Batch, NotificationItem } from '../types';
 
 const NAV = [
@@ -31,12 +31,21 @@ const TITLES: Record<string, string> = {
 };
 
 export default function StudentLayout() {
-  const { user, setUser } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { batches, currentBatchID, setBatches, setCurrentBatchID } = useAppStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [sidebarOpen]);
 
   useEffect(() => {
     api.get('/v1/batches').then((res) => setBatches(res.data as Batch[])).catch(() => {});
@@ -48,7 +57,7 @@ export default function StudentLayout() {
   const activeTitle =
     NAV.find((n) => location.pathname === n.to || location.pathname.startsWith(n.to + '/'))?.title ||
     TITLES[location.pathname] ||
-    (location.pathname.startsWith('/student/public/') ? 'Public View' : 'Dashboard');
+    (location.pathname.startsWith('/public/') ? 'Public View' : 'Dashboard');
 
   const handleLogout = async () => {
     try {
@@ -57,14 +66,14 @@ export default function StudentLayout() {
     } catch {
       /* ignore */
     }
-    setUser(null);
-    clearSession();
+    logout();
     navigate('/login');
   };
 
   return (
     <div className="flex min-h-screen bg-obsidian-dark">
       <aside
+        id="student-sidebar"
         className={`fixed inset-y-0 left-0 z-50 w-[300px] bg-charcoal-card border-r border-line flex flex-col transform transition-transform duration-200 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
@@ -116,23 +125,23 @@ export default function StudentLayout() {
         </div>
       </aside>
 
-      {sidebarOpen && <div className="fixed inset-0 z-40 bg-ink/30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <button type="button" aria-label="Close menu" className="fixed inset-0 z-40 bg-ink/30 lg:hidden cursor-default" onClick={() => setSidebarOpen(false)} />}
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-[300px]">
         <header className="sticky top-0 z-30 bg-charcoal-card/90 backdrop-blur-md border-b border-line">
-          <div className="flex items-center justify-between px-8 h-[104px]">
+          <div className="flex items-center justify-between px-4 sm:px-8 h-[104px]">
             <div className="flex items-center gap-4">
-              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-ink" aria-label="Open menu">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-ink" aria-label="Open menu" aria-expanded={sidebarOpen} aria-controls="student-sidebar">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
               <h1 className="text-[22px] font-medium text-ink">{activeTitle}</h1>
             </div>
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/student/notifications')} className="relative p-2 text-ink hover:text-primary" aria-label="Notifications">
-                <BellIcon className="w-6 h-6" strokeWidth={1.7} />
-                {unread > 0 && <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500" />}
+              <button onClick={() => navigate('/student/notifications')} className="relative p-2 text-ink hover:text-primary" aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}>
+                <BellIcon className="w-6 h-6" strokeWidth={1.7} aria-hidden="true" />
+                {unread > 0 && <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500" aria-hidden="true" />}
               </button>
               <select
                 value={currentBatchID}
@@ -150,7 +159,7 @@ export default function StudentLayout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 px-8 py-8">
+        <main className="flex-1 px-4 sm:px-8 py-8">
           <div className="max-w-[1400px] mx-auto">
             <Outlet />
           </div>

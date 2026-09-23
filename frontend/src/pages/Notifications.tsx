@@ -6,6 +6,7 @@ import { Card, Badge, Empty, timeAgo } from '../components/ui';
 
 export default function Notifications() {
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const load = () => api.get('/v1/me/notifications', { limit: 100 }).then((res) => setItems(toList<NotificationItem>(res.data))).catch(() => {});
   useEffect(() => {
@@ -15,8 +16,11 @@ export default function Notifications() {
   const markRead = (id: string) =>
     api.patch(`/v1/me/notifications/${id}`).then(load).catch((e) => toast.error(errMsg(e, 'Failed')));
 
-  const readAll = () =>
-    api.post('/v1/me/notifications/read-all').then(() => { toast.success('All caught up'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed')));
+  const readAll = () => {
+    if (markingAll) return;
+    setMarkingAll(true);
+    api.post('/v1/me/notifications/read-all').then(() => { toast.success('All caught up'); load(); }).catch((e) => toast.error(errMsg(e, 'Failed'))).finally(() => setMarkingAll(false));
+  };
 
   const unread = items.filter((n) => !n.read_at).length;
 
@@ -25,7 +29,7 @@ export default function Notifications() {
       <div className="flex items-center justify-between">
         <p className="text-muted text-[15px]">{unread} unread notification{unread === 1 ? '' : 's'}</p>
         {unread > 0 && (
-          <button onClick={readAll} className="text-sm text-primary font-medium hover:underline">Mark all as read</button>
+          <button onClick={readAll} disabled={markingAll} className="text-sm text-primary font-medium hover:underline disabled:opacity-50">{markingAll ? 'Marking…' : 'Mark all as read'}</button>
         )}
       </div>
       {items.length === 0 ? (

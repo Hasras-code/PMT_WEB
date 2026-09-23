@@ -2,16 +2,18 @@ import axios from 'axios';
 import type { AxiosRequestConfig } from 'axios';
 import type { AuthTokens } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const RAW_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE = RAW_BASE.replace(/\/+$/, '');
 
 const client = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
+  timeout: 15000,
 });
 
 function tokenExpiresIn(token: string): number | null {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const payload = JSON.parse(atob((token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/')));
     return typeof payload.exp === 'number' ? payload.exp - Math.floor(Date.now() / 1000) : null;
   } catch {
     return null;
@@ -112,10 +114,11 @@ export const api = {
   delete: (url: string) => client.delete(url),
 };
 
-export async function uploadFile(uploadURL: string, file: File): Promise<void> {
+export async function uploadFile(uploadURL: string, file: File, init?: { signal?: AbortSignal }): Promise<void> {
   const response = await fetch(uploadURL, {
     method: 'PUT',
     body: file,
+    signal: init?.signal,
     headers: file.type ? { 'Content-Type': file.type } : undefined,
   });
   if (!response.ok) throw new Error(`File upload failed (${response.status})`);
@@ -133,8 +136,19 @@ export function toList<T>(payload: unknown): T[] {
 }
 
 export function errMsg(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { error?: { message?: string } } } };
-  return e?.response?.data?.error?.message || fallback;
+  const data = (err as { response?: { data?: unknown } } | null)?.response?.data;
+  if (data && typeof data === 'object') {
+    const o = data as { error?: { message?: unknown }; message?: unknown };
+    if (typeof o.error?.message === 'string' && o.error.message) return o.error.message;
+    if (typeof o.message === 'string' && o.message) return o.message;
+  }
+  // Network errors / timeouts / aborts have no response — surface them
+  // instead of the generic fallback so users see what actually happened.
+  if (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: unknown }).code === 'ECONNABORTED') {
+    return 'Request timed out. Check your connection and try again.';
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
 /** Basic-auth header for the protected /health endpoints (creds kept in session storage). */

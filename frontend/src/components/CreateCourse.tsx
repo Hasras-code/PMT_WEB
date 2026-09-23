@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { api, errMsg } from '../api/client';
 import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
@@ -9,6 +9,21 @@ export default function CreateCourse({ open, onClose }: { open: boolean; onClose
   const { setBatches } = useAppStore();
   const [form, setForm] = useState({ name: '', slug: '', entry_year: new Date().getFullYear(), graduation_year: '', description: '' });
   const [saving, setSaving] = useState(false);
+  const titleId = useId();
+  const firstInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    firstInputRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -36,15 +51,20 @@ export default function CreateCourse({ open, onClose }: { open: boolean; onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg bg-white rounded-2xl p-7" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-xl font-semibold text-ink">Create Course</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="w-full max-w-lg bg-charcoal-card border border-line rounded-2xl p-7 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 id={titleId} className="text-xl font-semibold text-ink">Create Course</h2>
         <p className="text-sm text-muted mt-1">Requires the platform batch.create permission.</p>
         <form onSubmit={submit} className="mt-5 space-y-4">
           <Field label="Name">
-            <input required className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input ref={firstInputRef} required className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Slug (lowercase, dashes)">
               <input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="cohort-2026" className={inputCls} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
             </Field>

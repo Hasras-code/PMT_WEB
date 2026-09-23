@@ -68,7 +68,7 @@ export default function System() {
         <CardTitle>Service status</CardTitle>
         <p className="mt-1 text-sm text-muted">Health endpoints require HTTP Basic Auth (see AUTH_BASIC_USER / AUTH_BASIC_PASS).</p>
         <form
-          className="mt-4 grid grid-cols-3 gap-4"
+          className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             sessionStorage.setItem('basic_user', basicUser);

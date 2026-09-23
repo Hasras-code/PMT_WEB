@@ -62,13 +62,13 @@ export default function Profile() {
       navigate('/login');
     }).catch((e) => toast.error(errMsg(e, 'Failed')));
 
-  if (!user) return <p className="text-sm text-muted">Loading…</p>;
+  if (!user) return <p className="text-sm text-muted" role="status">Loading…</p>;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <Card className="p-7">
         <div className="flex items-center gap-4">
-          {imageURL ? <img src={imageURL} alt="Profile" className="w-16 h-16 rounded-2xl object-cover" /> : (
+          {imageURL ? <img src={imageURL} alt="Your profile photo" className="w-16 h-16 rounded-2xl object-cover" /> : (
             <div className="w-16 h-16 rounded-2xl bg-primary-light text-primary text-2xl font-bold flex items-center justify-center">
               {user.display_name[0]?.toUpperCase()}
             </div>
@@ -84,7 +84,7 @@ export default function Profile() {
           <input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy} className="hidden" onChange={(event) => setProfileImage(event.target.files?.[0])} />
         </label>
         {editing ? (
-          <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="First name"><input className={inputCls} value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} /></Field>
             <Field label="Last name"><input className={inputCls} value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} /></Field>
             <Field label="Display name"><input className={inputCls} value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} /></Field>

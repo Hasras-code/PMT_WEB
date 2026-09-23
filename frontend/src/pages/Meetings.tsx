@@ -5,6 +5,7 @@ import { useAppStore } from '../store/app';
 import toast from 'react-hot-toast';
 import type { LmsEvent } from '../types';
 import { useCan } from '../hooks/useRole';
+import { usePatchEditor } from '../hooks/usePatchEditor';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDateTime } from '../components/ui';
 
 export default function Meetings() {
@@ -13,15 +14,18 @@ export default function Meetings() {
   const [show, setShow] = useState(false);
   const elevated = useCan('event.manage', currentBatchID);
   const [form, setForm] = useState({ title: '', description: '', location: '', starts_at: '', ends_at: '', visibility: 'MEMBERS_ONLY' });
+  const [creating, setCreating] = useState(false);
 
   const load = () => {
     if (!currentBatchID) return;
     api.get(`/v1/batches/${currentBatchID}/events`, { limit: 100 }).then((res) => setItems(toList<LmsEvent>(res.data))).catch(() => {});
   };
   useEffect(load, [currentBatchID]);
+  const editor = usePatchEditor(load, 'Meeting updated');
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
     const body: Record<string, unknown> = {
       title: form.title,
       starts_at: new Date(form.starts_at).toISOString(),
@@ -30,6 +34,7 @@ export default function Meetings() {
     if (form.description) body.description = form.description;
     if (form.location) body.location = form.location;
     if (form.ends_at) body.ends_at = new Date(form.ends_at).toISOString();
+    setCreating(true);
     try {
       await api.post(`/v1/batches/${currentBatchID}/events`, body);
       toast.success('Meeting scheduled');
@@ -38,6 +43,8 @@ export default function Meetings() {
       load();
     } catch (err) {
       toast.error(errMsg(err, 'Create failed'));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -53,18 +60,11 @@ export default function Meetings() {
     }
   };
 
-  const editEvent = async (item: LmsEvent) => {
-    const title = window.prompt('Meeting title', item.title);
-    if (title === null || !title.trim()) return;
-    const location = window.prompt('Location or meeting link', item.location || '');
-    if (location === null) return;
-    try {
-      await api.patch(`/v1/batches/${currentBatchID}/events/${item.id}`, { title, location });
-      toast.success('Meeting updated');
-      load();
-    } catch (err) {
-      toast.error(errMsg(err, 'Update failed'));
-    }
+  const editEvent = (item: LmsEvent) => {
+    editor.open('Edit meeting', `/v1/batches/${currentBatchID}/events/${item.id}`, [
+      { key: 'title', label: 'Meeting title', value: item.title, required: true },
+      { key: 'location', label: 'Location or meeting link', value: item.location || '' },
+    ]);
   };
 
   if (!currentBatchID) {
@@ -86,7 +86,7 @@ export default function Meetings() {
 
       {show && elevated && (
         <Card className="p-7">
-          <form onSubmit={create} className="grid grid-cols-2 gap-4">
+          <form onSubmit={create} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="col-span-2">
               <Field label="Title"><input required className={inputCls} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
             </div>
@@ -103,7 +103,7 @@ export default function Meetings() {
             <Field label="Starts at"><input required type="datetime-local" className={inputCls} value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></Field>
             <Field label="Ends at"><input type="datetime-local" className={inputCls} value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></Field>
             <div className="col-span-2">
-              <button className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium">Schedule</button>
+              <button disabled={creating} className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50">{creating ? 'Scheduling…' : 'Schedule'}</button>
             </div>
           </form>
         </Card>
@@ -146,6 +146,7 @@ export default function Meetings() {
           </Card>
         ))}
       </div>
+      {editor.dialog}
     </div>
   );
 }

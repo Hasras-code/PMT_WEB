@@ -63,7 +63,7 @@ export default function Register() {
         <div className="w-full max-w-lg bg-charcoal-card backdrop-blur-xl rounded-2xl border border-line p-8 shadow-2xl relative z-10">
           <h1 className="text-2xl font-semibold text-ink">Create account</h1>
           <p className="mt-1 text-sm text-muted">Takes less than a minute.</p>
-          <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Student number">
               <input required placeholder="AS2025..." className={inputCls} value={form.student_number} onChange={set('student_number')} />
             </Field>
@@ -92,19 +92,19 @@ export default function Register() {
               {!cohortsLoading && cohorts.length === 0 && <p className="mt-2 text-sm text-red-600">No active cohort is available for registration.</p>}
             </div>
             <Field label="First name">
-              <input required className={inputCls} value={form.first_name} onChange={set('first_name')} />
+              <input required autoComplete="given-name" className={inputCls} value={form.first_name} onChange={set('first_name')} />
             </Field>
             <Field label="Last name">
-              <input required className={inputCls} value={form.last_name} onChange={set('last_name')} />
+              <input required autoComplete="family-name" className={inputCls} value={form.last_name} onChange={set('last_name')} />
             </Field>
             <div className="col-span-2">
               <Field label="Email">
-                <input type="email" required placeholder="you@example.com" className={inputCls} value={form.email} onChange={set('email')} />
+                <input type="email" required autoComplete="email" placeholder="you@example.com" className={inputCls} value={form.email} onChange={set('email')} />
               </Field>
             </div>
             <div className="col-span-2">
               <Field label="Password (min 12 characters)">
-                <input type="password" required minLength={12} className={inputCls} value={form.password} onChange={set('password')} />
+                <input type="password" required minLength={12} autoComplete="new-password" className={inputCls} value={form.password} onChange={set('password')} />
               </Field>
             </div>
             <div className="col-span-2">
