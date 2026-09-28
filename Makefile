@@ -3,7 +3,7 @@ include .env
 export
 endif
 
-.PHONY: run dev build test test-race audit fmt db-up migrate-up migrate-down migration seed docs jobs frontend dev-all
+.PHONY: run dev build test test-race audit fmt db-up migrate-up migrate-down migration seed docs jobs frontend dev-all init test-integration frontend-install frontend-lint frontend-typecheck frontend-build check
 run:
 	go run ./cmd/api
 dev:
@@ -38,9 +38,16 @@ docs:
 	go run ./cmd/api openapi > docs/openapi.json
 jobs:
 	go run ./cmd/jobs
-
-.PHONY: init test-integration
 init:
 	python3 scripts/setup.py
 test-integration:
 	@TEST_DATABASE_URL="$(DATABASE_URL)" go test ./cmd/api
+frontend-install:
+	cd frontend && npm ci
+frontend-lint:
+	cd frontend && npm run lint
+frontend-typecheck:
+	cd frontend && npm run typecheck
+frontend-build:
+	cd frontend && npm run build
+check: fmt audit test test-race build frontend-lint frontend-typecheck frontend-build
