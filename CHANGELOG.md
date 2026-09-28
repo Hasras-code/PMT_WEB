@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.0.0...v1.1.0) (2026-09-28)
+
+
+### Features
+
+* add empty hello world file ([8dc5c8d](https://github.com/Hasras-code/PMT_WEB/commit/8dc5c8d7bb8c64b45c75180164e025a2451ee8b5))
+* add public content management routes and services ([7a44bc9](https://github.com/Hasras-code/PMT_WEB/commit/7a44bc97d21588c941fd2873189611506a525d2c))
+
 ## 1.0.0 (2026-09-23)
 
 
