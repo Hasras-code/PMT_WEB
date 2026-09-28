@@ -33,6 +33,7 @@ type API struct {
 	Auth               *auth.Service
 	Files              *storage.Local
 	Uploads            upload.Service
+	Version            string
 	Config             config.Config
 	Log                *slog.Logger
 	swaggerOnce        sync.Once

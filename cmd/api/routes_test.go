@@ -59,6 +59,13 @@ func TestRouteMiddlewareBoundaries(t *testing.T) {
 	if healthResponse.Header().Get("WWW-Authenticate") != "" {
 		t.Fatal("successful health request returned an auth challenge")
 	}
+	var healthBody map[string]string
+	if err := json.Unmarshal(healthResponse.Body.Bytes(), &healthBody); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := healthBody["version"]; !ok {
+		t.Fatal("health response does not include version")
+	}
 
 	browserHealthRequest := httptest.NewRequest(http.MethodGet, "/health/live", nil)
 	browserHealthRequest.Header.Set("Origin", "http://localhost:3000")

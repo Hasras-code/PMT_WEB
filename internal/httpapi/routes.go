@@ -49,7 +49,7 @@ func (a *API) LiveHandler() http.HandlerFunc {
 //	@Security basicAuth
 //	@Router /health/live [get]
 func (a *API) liveHandler(w http.ResponseWriter, _ *http.Request) error {
-	return send(w, http.StatusOK, map[string]string{"status": "ok"})
+	return send(w, http.StatusOK, map[string]string{"status": "ok", "version": a.Version})
 }
 
 func (a *API) ReadyHandler() http.HandlerFunc {
@@ -57,10 +57,10 @@ func (a *API) ReadyHandler() http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 		if err := a.Pool.Ping(ctx); err != nil {
-			_ = send(w, http.StatusServiceUnavailable, map[string]string{"status": "unavailable"})
+			_ = send(w, http.StatusServiceUnavailable, map[string]string{"status": "unavailable", "version": a.Version})
 			return
 		}
-		_ = send(w, http.StatusOK, map[string]string{"status": "ok"})
+		_ = send(w, http.StatusOK, map[string]string{"status": "ok", "version": a.Version})
 	}
 }
 

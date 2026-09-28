@@ -14,6 +14,7 @@ func (a *app) mount() *chi.Mux {
 		Auth:    a.auth,
 		Files:   a.files,
 		Uploads: a.uploads,
+		Version: version,
 		Config:  a.cfg,
 		Log:     a.logger,
 	}

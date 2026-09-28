@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"expvar"
 	"log/slog"
 	"os"
 )
 
+const version = ""
+
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	expvar.NewString("version").Set(version)
 	if len(os.Args) == 2 && os.Args[1] == "openapi" {
 		if err := writeOpenAPI(os.Stdout); err != nil {
 			log.Error("OpenAPI generation failed", "error", err)
