@@ -39,7 +39,6 @@ Keep actual environment files out of Git. `.env.example` documents backend/local
 Google Cloud Secret Manager should provide sensitive backend values such as:
 
 - `DATABASE_URL`
-- `MIGRATION_DATABASE_URL` for the migration job only
 - `JWT_SECRET`
 - `AUTH_BASIC_PASS`
 - Future R2 access and secret keys
@@ -103,7 +102,7 @@ The password placeholder must be replaced inside Secret Manager, not committed. 
 
 Port 6543 is for API runtime traffic. The Go pool uses `pgx.QueryExecModeExec`, so it does not create named prepared statements that depend on a persistent PostgreSQL server session. Start with `DB_MAX_CONNS=5` and cap the Cloud Run service at three instances.
 
-Do not run `cmd/migrate` through this Transaction Pooler URL. The migration driver holds a session-level advisory lock. Give the migration job a separate Direct connection string through `MIGRATION_DATABASE_URL`, or a Session Pooler string when Direct IPv6 connectivity is unavailable. The command falls back to `DATABASE_URL` to preserve local development behavior.
+The API and `cmd/migrate` both read this same `DATABASE_URL` value.
 
 The API reads Cloud Run's `PORT` automatically when `HTTP_ADDR` is unset. Production configuration requires HTTPS and secure cookies.
 
