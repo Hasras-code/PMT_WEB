@@ -64,28 +64,30 @@ func (a *API) ReadyHandler() http.HandlerFunc {
 	}
 }
 
-func (a *API) SwaggerRoutes(r chi.Router)       { a.swaggerRoutes(r) }
-func (a *API) AuthRoutes(r chi.Router)          { a.authRoutes(r) }
-func (a *API) FileRoutes(r chi.Router)          { a.fileRoutes(r) }
-func (a *API) GalleryPublicRoutes(r chi.Router) { a.galleryPublicRoutes(r) }
-func (a *API) PublicBatchRoutes(r chi.Router)   { a.publicBatchRoutes(r) }
-func (a *API) PublicImageRoutes(r chi.Router)   { a.publicImageRoutes(r) }
-func (a *API) MeRoutes(r chi.Router)            { a.meRoutes(r) }
-func (a *API) ProfileImageRoutes(r chi.Router)  { a.profileImageRoutes(r) }
-func (a *API) NotificationRoutes(r chi.Router)  { a.notificationRoutes(r) }
-func (a *API) AdminRoutes(r chi.Router)         { a.adminRoutes(r) }
-func (a *API) GalleryAdminRoutes(r chi.Router)  { a.galleryAdminRoutes(r) }
-func (a *API) BatchIndexRoutes(r chi.Router)    { a.batchIndexRoutes(r) }
-func (a *API) BatchRoutes(r chi.Router)         { a.batchRoutes(r) }
-func (a *API) SemesterRoutes(r chi.Router)      { a.semesterRoutes(r) }
-func (a *API) ModuleRoutes(r chi.Router)        { a.moduleRoutes(r) }
-func (a *API) AnnouncementRoutes(r chi.Router)  { a.announcementRoutes(r) }
-func (a *API) ResourceRoutes(r chi.Router)      { a.resourceRoutes(r) }
-func (a *API) KuppiRoutes(r chi.Router)         { a.kuppiRoutes(r) }
-func (a *API) LinkRoutes(r chi.Router)          { a.linkRoutes(r) }
-func (a *API) EventRoutes(r chi.Router)         { a.eventRoutes(r) }
-func (a *API) EventImageRoutes(r chi.Router)    { a.eventImageRoutes(r) }
-func (a *API) PositionRoutes(r chi.Router)      { a.positionRoutes(r) }
-func (a *API) SupportRoutes(r chi.Router)       { a.supportRoutes(r) }
-func (a *API) FundRoutes(r chi.Router)          { a.fundRoutes(r) }
-func (a *API) AuditHandler() http.HandlerFunc   { return a.auditHandler() }
+func (a *API) SwaggerRoutes(r chi.Router)            { a.swaggerRoutes(r) }
+func (a *API) AuthRoutes(r chi.Router)               { a.authRoutes(r) }
+func (a *API) FileRoutes(r chi.Router)               { a.fileRoutes(r) }
+func (a *API) GalleryPublicRoutes(r chi.Router)      { a.galleryPublicRoutes(r) }
+func (a *API) PublicBatchRoutes(r chi.Router)        { a.publicBatchRoutes(r) }
+func (a *API) PublicImageRoutes(r chi.Router)        { a.publicImageRoutes(r) }
+func (a *API) PublicContentRoutes(r chi.Router)      { a.publicContentRoutes(r) }
+func (a *API) MeRoutes(r chi.Router)                 { a.meRoutes(r) }
+func (a *API) ProfileImageRoutes(r chi.Router)       { a.profileImageRoutes(r) }
+func (a *API) NotificationRoutes(r chi.Router)       { a.notificationRoutes(r) }
+func (a *API) AdminRoutes(r chi.Router)              { a.adminRoutes(r) }
+func (a *API) PublicContentAdminRoutes(r chi.Router) { a.publicContentAdminRoutes(r) }
+func (a *API) GalleryAdminRoutes(r chi.Router)       { a.galleryAdminRoutes(r) }
+func (a *API) BatchIndexRoutes(r chi.Router)         { a.batchIndexRoutes(r) }
+func (a *API) BatchRoutes(r chi.Router)              { a.batchRoutes(r) }
+func (a *API) SemesterRoutes(r chi.Router)           { a.semesterRoutes(r) }
+func (a *API) ModuleRoutes(r chi.Router)             { a.moduleRoutes(r) }
+func (a *API) AnnouncementRoutes(r chi.Router)       { a.announcementRoutes(r) }
+func (a *API) ResourceRoutes(r chi.Router)           { a.resourceRoutes(r) }
+func (a *API) KuppiRoutes(r chi.Router)              { a.kuppiRoutes(r) }
+func (a *API) LinkRoutes(r chi.Router)               { a.linkRoutes(r) }
+func (a *API) EventRoutes(r chi.Router)              { a.eventRoutes(r) }
+func (a *API) EventImageRoutes(r chi.Router)         { a.eventImageRoutes(r) }
+func (a *API) PositionRoutes(r chi.Router)           { a.positionRoutes(r) }
+func (a *API) SupportRoutes(r chi.Router)            { a.supportRoutes(r) }
+func (a *API) FundRoutes(r chi.Router)               { a.fundRoutes(r) }
+func (a *API) AuditHandler() http.HandlerFunc        { return a.auditHandler() }

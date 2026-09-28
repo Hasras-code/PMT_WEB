@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../store/auth';
 import { PrimaryButton } from '../ui';
+import { api } from '../../api/client';
+
+const DEFAULT_SOCIALS = {
+  whatsapp: 'https://chat.whatsapp.com/KWvoKLIsvc9EFxZveo4qQy',
+  facebook: 'https://www.facebook.com/share/1HgVyRGC1a/',
+  instagram: 'https://www.instagram.com/pmtfamily_usj',
+  youtube: 'https://youtube.com/@pmtfamily-s2d',
+};
 
 const NAV_LINKS = [
   { label: 'About', href: '#about' },
@@ -15,9 +23,22 @@ const NAV_LINKS = [
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [socials, setSocials] = useState(DEFAULT_SOCIALS);
   const { isAuthenticated } = useAuthStore();
   const { pathname } = useLocation();
   const isHome = pathname === '/';
+
+  useEffect(() => {
+    api.get('/v1/public/socials').then((response) => {
+      const values = response.data as Partial<typeof DEFAULT_SOCIALS>;
+      setSocials({
+        whatsapp: values.whatsapp || DEFAULT_SOCIALS.whatsapp,
+        facebook: values.facebook || DEFAULT_SOCIALS.facebook,
+        instagram: values.instagram || DEFAULT_SOCIALS.instagram,
+        youtube: values.youtube || DEFAULT_SOCIALS.youtube,
+      });
+    }).catch(() => {});
+  }, []);
 
   const handleNavClick = (href: string) => {
     setMobileMenuOpen(false);
@@ -161,10 +182,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <div>
             <h3 className="text-sm font-semibold text-white tracking-wider uppercase mb-5">Community</h3>
             <ul className="space-y-3">
-              <li><a href="https://chat.whatsapp.com/KWvoKLIsvc9EFxZveo4qQy" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">WhatsApp Official</a></li>
-              <li><a href="https://www.facebook.com/share/1HgVyRGC1a/" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">Facebook Page</a></li>
-              <li><a href="https://www.instagram.com/pmtfamily_usj?stkn=MTJudm5vNnY1MzI5bQ%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">Instagram</a></li>
-              <li><a href="https://youtube.com/@pmtfamily-s2d?si=S7a2HGd3BuW2cdzP" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">YouTube Channel</a></li>
+              <li><a href={socials.whatsapp} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">WhatsApp Official</a></li>
+              <li><a href={socials.facebook} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">Facebook Page</a></li>
+              <li><a href={socials.instagram} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">Instagram</a></li>
+              <li><a href={socials.youtube} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-amber-500 transition-colors">YouTube Channel</a></li>
             </ul>
           </div>
           <div>

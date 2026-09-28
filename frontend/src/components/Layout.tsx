@@ -68,7 +68,7 @@ export default function Layout() {
     if (item.to.endsWith('/communication')) return has('announcement.create') || has('feedback.view') || has('complaint.view_all');
     if (item.to.endsWith('/meetings')) return has('event.manage');
     if (item.to.endsWith('/monitoring')) return platformAdmin;
-    if (item.to.endsWith('/public-content')) return true; // RBAC is handled inside the component based on tabs
+    if (item.to.endsWith('/public-content')) return platformAdmin || has('public_content.contribute');
     if (item.to.endsWith('/administration')) return has('platform_user.manage') || has('gallery.manage');
     return true;
   });

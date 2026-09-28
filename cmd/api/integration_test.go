@@ -676,6 +676,103 @@ func TestGlobalGallery(t *testing.T) {
 		t.Fatal("gallery tenant column")
 	}
 }
+
+func TestPublicContentManagement(t *testing.T) {
+	f := setup(t)
+	adminID, adminToken, _ := f.newUser("PUBLIC-ADMIN")
+	_, studentToken, _ := f.newUser("PUBLIC-STUDENT")
+	repID, repToken, _ := f.newUser("PUBLIC-REP")
+	f.sql(`INSERT INTO user_platform_roles(user_id,role_id) SELECT $1,id FROM roles WHERE code='PLATFORM_ADMIN'`, adminID)
+	f.sql(`INSERT INTO membership_roles(membership_id,role_id,scope,assigned_by)
+		SELECT m.id,r.id,'BATCH',$2 FROM batch_memberships m JOIN roles r ON r.code='BATCH_REP' AND r.scope='BATCH'
+		WHERE m.user_id=$1 AND m.batch_id=$3 ON CONFLICT DO NOTHING`, repID, adminID, f.registrationBatchID)
+
+	for _, path := range []string{
+		"/v1/public/hero-slides",
+		"/v1/public/achievements",
+		"/v1/public/events",
+		"/v1/public/home-gallery",
+		"/v1/public/featured-reps",
+	} {
+		var items []any
+		if err := json.Unmarshal(f.request("GET", path, "", nil, 200), &items); err != nil || len(items) != 0 {
+			t.Fatalf("initial public list %s: %v %#v", path, err, items)
+		}
+	}
+	f.request("GET", "/v1/admin/public/hero-slides", studentToken, nil, 403)
+	f.request("GET", "/v1/admin/public/hero-slides", repToken, nil, 200)
+	repHeroID := idOf(t, f.request("POST", "/v1/admin/public/hero-slides", repToken, map[string]any{
+		"title": "Representative hero", "image_url": "https://example.test/rep-hero.jpg", "priority": 2,
+	}, 201))
+	repEventID := idOf(t, f.request("POST", "/v1/admin/public/events", repToken, map[string]any{
+		"title": "Representative event", "date": "2099-08-01", "image_url": "https://example.test/rep-event.jpg",
+	}, 201))
+	repGalleryID := idOf(t, f.request("POST", "/v1/admin/public/gallery", repToken, map[string]any{
+		"title": "Representative gallery", "category": "Academic", "image_url": "https://example.test/rep-gallery.jpg", "visibility": "Public",
+	}, 201))
+	f.request("DELETE", "/v1/admin/public/hero-slides/"+repHeroID, repToken, nil, 204)
+	f.request("DELETE", "/v1/admin/public/events/"+repEventID, repToken, nil, 204)
+	f.request("DELETE", "/v1/admin/public/gallery/"+repGalleryID, repToken, nil, 204)
+	f.request("POST", "/v1/admin/public/achievements", repToken, map[string]any{"title": "Denied", "count": 1}, 403)
+	f.request("GET", "/v1/admin/public/reps", repToken, nil, 403)
+	f.request("POST", "/v1/admin/public/socials", repToken, map[string]any{"youtube": "https://example.test/denied"}, 403)
+	f.request("POST", "/v1/admin/public/hero-slides", adminToken, map[string]any{"title": "Unsafe", "image_url": "javascript:alert(1)"}, 422)
+
+	heroID := idOf(t, f.request("POST", "/v1/admin/public/hero-slides", adminToken, map[string]any{
+		"title": "Pure Mathematics", "subtitle": "Community", "cta_text": "Explore", "image_url": "https://example.test/hero.jpg", "priority": 1,
+	}, 201))
+	f.request("POST", "/v1/admin/public/events", adminToken, map[string]any{
+		"title": "Math Day", "date": "2099-09-20", "image_url": "https://example.test/event.jpg", "status": "Upcoming", "url": "https://example.test/events/math-day",
+	}, 201)
+	f.request("POST", "/v1/admin/public/gallery", adminToken, map[string]any{
+		"title": "Private memory", "category": "Social", "image_url": "https://example.test/private.jpg", "visibility": "Internal",
+	}, 201)
+	f.request("POST", "/v1/admin/public/gallery", adminToken, map[string]any{
+		"title": "Public memory", "category": "Academic", "image_url": "https://example.test/public.jpg", "visibility": "Public",
+	}, 201)
+	f.request("POST", "/v1/admin/public/achievements", adminToken, map[string]any{"title": "Students", "count": 500, "icon": "TrophyIcon"}, 201)
+	f.request("POST", "/v1/admin/public/socials", adminToken, map[string]any{"whatsapp": "javascript:alert(1)"}, 422)
+	f.request("POST", "/v1/admin/public/socials", adminToken, map[string]any{
+		"whatsapp": "https://chat.example.test/community", "facebook": "https://example.test/facebook", "instagram": "", "youtube": "https://example.test/youtube",
+	}, 204)
+
+	for _, path := range []string{"/v1/public/hero-slides", "/v1/public/achievements", "/v1/public/events", "/v1/public/home-gallery"} {
+		var items []map[string]any
+		if err := json.Unmarshal(f.request("GET", path, "", nil, 200), &items); err != nil || len(items) != 1 {
+			t.Fatalf("populated public list %s: %v %#v", path, err, items)
+		}
+	}
+	var social map[string]any
+	if err := json.Unmarshal(f.request("GET", "/v1/public/socials", "", nil, 200), &social); err != nil || social["whatsapp"] != "https://chat.example.test/community" {
+		t.Fatalf("public socials: %v %#v", err, social)
+	}
+
+	var assignmentID string
+	if err := f.p.QueryRow(context.Background(), `
+		WITH p AS (
+		 INSERT INTO batch_positions(batch_id,title,is_public) VALUES($1,'President',true) RETURNING id,batch_id
+		)
+		INSERT INTO position_assignments(batch_id,position_id,user_id,starts_at)
+		SELECT p.batch_id,p.id,$2,now()-interval '1 day' FROM p RETURNING id`, f.registrationBatchID, adminID).Scan(&assignmentID); err != nil {
+		t.Fatal(err)
+	}
+	f.request("POST", "/v1/admin/public/reps/"+assignmentID+"/toggle-featured", adminToken, map[string]any{"isFeaturedOnHome": true}, 204)
+	var reps []map[string]any
+	if err := json.Unmarshal(f.request("GET", "/v1/public/featured-reps", "", nil, 200), &reps); err != nil || len(reps) != 1 || reps[0]["role"] != "President" {
+		t.Fatalf("featured reps: %v %#v", err, reps)
+	}
+
+	f.request("DELETE", "/v1/admin/public/hero-slides/"+heroID, adminToken, nil, 204)
+	var heroes []any
+	if err := json.Unmarshal(f.request("GET", "/v1/public/hero-slides", "", nil, 200), &heroes); err != nil || len(heroes) != 0 {
+		t.Fatalf("soft-deleted hero remained public: %v %#v", err, heroes)
+	}
+	var audits int
+	if err := f.p.QueryRow(context.Background(), `SELECT count(*) FROM audit_logs WHERE actor_user_id=$1 AND entity_type LIKE 'public_%'`, adminID).Scan(&audits); err != nil || audits < 7 {
+		t.Fatalf("public content audit count: %d, %v", audits, err)
+	}
+}
+
 func TestConcurrentRefresh(t *testing.T) {
 	f := setup(t)
 	_, _, refresh := f.newUser("STCONC")

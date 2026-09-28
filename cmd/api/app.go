@@ -40,6 +40,7 @@ func newApp(ctx context.Context, logger *slog.Logger) (*app, error) {
 	if err != nil {
 		return nil, err
 	}
+	logger.Info("database connection established")
 
 	files, err := storage.Open(cfg.StorageDir, cfg.Secret)
 	if err != nil {

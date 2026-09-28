@@ -19,7 +19,7 @@ func TestRouteContract(t *testing.T) {
 		t.Fatalf("unexpected route count %d", len(paths))
 	}
 	for path := range paths {
-		if strings.Contains(path, "achievement") || strings.Contains(path, "album") || strings.Contains(path, "/batches/{batchID}/gallery") {
+		if strings.Contains(path, "album") || strings.Contains(path, "/batches/{batchID}/gallery") {
 			t.Fatal("out-of-scope route", path)
 		}
 	}

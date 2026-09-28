@@ -9,11 +9,11 @@ All active members receive STUDENT. Additional columns below describe additive b
 | Role | Permissions |
 |---|---|
 | STUDENT | batch.view, membership.view, semester.view, module.view, announcement.view, resource.view, kuppi.view, link.view, event.view, position.view, complaint.create, complaint.view_own, feedback.create, fund.view |
-| BATCH_REP | batch.manage, batch.profile.manage, membership.manage, role.assign, semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, kuppi.view/create/update/publish/archive, link.manage, event.manage, position.manage, feedback.view/manage, audit.view, fund.create/update/close, fund.transaction.create/reverse, fund.manager.assign/remove, fund.transfer.create/reverse, birthday_fund.manage, birthday_contribution.record |
+| BATCH_REP | batch.manage, batch.profile.manage, membership.manage, role.assign, semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, kuppi.view/create/update/publish/archive, link.manage, event.manage, position.manage, public_content.contribute, feedback.view/manage, audit.view, fund.create/update/close, fund.transaction.create/reverse, fund.manager.assign/remove, fund.transfer.create/reverse, birthday_fund.manage, birthday_contribution.record |
 | CONTENT_MANAGER | announcement.create/update/delete/publish, resource.create/update/delete/publish, link.manage, event.manage, position.manage, batch.profile.manage |
 | ACADEMIC_REP | semester.manage, module.manage, announcement.create/update/delete/publish, resource.create/update/delete/publish, kuppi.view/create/update/publish/archive, link.manage |
 | COMPLAINT_MANAGER | complaint.view_all/respond/resolve |
-| PLATFORM_ADMIN | batch.create, batch.archive, platform_user.manage, gallery.manage, platform_audit.view |
+| PLATFORM_ADMIN | batch.create, batch.archive, platform_user.manage, gallery.manage, public_content.manage, platform_audit.view |
 
 `x/y` notation expands to separate permission codes. Catalog definitions and scope constraints live in migration 000002. There is no numeric role precedence. Only batch-assigned roles satisfy batch permissions. Public titles grant no permissions. Role assignment allows only BATCH roles and never accepts platform promotion from a batch endpoint.
 
@@ -32,6 +32,8 @@ Database RLS is not enabled in V1. Application authorization, scoped SQL and con
 The filesystem root is private and accessed using Go os.Root. Keys are UUID-based opaque names, not client paths. Creation uses a temporary file and atomic link; the final key cannot be overwritten. Size and signature checks finish before the UPLOADED state can be consumed. Only metadata resides in PostgreSQL. SQL is parameterized and table/column choices are fixed in code.
 
 Signed file URLs are bearer capabilities: redact them from external request logs, retain their five-minute lifetime, and keep the signing secret private. Public images are checked against current publication state rather than exposing a static directory. API responses use no-store, nosniff and no-referrer. HSTS is emitted only in production mode.
+
+Hero slides, public events and homepage gallery items are writable through the batch-scoped `public_content.contribute` permission granted to active batch representatives, or through the platform-scoped `public_content.manage` permission. Achievements, featured committee members and global social links remain restricted to `public_content.manage`. Public content URLs accept HTTP(S) URLs only, reject embedded credentials and other schemes, and are never fetched by the API. Deletes use recoverable archive timestamps, while every mutation is recorded in the append-only audit log. Featured committee members are selected only from active, public position assignments; profile photos remain private.
 
 CORS uses exact origins. Cookie login/refresh/logout also validate Origin; CORS is not a substitute for CSRF protection. Forwarded IP headers are ignored unless the immediate connection belongs to an explicitly configured trusted CIDR; the chain is processed from the trusted end. Rate limits are per process with bounded memory, not globally distributed. Limits restart when the process restarts.
 

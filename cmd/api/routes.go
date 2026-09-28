@@ -34,6 +34,7 @@ func (a *app) mount() *chi.Mux {
 		api.GalleryPublicRoutes(r)
 		api.PublicBatchRoutes(r)
 		api.PublicImageRoutes(r)
+		api.PublicContentRoutes(r)
 
 		r.Group(func(r chi.Router) {
 			r.Use(api.Authenticated)
@@ -41,6 +42,7 @@ func (a *app) mount() *chi.Mux {
 			api.ProfileImageRoutes(r)
 			api.NotificationRoutes(r)
 			api.AdminRoutes(r)
+			api.PublicContentAdminRoutes(r)
 			api.GalleryAdminRoutes(r)
 			api.BatchIndexRoutes(r)
 

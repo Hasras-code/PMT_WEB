@@ -10,6 +10,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { Skeleton, fmtDate } from '../components/ui';
+import { api, toList } from '../api/client';
 
 interface HeroSlide { id: string; title: string; image_url: string; }
 interface Achievement { id: string; title: string; count: number; icon: string; }
@@ -17,7 +18,12 @@ interface EventData { id: string; title: string; date: string; image_url: string
 interface GalleryImage { id: string; event_name: string; image_url: string; }
 interface Rep { id: string; name: string; role: string; batch: string; image_url: string; linkedin?: string; }
 
-const API_URL = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8080';
+const DEFAULT_SOCIALS = {
+  whatsapp: 'https://chat.whatsapp.com/KWvoKLIsvc9EFxZveo4qQy',
+  facebook: 'https://www.facebook.com/share/1HgVyRGC1a/',
+  instagram: 'https://www.instagram.com/pmtfamily_usj',
+  youtube: 'https://youtube.com/@pmtfamily-s2d',
+};
 
 // Animated Counter Component
 function AnimatedCounter({ value }: { value: number }) {
@@ -38,6 +44,7 @@ export default function PublicHome() {
   const [events, setEvents] = useState<EventData[]>([]);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [reps, setReps] = useState<Rep[]>([]);
+  const [socials, setSocials] = useState(DEFAULT_SOCIALS);
   const [loading, setLoading] = useState(true);
   const [eventTab, setEventTab] = useState<'Upcoming' | 'Past'>('Upcoming');
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
@@ -46,19 +53,29 @@ export default function PublicHome() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [slidesRes, achRes, evRes, galRes, repsRes] = await Promise.allSettled([
-          fetch(`${API_URL}/api/v1/public/hero-slides`),
-          fetch(`${API_URL}/api/v1/public/achievements`),
-          fetch(`${API_URL}/api/v1/public/events?limit=6`),
-          fetch(`${API_URL}/api/v1/public/gallery`),
-          fetch(`${API_URL}/api/v1/public/featured-reps`)
+        const [slidesRes, achRes, evRes, galRes, repsRes, socialsRes] = await Promise.allSettled([
+          api.get('/v1/public/hero-slides', { limit: 20 }),
+          api.get('/v1/public/achievements', { limit: 20 }),
+          api.get('/v1/public/events', { limit: 100 }),
+          api.get('/v1/public/home-gallery', { limit: 20 }),
+          api.get('/v1/public/featured-reps', { limit: 20 }),
+          api.get('/v1/public/socials'),
         ]);
 
-        if (slidesRes.status === 'fulfilled' && slidesRes.value.ok) setHeroSlides(await slidesRes.value.json());
-        if (achRes.status === 'fulfilled' && achRes.value.ok) setAchievements(await achRes.value.json());
-        if (evRes.status === 'fulfilled' && evRes.value.ok) setEvents(await evRes.value.json());
-        if (galRes.status === 'fulfilled' && galRes.value.ok) setGallery(await galRes.value.json());
-        if (repsRes.status === 'fulfilled' && repsRes.value.ok) setReps(await repsRes.value.json());
+        if (slidesRes.status === 'fulfilled') setHeroSlides(toList<HeroSlide>(slidesRes.value.data));
+        if (achRes.status === 'fulfilled') setAchievements(toList<Achievement>(achRes.value.data));
+        if (evRes.status === 'fulfilled') setEvents(toList<EventData>(evRes.value.data));
+        if (galRes.status === 'fulfilled') setGallery(toList<GalleryImage>(galRes.value.data));
+        if (repsRes.status === 'fulfilled') setReps(toList<Rep>(repsRes.value.data));
+        if (socialsRes.status === 'fulfilled') {
+          const values = socialsRes.value.data as Partial<typeof DEFAULT_SOCIALS>;
+          setSocials({
+            whatsapp: values.whatsapp || DEFAULT_SOCIALS.whatsapp,
+            facebook: values.facebook || DEFAULT_SOCIALS.facebook,
+            instagram: values.instagram || DEFAULT_SOCIALS.instagram,
+            youtube: values.youtube || DEFAULT_SOCIALS.youtube,
+          });
+        }
       } catch (err) {
         console.error("Failed to fetch public data:", err);
       } finally {
@@ -158,7 +175,7 @@ export default function PublicHome() {
             <motion.a 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              href="https://chat.whatsapp.com/KWvoKLIsvc9EFxZveo4qQy"
+              href={socials.whatsapp}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-bold text-white shadow-lg hover:shadow-green-500/30 transition-all"
@@ -419,7 +436,13 @@ export default function PublicHome() {
                 >
                   <div className="relative w-28 h-28 mx-auto mb-6">
                     <div className="absolute inset-0 bg-gold-gradient rounded-full blur opacity-20 group-hover:opacity-50 group-hover:scale-110 transition-all duration-500" />
-                    <img src={rep.image_url} alt={rep.name} className="relative w-full h-full object-cover rounded-full border-2 border-amber-500/50" />
+                    {rep.image_url ? (
+                      <img src={rep.image_url} alt={rep.name} className="relative w-full h-full object-cover rounded-full border-2 border-amber-500/50" />
+                    ) : (
+                      <div className="relative w-full h-full rounded-full border-2 border-amber-500/50 bg-amber-500/15 text-amber-400 flex items-center justify-center text-2xl font-bold">
+                        {rep.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+                      </div>
+                    )}
                   </div>
                   <h3 className="text-lg font-bold text-white group-hover:text-amber-500 transition-colors">{rep.name}</h3>
                   <p className="text-amber-500 text-sm font-medium mb-2">{rep.role}</p>
@@ -455,7 +478,7 @@ export default function PublicHome() {
               <motion.a 
                 whileHover={{ scale: 1.03, y: -5 }}
                 whileTap={{ scale: 0.97 }}
-                href="https://chat.whatsapp.com/KWvoKLIsvc9EFxZveo4qQy" 
+                href={socials.whatsapp}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex-1 bg-gradient-to-br from-slate-900 to-emerald-950 border border-emerald-500/30 rounded-2xl p-8 flex flex-col items-center justify-center shadow-xl shadow-emerald-500/10 group"
@@ -476,7 +499,7 @@ export default function PublicHome() {
                   <motion.a 
                     whileHover={{ scale: 1.05, y: -4 }}
                     whileTap={{ scale: 0.95 }}
-                    href="https://www.facebook.com/share/1HgVyRGC1a/" 
+                    href={socials.facebook}
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="flex-1 bg-slate-900 border border-blue-500/20 rounded-2xl p-6 flex flex-col items-center justify-center hover:bg-slate-800 hover:border-blue-500/40 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-colors group"
@@ -488,7 +511,7 @@ export default function PublicHome() {
                   <motion.a 
                     whileHover={{ scale: 1.05, y: -4 }}
                     whileTap={{ scale: 0.95 }}
-                    href="https://www.instagram.com/pmtfamily_usj?stkn=MTJudm5vNnY1MzI5bQ%3D%3D&utm_source=qr" 
+                    href={socials.instagram}
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="flex-1 bg-slate-900 border border-pink-500/20 rounded-2xl p-6 flex flex-col items-center justify-center hover:bg-slate-800 hover:border-pink-500/40 hover:shadow-[0_0_20px_rgba(236,72,153,0.15)] transition-colors group"
@@ -502,7 +525,7 @@ export default function PublicHome() {
                 <motion.a 
                   whileHover={{ scale: 1.02, y: -4 }}
                   whileTap={{ scale: 0.98 }}
-                  href="https://youtube.com/@pmtfamily-s2d?si=S7a2HGd3BuW2cdzP" 
+                  href={socials.youtube}
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="bg-slate-900 border border-red-500/20 rounded-2xl p-6 flex items-center justify-center gap-4 hover:bg-slate-800 hover:border-red-500/40 hover:shadow-[0_0_20px_rgba(239,68,68,0.15)] transition-colors group"

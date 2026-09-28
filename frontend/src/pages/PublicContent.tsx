@@ -8,6 +8,7 @@ export default function PublicContent() {
   const access = useAccess();
   // Ensure strict RBAC: only PLATFORM_ADMIN acts as super_admin
   const isSuperAdmin = access?.platform_roles.includes('PLATFORM_ADMIN') ?? false;
+  const canContribute = isSuperAdmin || (access?.memberships.some((membership) => membership.permissions.includes('public_content.contribute')) ?? false);
 
   const tabIds = ['hero', 'events', 'gallery'];
   if (isSuperAdmin) {
@@ -27,13 +28,19 @@ export default function PublicContent() {
 
   // --- Hero Slides Manager ---
   const [slides, setSlides] = useState<any[]>([]);
-  const loadSlides = () => api.get('/v1/admin/public/hero-slides').then(res => setSlides(res.data || [])).catch(() => {});
+  const loadSlides = () => api.get('/v1/admin/public/hero-slides', { limit: 100 }).then(res => setSlides(res.data || [])).catch(() => {});
   
   const handleSaveSlide = async (e: any) => {
     e.preventDefault();
     const data = new FormData(e.target);
     try {
-      await api.post('/v1/admin/public/hero-slides', Object.fromEntries(data.entries()));
+      await api.post('/v1/admin/public/hero-slides', {
+        title: data.get('title'),
+        subtitle: data.get('subtitle'),
+        cta_text: data.get('cta_text'),
+        image_url: data.get('image_url'),
+        priority: Number(data.get('priority') || 0),
+      });
       toast.success('Hero slide saved');
       e.target.reset();
       loadSlides();
@@ -54,7 +61,7 @@ export default function PublicContent() {
 
   // --- Events Manager ---
   const [events, setEvents] = useState<any[]>([]);
-  const loadEvents = () => api.get('/v1/admin/public/events').then(res => setEvents(res.data || [])).catch(() => {});
+  const loadEvents = () => api.get('/v1/admin/public/events', { limit: 100 }).then(res => setEvents(res.data || [])).catch(() => {});
   
   const handleSaveEvent = async (e: any) => {
     e.preventDefault();
@@ -81,7 +88,7 @@ export default function PublicContent() {
 
   // --- Gallery Manager ---
   const [gallery, setGallery] = useState<any[]>([]);
-  const loadGallery = () => api.get('/v1/admin/public/gallery').then(res => setGallery(res.data || [])).catch(() => {});
+  const loadGallery = () => api.get('/v1/admin/public/gallery', { limit: 100 }).then(res => setGallery(res.data || [])).catch(() => {});
   
   const handleSaveGallery = async (e: any) => {
     e.preventDefault();
@@ -113,7 +120,7 @@ export default function PublicContent() {
 
   // --- Stats Manager (Super Admin) ---
   const [stats, setStats] = useState<any[]>([]);
-  const loadStats = () => api.get('/v1/admin/public/achievements').then(res => setStats(res.data || [])).catch(() => {});
+  const loadStats = () => api.get('/v1/admin/public/achievements', { limit: 100 }).then(res => setStats(res.data || [])).catch(() => {});
   
   const handleSaveStat = async (e: any) => {
     e.preventDefault();
@@ -146,7 +153,7 @@ export default function PublicContent() {
 
   // --- Committee Manager (Super Admin) ---
   const [reps, setReps] = useState<any[]>([]);
-  const loadReps = () => api.get('/v1/admin/public/reps').then(res => setReps(res.data || [])).catch(() => {});
+  const loadReps = () => api.get('/v1/admin/public/reps', { limit: 100 }).then(res => setReps(res.data || [])).catch(() => {});
   
   const toggleRepFeatured = async (id: string, currentFeatured: boolean) => {
     if (!isSuperAdmin) return toast.error("Unauthorized");
@@ -365,7 +372,12 @@ export default function PublicContent() {
     }
   };
 
-  return (
+  return access && !canContribute ? (
+    <Card className="p-8">
+      <h1 className="text-xl font-semibold text-ink">Public Content</h1>
+      <p className="mt-2 text-sm text-muted">You do not have permission to manage the public website.</p>
+    </Card>
+  ) : (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>

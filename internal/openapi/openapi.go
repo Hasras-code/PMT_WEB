@@ -22,6 +22,7 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/link"
 	"github.com/Hasras-code/PMT_WEB.git/internal/module"
 	"github.com/Hasras-code/PMT_WEB.git/internal/position"
+	"github.com/Hasras-code/PMT_WEB.git/internal/publiccontent"
 	"github.com/Hasras-code/PMT_WEB.git/internal/resource"
 	"github.com/Hasras-code/PMT_WEB.git/internal/semester"
 	"github.com/Hasras-code/PMT_WEB.git/internal/student"
@@ -128,6 +129,22 @@ func Request(method, path string) M {
 	}
 	if strings.HasSuffix(path, "/uploads") {
 		return schema(reflect.TypeFor[upload.Input]())
+	}
+	if strings.HasPrefix(path, "/v1/admin/public/") {
+		switch {
+		case strings.HasSuffix(path, "/hero-slides"):
+			return schema(reflect.TypeFor[publiccontent.HeroInput]())
+		case strings.HasSuffix(path, "/events"):
+			return schema(reflect.TypeFor[publiccontent.EventInput]())
+		case strings.HasSuffix(path, "/gallery"):
+			return schema(reflect.TypeFor[publiccontent.GalleryInput]())
+		case strings.HasSuffix(path, "/achievements"):
+			return schema(reflect.TypeFor[publiccontent.AchievementInput]())
+		case strings.HasSuffix(path, "/toggle-featured"):
+			return schema(reflect.TypeFor[publiccontent.FeaturedInput]())
+		case strings.HasSuffix(path, "/socials"):
+			return schema(reflect.TypeFor[publiccontent.SocialInput]())
+		}
 	}
 	if strings.Contains(path, "/funds") || strings.Contains(path, "/fund-transfers") || strings.Contains(path, "/birthday-fund") {
 		switch {
@@ -271,7 +288,7 @@ func Generate(r chi.Routes) (M, error) {
 			op["description"] = "Provide exactly one refresh credential: HttpOnly cookie with allowlisted Origin, or JSON refresh_token. Cookie sessions cannot switch transport."
 			op["security"] = []any{M{"refreshCookie": []string{}}, M{}}
 		}
-		list := method == "GET" && !strings.HasSuffix(path, "}") && !strings.Contains(path, "/download") && !strings.Contains(path, "/files/") && !strings.HasSuffix(path, "/image") && !strings.HasPrefix(path, "/health/") && path != "/v1/me" && !strings.HasSuffix(path, "/profile")
+		list := method == "GET" && !strings.HasSuffix(path, "}") && !strings.Contains(path, "/download") && !strings.Contains(path, "/files/") && !strings.HasSuffix(path, "/image") && !strings.HasPrefix(path, "/health/") && path != "/v1/me" && !strings.HasSuffix(path, "/profile") && !strings.HasSuffix(path, "/socials")
 		if list {
 			max, def := 100, 20
 			if path == "/v1/public/gallery" {
@@ -335,6 +352,9 @@ func Generate(r chi.Routes) (M, error) {
 			status = "200"
 		}
 		if strings.HasSuffix(path, "/verify-email") || strings.HasSuffix(path, "/reset-password") || strings.HasSuffix(path, "/logout") || strings.HasSuffix(path, "/messages") || (strings.HasSuffix(path, "/image") && method == "POST") || strings.HasSuffix(path, "/versions") && method == "POST" {
+			status = "204"
+		}
+		if path == "/v1/admin/public/socials" || strings.HasSuffix(path, "/toggle-featured") {
 			status = "204"
 		}
 		if path == "/v1/auth/register" || path == "/v1/auth/forgot-password" || path == "/v1/auth/resend-verification" {
@@ -413,6 +433,14 @@ func requiredFields(method, path string) []string {
 		return []string{"email"}
 	case path == "/v1/admin/batches":
 		return []string{"name", "slug", "entry_year"}
+	case path == "/v1/admin/public/hero-slides":
+		return []string{"title", "image_url"}
+	case path == "/v1/admin/public/events":
+		return []string{"title", "date", "image_url"}
+	case path == "/v1/admin/public/gallery":
+		return []string{"title", "category", "image_url", "visibility"}
+	case path == "/v1/admin/public/achievements":
+		return []string{"title", "count"}
 	case strings.HasSuffix(path, "/members"):
 		return []string{"user_id"}
 	case strings.HasSuffix(path, "/roles"):
