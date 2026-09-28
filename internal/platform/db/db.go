@@ -21,6 +21,10 @@ func Open(ctx context.Context, dsn string, max int32) (*pgxpool.Pool, error) {
 	c.MinConns = 0
 	c.MaxConnLifetime = 30 * time.Minute
 	c.ConnConfig.ConnectTimeout = 5 * time.Second
+	// Supabase transaction pooling can assign a different server connection to
+	// each transaction. Use the extended protocol without named prepared
+	// statements so cached statement names never depend on a server session.
+	c.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
 	c.ConnConfig.RuntimeParams["statement_timeout"] = "10000"
 	c.ConnConfig.RuntimeParams["idle_in_transaction_session_timeout"] = "15000"
 	p, e := pgxpool.NewWithConfig(ctx, c)
