@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.1.0...v1.2.0) (2026-09-28)
+
+
+### Features
+
+* add versioning to API and implement version update workflow ([0cd7b00](https://github.com/Hasras-code/PMT_WEB/commit/0cd7b0065afbf6f346e963ad41b735f3394b78bf))
+
 ## [1.1.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.0.0...v1.1.0) (2026-09-28)
 
 
