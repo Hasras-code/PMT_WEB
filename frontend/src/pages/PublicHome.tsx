@@ -144,11 +144,11 @@ export default function PublicHome() {
             <Skeleton className="w-full h-full rounded-none" />
           ) : (
             <>
-              <div className="absolute inset-0 bg-gradient-to-t from-obsidian-dark via-slate-950/80 to-transparent z-10" />
+              <div className="absolute inset-0 bg-gradient-to-t from-obsidian-dark via-slate-950/40 to-transparent z-10" />
               <img 
                 src={safeHeroSlides[0]?.image_url} 
                 alt="PMT Hero" 
-                className="w-full h-full object-cover opacity-30 object-top"
+                className="w-full h-full object-cover opacity-60 object-top"
               />
             </>
           )}
