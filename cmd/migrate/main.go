@@ -17,9 +17,9 @@ func main() {
 	}
 }
 func run() error {
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := migrationDatabaseURL()
 	if dsn == "" {
-		return fmt.Errorf("DATABASE_URL required")
+		return fmt.Errorf("MIGRATION_DATABASE_URL or DATABASE_URL required")
 	}
 	dsn = strings.Replace(dsn, "postgres://", "pgx5://", 1)
 	dsn = strings.Replace(dsn, "postgresql://", "pgx5://", 1)
@@ -44,4 +44,11 @@ func run() error {
 		return nil
 	}
 	return e
+}
+
+func migrationDatabaseURL() string {
+	if dsn := os.Getenv("MIGRATION_DATABASE_URL"); dsn != "" {
+		return dsn
+	}
+	return os.Getenv("DATABASE_URL")
 }

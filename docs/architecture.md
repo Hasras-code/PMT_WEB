@@ -5,7 +5,7 @@ PMT_WEB is one Git repository with two independently buildable applications:
 - The repository root is a Go module that builds the HTTP API and operational commands.
 - `frontend/` is a React, TypeScript, and Vite application.
 
-The applications share an HTTP contract, but neither build consumes the other application's output. The intended production topology is Cloudflare Pages for the frontend, Google Cloud Run for the API, Google Cloud SQL for PostgreSQL, and Cloudflare R2 for object storage.
+The applications share an HTTP contract, but neither build consumes the other application's output. The intended production topology is Cloudflare Pages for the frontend, Google Cloud Run for the API, Supabase PostgreSQL through its shared Transaction Pooler, and Cloudflare R2 for object storage.
 
 ## Repository boundaries
 
@@ -62,7 +62,7 @@ frontend/ ── Cloudflare Pages ── HTTPS ── Cloud Run API
                                              │
                                       ┌──────┴──────┐
                                       │             │
-                                  Cloud SQL         R2
+                              Supabase PostgreSQL   R2
 ```
 
 The root Dockerfile's default target contains only the API. Its `tools` target contains migration, admin, and jobs commands for explicit operational use. The API image never depends on `frontend/dist`.

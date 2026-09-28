@@ -113,7 +113,7 @@ Migrations remain under `migrations/` and are applied explicitly. Normal API sta
 The intended production topology is:
 
 - Go API: Google Cloud Run
-- PostgreSQL: Google Cloud SQL
+- PostgreSQL: Supabase, using its shared Transaction Pooler for API traffic
 - Frontend: Cloudflare Pages, using `frontend` as its root and `dist` as its output
 - Object storage: Cloudflare R2 through a backend-only storage adapter
 

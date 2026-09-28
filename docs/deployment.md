@@ -39,6 +39,7 @@ Keep actual environment files out of Git. `.env.example` documents backend/local
 Google Cloud Secret Manager should provide sensitive backend values such as:
 
 - `DATABASE_URL`
+- `MIGRATION_DATABASE_URL` for the migration job only
 - `JWT_SECRET`
 - `AUTH_BASIC_PASS`
 - Future R2 access and secret keys
@@ -79,7 +80,7 @@ Operational commands use the separate tools target:
 docker build --target tools -t university-lms-tools .
 ```
 
-## Cloud Run and Cloud SQL
+## Cloud Run and Supabase PostgreSQL
 
 The recommended backend release flow is:
 
@@ -92,7 +93,17 @@ The recommended backend release flow is:
 
 Use GitHub OIDC and Google Workload Identity Federation for deployment. Do not store a service-account JSON key in the repository or GitHub secrets.
 
-Configure Cloud SQL through a supported private connection or Cloud SQL connector and pass the resulting PostgreSQL DSN as `DATABASE_URL`. Size `DB_MAX_CONNS` for the maximum Cloud Run instance count and the Cloud SQL connection limit.
+Store the complete runtime connection string in Google Secret Manager and expose it to the API as `DATABASE_URL`. The configured Supabase shared Transaction Pooler endpoint is:
+
+```text
+postgresql://postgres.bcwmnprcgemkgioiocum:PERCENT_ENCODED_PASSWORD@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require
+```
+
+The password placeholder must be replaced inside Secret Manager, not committed. Percent-encode reserved URL characters in the password. The supplied connection details identify the database as `postgres`; use `/pmtdb` only if a database with that exact name has actually been created and verified.
+
+Port 6543 is for API runtime traffic. The Go pool uses `pgx.QueryExecModeExec`, so it does not create named prepared statements that depend on a persistent PostgreSQL server session. Start with `DB_MAX_CONNS=5` and cap the Cloud Run service at three instances.
+
+Do not run `cmd/migrate` through this Transaction Pooler URL. The migration driver holds a session-level advisory lock. Give the migration job a separate Direct connection string through `MIGRATION_DATABASE_URL`, or a Session Pooler string when Direct IPv6 connectivity is unavailable. The command falls back to `DATABASE_URL` to preserve local development behavior.
 
 The API reads Cloud Run's `PORT` automatically when `HTTP_ADDR` is unset. Production configuration requires HTTPS and secure cookies.
 
@@ -159,7 +170,7 @@ Also verify migrations against a fresh PostgreSQL database and review `git statu
 ## Troubleshooting
 
 - Configuration failure: check the required database URL, a non-placeholder JWT secret, secure production URLs, CORS origins, and Basic-auth credentials.
-- Database unavailable: inspect PostgreSQL or Cloud SQL connectivity and readiness before restarting the API.
+- Database unavailable: inspect the Supabase pooler endpoint, TLS settings, credentials, and database readiness before restarting the API.
 - Verification email missing: inspect Mailpit locally or the production mail provider logs.
 - Refresh unexpectedly revoked: check whether concurrent requests reused the same rotating refresh token.
 - Upload conflict: request a new immutable upload capability.
