@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"os"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"os"
-	"strings"
 )
 
 func main() {
@@ -17,12 +18,14 @@ func main() {
 	}
 }
 func run() error {
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
+	rawDSN := os.Getenv("DATABASE_URL")
+	if rawDSN == "" {
 		return fmt.Errorf("DATABASE_URL required")
 	}
-	dsn = strings.Replace(dsn, "postgres://", "pgx5://", 1)
-	dsn = strings.Replace(dsn, "postgresql://", "pgx5://", 1)
+	dsn, err := migrationURL(rawDSN)
+	if err != nil {
+		return fmt.Errorf("invalid DATABASE_URL: %w", err)
+	}
 	m, e := migrate.New("file://migrations", dsn)
 	if e != nil {
 		return e
@@ -44,4 +47,20 @@ func run() error {
 		return nil
 	}
 	return e
+}
+
+func migrationURL(dsn string) (string, error) {
+	u, err := url.Parse(dsn)
+	if err != nil {
+		return "", err
+	}
+	if u.Scheme != "postgres" && u.Scheme != "postgresql" {
+		return "", fmt.Errorf("unsupported scheme %q", u.Scheme)
+	}
+
+	u.Scheme = "pgx5"
+	query := u.Query()
+	query.Set("default_query_exec_mode", "exec")
+	u.RawQuery = query.Encode()
+	return u.String(), nil
 }
