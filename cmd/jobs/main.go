@@ -31,7 +31,11 @@ func run(log *slog.Logger) error {
 		return e
 	}
 	defer p.Close()
-	s, e := storage.Open(c.StorageDir, c.Secret)
+	s, e := storage.OpenManager(ctx, storage.Settings{
+		Provider: c.StorageProvider, LocalDir: c.StorageDir, Secret: c.Secret, BaseURL: c.BaseURL,
+		UploadTTL: c.UploadURLTTL, DownloadTTL: c.DownloadURLTTL,
+		R2: storage.R2Config{Endpoint: c.R2Endpoint, Region: c.R2Region, AccessKeyID: c.R2AccessKeyID, SecretKey: c.R2SecretKey, PrivateBucket: c.R2PrivateBucket, PublicBucket: c.R2PublicBucket, PublicBaseURL: c.R2PublicBaseURL},
+	})
 	if e != nil {
 		return e
 	}
@@ -50,7 +54,7 @@ func run(log *slog.Logger) error {
 	if _, e = p.Exec(ctx, `DELETE FROM verification_tokens WHERE expires_at<now()-interval '30 days'`); e != nil {
 		return e
 	}
-	if _, e = s.CleanupTemporary(ctx, 24*time.Hour); e != nil {
+	if _, e = s.Local.CleanupTemporary(ctx, 24*time.Hour); e != nil {
 		return e
 	}
 	log.Info("jobs completed", "notification_events", n, "expired_uploads", m)

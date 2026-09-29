@@ -9,13 +9,21 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
 	"github.com/Hasras-code/PMT_WEB.git/internal/upload"
 	"github.com/jackc/pgx/v5"
+	"path"
 )
 
-func (s Service) AuthorizeReceipt(ctx context.Context, user, batch, fundID string, in upload.Input) (json.RawMessage, error) {
+func (s Service) AuthorizeReceipt(ctx context.Context, user, batch, fundID, transactionID string, in upload.Input) (json.RawMessage, error) {
 	if err := requireManage(ctx, s.Pool, user, batch, fundID, "fund.transaction.create"); err != nil {
 		return nil, err
 	}
-	return s.Uploads.AuthorizeChecked(ctx, user, batch, "fund_receipt", in)
+	var exists bool
+	if err := s.Pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM fund_transactions WHERE batch_id=$1 AND fund_id=$2 AND id=$3)`, batch, fundID, transactionID).Scan(&exists); err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, apperror.ErrNotFound
+	}
+	return s.Uploads.AuthorizeChecked(ctx, user, batch, "fund_receipt", path.Join("batches", batch, "funds", fundID, "transactions", transactionID, "receipts"), in)
 }
 
 func (s Service) Attach(ctx context.Context, user, batch, fundID, transactionID string, in AttachmentInput) (string, error) {
@@ -75,6 +83,6 @@ func (s Service) Attachment(ctx context.Context, user, batch, fundID, transactio
 	if err != nil {
 		return o, err
 	}
-	err = s.Pool.QueryRow(ctx, `SELECT id,storage_key,file_name,mime_type,size_bytes FROM fund_transaction_attachments WHERE batch_id=$1 AND fund_id=$2 AND transaction_id=$3 AND id=$4 AND (visibility='MEMBERS' OR $5)`, batch, fundID, transactionID, id, manage).Scan(&o.ID, &o.Key, &o.Name, &o.MIME, &o.Size)
+	err = s.Pool.QueryRow(ctx, `SELECT a.id,a.storage_key,a.file_name,a.mime_type,a.size_bytes,i.storage_provider,i.storage_class FROM fund_transaction_attachments a JOIN upload_intents i ON i.storage_key=a.storage_key WHERE a.batch_id=$1 AND a.fund_id=$2 AND a.transaction_id=$3 AND a.id=$4 AND (a.visibility='MEMBERS' OR $5)`, batch, fundID, transactionID, id, manage).Scan(&o.ID, &o.Key, &o.Name, &o.MIME, &o.Size, &o.Provider, &o.Class)
 	return o, db.Error(err)
 }

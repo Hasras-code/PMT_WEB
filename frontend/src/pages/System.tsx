@@ -142,7 +142,7 @@ export default function System() {
           <CardTitle>Backup &amp; recovery</CardTitle>
           <p className="mt-2 text-[15px] text-muted leading-relaxed">
             Database backups, file-store snapshots and restore procedures are handled at the infrastructure level. See{' '}
-            <code className="px-1.5 py-0.5 rounded bg-surface text-ink text-sm">docs/operations.md</code> in the project
+            <code className="px-1.5 py-0.5 rounded bg-surface text-ink text-sm">docs/deployment.md</code> in the project
             repository for the backup schedule, retention policy and disaster-recovery runbook.
           </p>
         </Card>

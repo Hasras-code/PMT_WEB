@@ -27,7 +27,7 @@ export default function Profile() {
     setImageBusy(true);
     try {
       const init = await api.post('/v1/me/profile/image/uploads', { file_name: file.name, mime_type: file.type, size_bytes: file.size });
-      await uploadFile(init.data.upload_url, file);
+		await uploadFile(init.data, file);
       await api.patch('/v1/me/profile', { upload_id: init.data.upload_id });
       const image = await api.get('/v1/me/profile/image');
       setImageURL(image.data.url);

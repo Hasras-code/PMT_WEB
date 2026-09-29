@@ -20,7 +20,9 @@ services:
       - "127.0.0.1:1025:1025"
       - "127.0.0.1:8025:8025"
   migrate:
-    build: .
+    build:
+      context: .
+      target: tools
     profiles: [app]
     command: ["/app/migrate", "up"]
     environment:
@@ -29,7 +31,9 @@ services:
       postgres:
         condition: service_healthy
   api:
-    build: .
+    build:
+      context: .
+      target: api
     profiles: [app]
     ports:
       - "127.0.0.1:8080:8080"

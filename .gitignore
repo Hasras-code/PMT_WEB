@@ -1,10 +1,27 @@
+# Environment files. Keep documented examples in source control.
 .env
-.env.local
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+!deploy/vps-temp/.env.vps.example
+
+# Generated frontend files.
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Runtime and build output.
 data/
 bin/
 tmp/
+coverage/
 coverage.out
-.DS_Store
-.vite/
 *.log
 *.exe
+
+# Local editor and operating-system metadata.
+.DS_Store
+.idea/
+*.swp

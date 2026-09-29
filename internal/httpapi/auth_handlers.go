@@ -213,7 +213,13 @@ func accepted(w http.ResponseWriter) error {
 	return send(w, 202, map[string]string{"message": "If eligible, an email will be sent with the next step"})
 }
 func (a *API) cookie(w http.ResponseWriter, value string, expires time.Time, max int) {
-	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: value, Path: "/v1/auth", HttpOnly: true, Secure: a.Config.CookieSecure, SameSite: http.SameSiteLaxMode, Expires: expires, MaxAge: max})
+	sameSite := http.SameSiteLaxMode
+	if a.Config.Env == "production" {
+		// Cloudflare Pages and run.app are separate sites. Production already
+		// requires Secure cookies, and refresh/logout enforce an exact Origin.
+		sameSite = http.SameSiteNoneMode
+	}
+	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: value, Path: "/v1/auth", HttpOnly: true, Secure: a.Config.CookieSecure, SameSite: sameSite, Expires: expires, MaxAge: max})
 }
 func (a *API) tokens(w http.ResponseWriter, t auth.Tokens) error {
 	if t.Transport == "cookie" {

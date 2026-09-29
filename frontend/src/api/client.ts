@@ -114,17 +114,29 @@ export const api = {
   delete: (url: string) => client.delete(url),
 };
 
-export async function uploadFile(uploadURL: string, file: File, init?: { signal?: AbortSignal }): Promise<void> {
-  const target = new URL(uploadURL, API_BASE);
-  const apiURL = new URL(API_BASE);
-  const uploadTarget = new URL(target.pathname + target.search, apiURL.origin);
+export function apiAssetURL(path: string): string {
+  return new URL(path, API_BASE + '/').toString();
+}
+
+export interface UploadAuthorization {
+  upload_id: string;
+  upload_url: string;
+  confirm_url?: string;
+  headers?: Record<string, string>;
+}
+
+export async function uploadFile(upload: UploadAuthorization, file: File, init?: { signal?: AbortSignal }): Promise<void> {
+  const uploadTarget = new URL(upload.upload_url, API_BASE);
   const response = await fetch(uploadTarget, {
     method: 'PUT',
     body: file,
     signal: init?.signal,
-    headers: file.type ? { 'Content-Type': file.type } : undefined,
+    headers: upload.headers || (file.type ? { 'Content-Type': file.type } : undefined),
   });
   if (!response.ok) throw new Error(`File upload failed (${response.status})`);
+  if (upload.confirm_url) {
+    await client.post(upload.confirm_url);
+  }
 }
 
 /** Normalize list responses: plain arrays, {items}, or {data} (gallery). */

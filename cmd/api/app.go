@@ -25,7 +25,7 @@ type app struct {
 	pool    *pgxpool.Pool
 	store   store.Storage
 	auth    *auth.Service
-	files   *storage.Local
+	files   *storage.Manager
 	uploads upload.Service
 	logger  *slog.Logger
 }
@@ -42,10 +42,34 @@ func newApp(ctx context.Context, logger *slog.Logger) (*app, error) {
 	}
 	logger.Info("database connection established")
 
-	files, err := storage.Open(cfg.StorageDir, cfg.Secret)
+	files, err := storage.OpenManager(ctx, storage.Settings{
+		Provider:    cfg.StorageProvider,
+		LocalDir:    cfg.StorageDir,
+		Secret:      cfg.Secret,
+		BaseURL:     cfg.BaseURL,
+		UploadTTL:   cfg.UploadURLTTL,
+		DownloadTTL: cfg.DownloadURLTTL,
+		R2: storage.R2Config{
+			Endpoint: cfg.R2Endpoint, Region: cfg.R2Region,
+			AccessKeyID: cfg.R2AccessKeyID, SecretKey: cfg.R2SecretKey,
+			PrivateBucket: cfg.R2PrivateBucket, PublicBucket: cfg.R2PublicBucket,
+			PublicBaseURL: cfg.R2PublicBaseURL,
+		},
+	})
 	if err != nil {
 		pool.Close()
 		return nil, err
+	}
+	if cfg.StorageProvider == "r2" {
+		checkCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		err = files.Check(checkCtx)
+		cancel()
+		if err != nil {
+			_ = files.Close()
+			pool.Close()
+			return nil, err
+		}
+		logger.Info("object storage connection established")
 	}
 
 	store := store.NewStorage(pool)
@@ -57,8 +81,11 @@ func newApp(ctx context.Context, logger *slog.Logger) (*app, error) {
 			Issuer:   cfg.Issuer,
 			Audience: cfg.Audience,
 		},
-		Mail: mail.SMTP{Addr: cfg.SMTP, From: cfg.MailFrom},
-		Log:  logger,
+		Mail: mail.SMTP{
+			Addr: cfg.SMTP, From: cfg.MailFrom,
+			Username: cfg.SMTPUsername, Password: cfg.SMTPPassword, TLSMode: cfg.SMTPTLSMode,
+		},
+		Log: logger,
 	}
 
 	return &app{

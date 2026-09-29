@@ -1,7 +1,33 @@
 name: backend
 on:
   push:
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "migrations/**"
+      - "scripts/**"
+      - "go.mod"
+      - "go.sum"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "docker-compose.yml"
+      - "Makefile"
+      - "docs/openapi.json"
+      - ".github/workflows/backend-ci.yml"
   pull_request:
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "migrations/**"
+      - "scripts/**"
+      - "go.mod"
+      - "go.sum"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "docker-compose.yml"
+      - "Makefile"
+      - "docs/openapi.json"
+      - ".github/workflows/backend-ci.yml"
 permissions:
   contents: read
 jobs:
@@ -42,4 +68,4 @@ jobs:
         run: |
           go run ./cmd/api openapi > /tmp/openapi.json
           diff -u docs/openapi.json /tmp/openapi.json
-      - run: docker build -t pmt-api:ci .
+      - run: docker build --target api -t pmt-api:ci .

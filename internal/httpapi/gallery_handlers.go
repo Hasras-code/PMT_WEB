@@ -6,6 +6,7 @@ import (
 
 	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
 	"github.com/Hasras-code/PMT_WEB.git/internal/gallery"
+	"github.com/Hasras-code/PMT_WEB.git/internal/platform/storage"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -81,6 +82,14 @@ func (a *API) getPublicGalleryFileHandler(w http.ResponseWriter, r *http.Request
 	o, e := a.galleryService().File(r.Context(), param(r, "imageID"), param(r, "variant"))
 	if e != nil {
 		return e
+	}
+	if o.Provider == storage.ProviderR2 {
+		target, e := a.Files.PublicURL(o.StoredObject())
+		if e != nil {
+			return e
+		}
+		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+		return nil
 	}
 	return a.serveFile(w, r, o.Key, o.MIME, "gallery", true)
 }

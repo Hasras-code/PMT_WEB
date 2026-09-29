@@ -293,7 +293,7 @@ export default function Funds() {
     if (!file || file.type !== 'application/pdf') return toast.error('Choose a PDF receipt');
     await run(async () => {
       const init = await api.post(`/v1/batches/${currentBatchID}/funds/${selectedFundID}/transactions/${transaction.id}/attachments/uploads`, { file_name: file.name, mime_type: 'application/pdf', size_bytes: file.size });
-      await uploadFile(init.data.upload_url, file);
+		await uploadFile(init.data, file);
       await api.post(`/v1/batches/${currentBatchID}/funds/${selectedFundID}/transactions/${transaction.id}/attachments`, { upload_id: init.data.upload_id, visibility: 'MEMBERS' });
       await loadAttachments(transaction.id);
     }, 'Receipt attached', 'fund');

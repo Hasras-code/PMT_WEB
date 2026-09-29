@@ -90,7 +90,7 @@ function AnnouncementsTab({ batchID }: { batchID: string }) {
         mime_type: file.type || 'application/octet-stream',
         size_bytes: file.size,
       });
-      await uploadFile(init.data.upload_url, file);
+		await uploadFile(init.data, file);
       await api.post(`/v1/batches/${batchID}/announcements/${announcementID}/attachments`, { upload_id: init.data.upload_id });
       const response = await api.get(`/v1/batches/${batchID}/announcements/${announcementID}/attachments`);
       setAttachments((current) => ({ ...current, [announcementID]: toList(response.data) }));

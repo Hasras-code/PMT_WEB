@@ -41,7 +41,7 @@ func (s Service) Attachment(ctx context.Context, user, batch, id, aid string) (u
 	if _, e := s.Get(ctx, user, batch, id); e != nil {
 		return o, e
 	}
-	e := s.Pool.QueryRow(ctx, `SELECT storage_key,file_name,mime_type,size_bytes FROM announcement_attachments WHERE batch_id=$1 AND announcement_id=$2 AND id=$3`, batch, id, aid).Scan(&o.Key, &o.Name, &o.MIME, &o.Size)
+	e := s.Pool.QueryRow(ctx, `SELECT a.storage_key,a.file_name,a.mime_type,a.size_bytes,i.storage_provider,i.storage_class FROM announcement_attachments a JOIN upload_intents i ON i.storage_key=a.storage_key WHERE a.batch_id=$1 AND a.announcement_id=$2 AND a.id=$3`, batch, id, aid).Scan(&o.Key, &o.Name, &o.MIME, &o.Size, &o.Provider, &o.Class)
 	return o, db.Error(e)
 }
 func (s Service) RemoveAttachment(ctx context.Context, user, batch, id, aid string) error {

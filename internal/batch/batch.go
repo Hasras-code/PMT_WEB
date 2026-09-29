@@ -14,7 +14,10 @@ import (
 	"regexp"
 )
 
-type Service struct{ Pool *pgxpool.Pool }
+type Service struct {
+	Pool                      *pgxpool.Pool
+	BaseURL, PublicStorageURL string
+}
 type Input struct {
 	Name           string `json:"name"`
 	Slug           string `json:"slug"`
@@ -148,10 +151,10 @@ func (s Service) SetProfile(ctx context.Context, user, id string, in Profile) er
 	})
 }
 func (s Service) Public(ctx context.Context, slug string) (json.RawMessage, error) {
-	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(t) FROM(SELECT b.id,b.name,b.slug,b.entry_year,b.graduation_year,b.description,p.headline,p.about_text,p.mission_text,p.contact_email,CASE WHEN p.hero_image_key IS NOT NULL THEN '/v1/public/batches/'||b.slug||'/image' END AS hero_image_url FROM batches b LEFT JOIN batch_profiles p ON p.batch_id=b.id WHERE b.slug=$1 AND b.status<>'ARCHIVED')t`, slug))
+	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(t) FROM(SELECT b.id,b.name,b.slug,b.entry_year,b.graduation_year,b.description,p.headline,p.about_text,p.mission_text,p.contact_email,CASE WHEN p.hero_image_key IS NULL THEN NULL WHEN i.storage_provider='R2' AND i.storage_class='PUBLIC' THEN $2||'/'||i.storage_key ELSE $3||'/v1/public/batches/'||b.slug||'/image' END AS hero_image_url FROM batches b LEFT JOIN batch_profiles p ON p.batch_id=b.id LEFT JOIN upload_intents i ON i.storage_key=p.hero_image_key WHERE b.slug=$1 AND b.status<>'ARCHIVED')t`, slug, s.PublicStorageURL, s.BaseURL))
 }
 func (s Service) PublicEvents(ctx context.Context, slug, id string, limit, offset int) (json.RawMessage, error) {
-	b, e := db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT e.id,e.title,e.description,e.location,e.starts_at,e.ends_at,CASE WHEN e.cover_image_key IS NOT NULL THEN '/v1/public/batches/'||b.slug||'/events/'||e.id||'/image' END AS cover_image_url FROM events e JOIN batches b ON b.id=e.batch_id WHERE b.slug=$1 AND b.status<>'ARCHIVED' AND e.status='PUBLISHED' AND e.visibility='PUBLIC' AND ($2='' OR e.id=NULLIF($2,'')::uuid) ORDER BY e.starts_at DESC,e.id DESC LIMIT $3 OFFSET $4)t`, slug, id, limit, offset))
+	b, e := db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT e.id,e.title,e.description,e.location,e.starts_at,e.ends_at,CASE WHEN e.cover_image_key IS NULL THEN NULL WHEN i.storage_provider='R2' AND i.storage_class='PUBLIC' THEN $5||'/'||i.storage_key ELSE $6||'/v1/public/batches/'||b.slug||'/events/'||e.id||'/image' END AS cover_image_url FROM events e JOIN batches b ON b.id=e.batch_id LEFT JOIN upload_intents i ON i.storage_key=e.cover_image_key WHERE b.slug=$1 AND b.status<>'ARCHIVED' AND e.status='PUBLISHED' AND e.visibility='PUBLIC' AND ($2='' OR e.id=NULLIF($2,'')::uuid) ORDER BY e.starts_at DESC,e.id DESC LIMIT $3 OFFSET $4)t`, slug, id, limit, offset, s.PublicStorageURL, s.BaseURL))
 	if id != "" {
 		return db.One(b, e)
 	}

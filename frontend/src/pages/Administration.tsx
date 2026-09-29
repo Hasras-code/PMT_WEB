@@ -74,7 +74,7 @@ export default function Administration() {
 
   const authorizeImage = async (f: File) => {
     const init = await api.post('/v1/admin/gallery/uploads', { file_name: f.name, mime_type: f.type, size_bytes: f.size });
-    await uploadFile(init.data.upload_url, f);
+		await uploadFile(init.data, f);
     return init.data.upload_id as string;
   };
 
