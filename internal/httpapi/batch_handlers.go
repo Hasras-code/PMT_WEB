@@ -42,7 +42,7 @@ func (a *API) publicBatchesHandler(w http.ResponseWriter, r *http.Request) error
 //	@Success 200 {object} map[string]any
 //	@Router /v1/public/batches/{slug} [get]
 func (a *API) publicBatchHandler(w http.ResponseWriter, r *http.Request) error {
-	batches := batch.Service{Pool: a.Pool}
+	batches := batch.Service{Pool: a.Pool, BaseURL: a.Config.BaseURL, PublicStorageURL: a.Config.R2PublicBaseURL}
 	value, err := batches.Public(r.Context(), param(r, "slug"))
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (a *API) publicBatchHandler(w http.ResponseWriter, r *http.Request) error {
 //	@Success 200 {array} map[string]any
 //	@Router /v1/public/batches/{slug}/events [get]
 func (a *API) publicBatchEventsHandler(w http.ResponseWriter, r *http.Request) error {
-	batches := batch.Service{Pool: a.Pool}
+	batches := batch.Service{Pool: a.Pool, BaseURL: a.Config.BaseURL, PublicStorageURL: a.Config.R2PublicBaseURL}
 	return a.publicBatchEvents(w, r, batches)
 }
 
@@ -75,7 +75,7 @@ func (a *API) publicBatchEventsHandler(w http.ResponseWriter, r *http.Request) e
 //	@Success 200 {array} map[string]any
 //	@Router /v1/public/batches/{slug}/events/{eventID} [get]
 func (a *API) publicBatchEventHandler(w http.ResponseWriter, r *http.Request) error {
-	batches := batch.Service{Pool: a.Pool}
+	batches := batch.Service{Pool: a.Pool, BaseURL: a.Config.BaseURL, PublicStorageURL: a.Config.R2PublicBaseURL}
 	return a.publicBatchEvents(w, r, batches)
 }
 

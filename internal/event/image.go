@@ -33,6 +33,6 @@ func (s Service) Image(ctx context.Context, user, batch, id string) (upload.Obje
 	if _, e := s.Get(ctx, user, batch, id); e != nil {
 		return o, e
 	}
-	e := s.Pool.QueryRow(ctx, `SELECT i.storage_key,i.file_name,i.mime_type FROM events e JOIN upload_intents i ON i.storage_key=e.cover_image_key WHERE e.batch_id=$1 AND e.id=$2`, batch, id).Scan(&o.Key, &o.Name, &o.MIME)
+	e := s.Pool.QueryRow(ctx, `SELECT i.storage_key,i.file_name,i.mime_type,i.size_bytes,i.storage_provider,i.storage_class FROM events e JOIN upload_intents i ON i.storage_key=e.cover_image_key WHERE e.batch_id=$1 AND e.id=$2`, batch, id).Scan(&o.Key, &o.Name, &o.MIME, &o.Size, &o.Provider, &o.Class)
 	return o, db.Error(e)
 }

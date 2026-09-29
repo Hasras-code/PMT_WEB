@@ -28,6 +28,7 @@ func testApp(env string) *app {
 func TestRouteMiddlewareBoundaries(t *testing.T) {
 	router := testApp("development").mount()
 	for _, tt := range []struct {
+		method string
 		path   string
 		origin string
 		status int
@@ -35,9 +36,14 @@ func TestRouteMiddlewareBoundaries(t *testing.T) {
 		{path: "/health/live", status: http.StatusUnauthorized},
 		{path: "/health/live", origin: "https://evil.example", status: http.StatusForbidden},
 		{path: "/v1/batches/00000000-0000-0000-0000-000000000000/gallery", status: http.StatusUnauthorized},
+		{method: http.MethodPost, path: "/v1/files/uploads/00000000-0000-0000-0000-000000000000/confirm", status: http.StatusUnauthorized},
 		{path: "/missing", status: http.StatusNotFound},
 	} {
-		req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+		method := tt.method
+		if method == "" {
+			method = http.MethodGet
+		}
+		req := httptest.NewRequest(method, tt.path, nil)
 		req.Header.Set("Origin", tt.origin)
 		response := httptest.NewRecorder()
 		router.ServeHTTP(response, req)

@@ -18,12 +18,12 @@ import (
 //	@Param payload body upload.Input true "Upload details"
 //	@Success 201 {object} map[string]any
 //	@Failure 422 {object} map[string]any
-func (a *API) authorizeUploadHandler(w http.ResponseWriter, r *http.Request, purpose, permission string) error {
+func (a *API) authorizeUploadHandler(w http.ResponseWriter, r *http.Request, purpose, permission, entity string) error {
 	in, e := decode[upload.Input](w, r)
 	if e != nil {
 		return e
 	}
-	v, e := a.Uploads.Authorize(r.Context(), userID(r), batchID(r), purpose, permission, in)
+	v, e := a.Uploads.Authorize(r.Context(), userID(r), batchID(r), purpose, permission, entity, in)
 	if e != nil {
 		return e
 	}
@@ -41,7 +41,7 @@ func (a *API) authorizeUploadHandler(w http.ResponseWriter, r *http.Request, pur
 //	@Security bearerAuth
 //	@Router /v1/me/profile/image/uploads [post]
 func (a *API) authorizeProfileUploadHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.authorizeUploadHandler(w, r, "profile", "")
+	return a.authorizeUploadHandler(w, r, "profile", "", "")
 }
 
 // authorizeBatchProfileUploadHandler godoc
@@ -56,7 +56,7 @@ func (a *API) authorizeProfileUploadHandler(w http.ResponseWriter, r *http.Reque
 //	@Security bearerAuth
 //	@Router /v1/batches/{batchID}/profile/uploads [post]
 func (a *API) authorizeBatchProfileUploadHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.authorizeUploadHandler(w, r, "batch", "batch.profile.manage")
+	return a.authorizeUploadHandler(w, r, "batch", "batch.profile.manage", "")
 }
 
 // authorizeGalleryUploadHandler godoc
@@ -70,7 +70,7 @@ func (a *API) authorizeBatchProfileUploadHandler(w http.ResponseWriter, r *http.
 //	@Security bearerAuth
 //	@Router /v1/admin/gallery/uploads [post]
 func (a *API) authorizeGalleryUploadHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.authorizeUploadHandler(w, r, "gallery", "gallery.manage")
+	return a.authorizeUploadHandler(w, r, "gallery", "gallery.manage", "")
 }
 
 // authorizeResourceUploadHandler godoc
@@ -85,7 +85,7 @@ func (a *API) authorizeGalleryUploadHandler(w http.ResponseWriter, r *http.Reque
 //	@Security bearerAuth
 //	@Router /v1/batches/{batchID}/resources/uploads [post]
 func (a *API) authorizeResourceUploadHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.authorizeUploadHandler(w, r, "resource", "resource.create")
+	return a.authorizeUploadHandler(w, r, "resource", "resource.create", "")
 }
 
 // authorizeResourceVersionUploadHandler godoc
@@ -101,7 +101,7 @@ func (a *API) authorizeResourceUploadHandler(w http.ResponseWriter, r *http.Requ
 //	@Security bearerAuth
 //	@Router /v1/batches/{batchID}/resources/{resourceID}/versions/uploads [post]
 func (a *API) authorizeResourceVersionUploadHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.authorizeUploadHandler(w, r, "resource", "resource.update")
+	return a.authorizeUploadHandler(w, r, "resource", "resource.update", param(r, "resourceID"))
 }
 
 // authorizeAttachmentUploadHandler godoc
@@ -117,7 +117,7 @@ func (a *API) authorizeResourceVersionUploadHandler(w http.ResponseWriter, r *ht
 //	@Security bearerAuth
 //	@Router /v1/batches/{batchID}/announcements/{announcementID}/attachments/uploads [post]
 func (a *API) authorizeAttachmentUploadHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.authorizeUploadHandler(w, r, "attachment", "announcement.update")
+	return a.authorizeUploadHandler(w, r, "attachment", "announcement.update", param(r, "announcementID"))
 }
 
 // authorizeEventUploadHandler godoc
@@ -133,11 +133,15 @@ func (a *API) authorizeAttachmentUploadHandler(w http.ResponseWriter, r *http.Re
 //	@Security bearerAuth
 //	@Router /v1/batches/{batchID}/events/{eventID}/uploads [post]
 func (a *API) authorizeEventUploadHandler(w http.ResponseWriter, r *http.Request) error {
-	return a.authorizeUploadHandler(w, r, "event", "event.manage")
+	return a.authorizeUploadHandler(w, r, "event", "event.manage", param(r, "eventID"))
 }
 func (a *API) fileRoutes(r chi.Router) {
 	r.Put("/files/uploads/{token}", a.wrap(a.receiveFileHandler))
 	r.Get("/files/downloads/{token}", a.wrap(a.downloadFileHandler))
+}
+
+func (a *API) authenticatedFileRoutes(r chi.Router) {
+	r.Post("/files/uploads/{uploadID}/confirm", a.wrap(a.confirmFileUploadHandler))
 }
 
 // receiveFileHandler godoc
@@ -156,6 +160,21 @@ func (a *API) receiveFileHandler(w http.ResponseWriter, r *http.Request) error {
 	return send(w, 204, nil)
 }
 
+// confirmFileUploadHandler godoc
+//
+//	@Summary Confirm a direct object-storage upload
+//	@Tags files
+//	@Param uploadID path string true "Upload ID"
+//	@Success 204
+//	@Security bearerAuth
+//	@Router /v1/files/uploads/{uploadID}/confirm [post]
+func (a *API) confirmFileUploadHandler(w http.ResponseWriter, r *http.Request) error {
+	if e := a.Uploads.Confirm(r.Context(), userID(r), param(r, "uploadID")); e != nil {
+		return e
+	}
+	return send(w, http.StatusNoContent, nil)
+}
+
 // downloadFileHandler godoc
 //
 //	@Summary Download a file
@@ -165,14 +184,14 @@ func (a *API) receiveFileHandler(w http.ResponseWriter, r *http.Request) error {
 //	@Failure 404 {object} map[string]any
 //	@Router /v1/files/downloads/{token} [get]
 func (a *API) downloadFileHandler(w http.ResponseWriter, r *http.Request) error {
-	g, e := a.Files.Verify(param(r, "token"), "download")
+	g, e := a.Files.VerifyLocal(param(r, "token"), "download")
 	if e != nil {
 		return e
 	}
 	return a.serveFile(w, r, g.Key, g.MIME, g.Name, false)
 }
 func (a *API) serveFile(w http.ResponseWriter, r *http.Request, key, contentType, name string, inline bool) error {
-	f, e := a.Files.Read(key)
+	f, e := a.Files.Local.Read(key)
 	if e != nil {
 		return e
 	}

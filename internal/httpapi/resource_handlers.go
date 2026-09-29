@@ -206,11 +206,11 @@ func (a *API) downloadResource(w http.ResponseWriter, r *http.Request) error {
 	if e != nil {
 		return e
 	}
-	url, e := a.Files.DownloadURL(a.Config.BaseURL, o.Key, o.Name, o.MIME)
+	url, e := a.Files.DownloadURL(r.Context(), o.StoredObject())
 	if e != nil {
 		return e
 	}
-	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
+	return send(w, 200, map[string]any{"url": url, "expires_in": int64(a.Config.DownloadURLTTL.Seconds())})
 }
 
 // downloadResourceHandler godoc
@@ -357,9 +357,9 @@ func (a *API) downloadAttachmentHandler(w http.ResponseWriter, r *http.Request) 
 	if e != nil {
 		return e
 	}
-	url, e := a.Files.DownloadURL(a.Config.BaseURL, o.Key, o.Name, o.MIME)
+	url, e := a.Files.DownloadURL(r.Context(), o.StoredObject())
 	if e != nil {
 		return e
 	}
-	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
+	return send(w, 200, map[string]any{"url": url, "expires_in": int64(a.Config.DownloadURLTTL.Seconds())})
 }

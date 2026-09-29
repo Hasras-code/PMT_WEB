@@ -5,6 +5,7 @@ import (
 
 	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
 	"github.com/Hasras-code/PMT_WEB.git/internal/event"
+	"github.com/Hasras-code/PMT_WEB.git/internal/platform/storage"
 	"github.com/Hasras-code/PMT_WEB.git/internal/user"
 	"github.com/go-chi/chi/v5"
 )
@@ -56,11 +57,11 @@ func (a *API) getEventImageHandler(w http.ResponseWriter, r *http.Request) error
 	if e != nil {
 		return e
 	}
-	url, e := a.Files.DownloadURL(a.Config.BaseURL, o.Key, o.Name, o.MIME)
+	url, e := a.Files.DownloadURL(r.Context(), o.StoredObject())
 	if e != nil {
 		return e
 	}
-	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
+	return send(w, 200, map[string]any{"url": url, "expires_in": int64(a.Config.DownloadURLTTL.Seconds())})
 }
 func (a *API) profileImageRoutes(r chi.Router) {
 	r.Get("/me/profile/image", a.wrap(a.getProfileImageHandler))
@@ -80,11 +81,11 @@ func (a *API) getProfileImageHandler(w http.ResponseWriter, r *http.Request) err
 	if e != nil {
 		return e
 	}
-	url, e := a.Files.DownloadURL(a.Config.BaseURL, o.Key, o.Name, o.MIME)
+	url, e := a.Files.DownloadURL(r.Context(), o.StoredObject())
 	if e != nil {
 		return e
 	}
-	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
+	return send(w, 200, map[string]any{"url": url, "expires_in": int64(a.Config.DownloadURLTTL.Seconds())})
 }
 func (a *API) publicImageRoutes(r chi.Router) {
 	r.Get("/public/batches/{slug}/image", a.wrap(a.getPublicBatchImageHandler))
@@ -120,6 +121,19 @@ func (a *API) servePublicImage(w http.ResponseWriter, r *http.Request, s batch.S
 	o, e := s.PublicImage(r.Context(), param(r, "slug"), param(r, "eventID"))
 	if e != nil {
 		return e
+	}
+	if o.Provider == storage.ProviderR2 {
+		var target string
+		if o.Class == storage.ClassPublic {
+			target, e = a.Files.PublicURL(o.StoredObject())
+		} else {
+			target, e = a.Files.DownloadURL(r.Context(), o.StoredObject())
+		}
+		if e != nil {
+			return e
+		}
+		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+		return nil
 	}
 	return a.serveFile(w, r, o.Key, o.MIME, o.Name, true)
 }

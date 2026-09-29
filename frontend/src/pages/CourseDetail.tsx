@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, toList, errMsg, uploadFile } from '../api/client';
+import { api, apiAssetURL, toList, errMsg, uploadFile } from '../api/client';
 import toast from 'react-hot-toast';
 import type { Batch, BatchProfile, Semester, Module, Kuppi, LinkItem, Member, Position } from '../types';
 import { useAccess, useCan } from '../hooks/useRole';
@@ -93,7 +93,7 @@ function Overview({ batchID, batch, onUpdate }: { batchID: string; batch: Batch;
     setHeroBusy(true);
     try {
       const init = await api.post(`/v1/batches/${batchID}/profile/uploads`, { file_name: file.name, mime_type: file.type, size_bytes: file.size });
-      await uploadFile(init.data.upload_url, file);
+      await uploadFile(init.data, file);
       await api.patch(`/v1/batches/${batchID}/profile`, { upload_id: init.data.upload_id });
       setHeroAvailable(true);
       setHeroVersion((version) => version + 1);
@@ -137,7 +137,7 @@ function Overview({ batchID, batch, onUpdate }: { batchID: string; batch: Batch;
       </Card>}
       {canManageProfile && <Card className="p-7 space-y-4">
         <h2 className="text-lg font-semibold text-ink">Public profile</h2>
-        {heroAvailable && <img src={`/v1/public/batches/${batch.slug}/image?v=${heroVersion}`} alt={`${batch.name} cover image`} className="w-full h-32 rounded-xl object-cover bg-surface" loading="lazy" decoding="async" onError={() => setHeroAvailable(false)} />}
+        {heroAvailable && <img src={`${apiAssetURL(`/v1/public/batches/${batch.slug}/image`)}?v=${heroVersion}`} alt={`${batch.name} cover image`} className="w-full h-32 rounded-xl object-cover bg-surface" loading="lazy" decoding="async" onError={() => setHeroAvailable(false)} />}
         <Field label="Headline">
           <input className={inputCls} value={profile.headline || ''} onChange={set('headline')} />
         </Field>

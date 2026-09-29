@@ -298,7 +298,7 @@ func (a *API) authorizeFundReceipt(w http.ResponseWriter, r *http.Request) error
 	if e != nil {
 		return e
 	}
-	v, e := a.fundService().AuthorizeReceipt(r.Context(), userID(r), batchID(r), param(r, "fundID"), in)
+	v, e := a.fundService().AuthorizeReceipt(r.Context(), userID(r), batchID(r), param(r, "fundID"), param(r, "transactionID"), in)
 	if e != nil {
 		return e
 	}
@@ -327,9 +327,9 @@ func (a *API) downloadFundReceipt(w http.ResponseWriter, r *http.Request) error 
 	if e != nil {
 		return e
 	}
-	url, e := a.Files.DownloadURL(a.Config.BaseURL, o.Key, o.Name, o.MIME)
+	url, e := a.Files.DownloadURL(r.Context(), o.StoredObject())
 	if e != nil {
 		return e
 	}
-	return send(w, 200, map[string]any{"url": url, "expires_in": 300})
+	return send(w, 200, map[string]any{"url": url, "expires_in": int64(a.Config.DownloadURLTTL.Seconds())})
 }

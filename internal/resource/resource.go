@@ -196,7 +196,7 @@ func (s Service) Download(ctx context.Context, user, batch, id, version string) 
 	if _, e := s.Get(ctx, user, batch, id); e != nil {
 		return o, e
 	}
-	e := s.Pool.QueryRow(ctx, `SELECT v.storage_key,v.file_name,v.mime_type,v.size_bytes FROM resource_versions v JOIN resources r ON r.id=v.resource_id AND r.batch_id=v.batch_id WHERE r.batch_id=$1 AND r.id=$2 AND v.id=COALESCE(NULLIF($3,'')::uuid,r.current_version_id)`, batch, id, version).Scan(&o.Key, &o.Name, &o.MIME, &o.Size)
+	e := s.Pool.QueryRow(ctx, `SELECT v.storage_key,v.file_name,v.mime_type,v.size_bytes,i.storage_provider,i.storage_class FROM resource_versions v JOIN resources r ON r.id=v.resource_id AND r.batch_id=v.batch_id JOIN upload_intents i ON i.storage_key=v.storage_key WHERE r.batch_id=$1 AND r.id=$2 AND v.id=COALESCE(NULLIF($3,'')::uuid,r.current_version_id)`, batch, id, version).Scan(&o.Key, &o.Name, &o.MIME, &o.Size, &o.Provider, &o.Class)
 	return o, db.Error(e)
 }
 func (s Service) Update(ctx context.Context, user, batch, id string, in Update) error {

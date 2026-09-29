@@ -9,6 +9,7 @@ RUN CGO_ENABLED=0 go build -trimpath -o /out/api ./cmd/api
 
 FROM source AS build-tools
 RUN CGO_ENABLED=0 go build -trimpath -o /out/migrate ./cmd/migrate && \
+	CGO_ENABLED=0 go build -trimpath -o /out/migrate-storage ./cmd/migrate-storage && \
     CGO_ENABLED=0 go build -trimpath -o /out/admin ./cmd/admin && \
     CGO_ENABLED=0 go build -trimpath -o /out/jobs ./cmd/jobs
 
@@ -20,7 +21,7 @@ USER lms
 # Operational commands share the same source build but are excluded from the
 # default production API image. Compose selects this target for migrations.
 FROM runtime AS tools
-COPY --from=build-tools --chown=lms:lms /out/migrate /out/admin /out/jobs /app/
+COPY --from=build-tools --chown=lms:lms /out/migrate /out/migrate-storage /out/admin /out/jobs /app/
 COPY --chown=lms:lms migrations /app/migrations
 
 # The final/default target is the independently deployable Cloud Run API image.

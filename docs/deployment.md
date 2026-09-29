@@ -41,7 +41,8 @@ Google Cloud Secret Manager should provide sensitive backend values such as:
 - `DATABASE_URL`
 - `JWT_SECRET`
 - `AUTH_BASIC_PASS`
-- Future R2 access and secret keys
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
 - Production mail credentials
 
 Cloud Run may provide non-secret configuration directly:
@@ -53,7 +54,14 @@ Cloud Run may provide non-secret configuration directly:
 - `DB_MAX_CONNS`
 - `JWT_ISSUER`
 - `JWT_AUDIENCE`
-- Future R2 endpoint and bucket names
+- `STORAGE_PROVIDER=r2`
+- `R2_ENDPOINT`
+- `R2_REGION=auto`
+- `R2_PRIVATE_BUCKET`
+- `R2_PUBLIC_BUCKET`
+- `R2_PUBLIC_BASE_URL`
+- `UPLOAD_URL_TTL_SECONDS`
+- `DOWNLOAD_URL_TTL_SECONDS`
 
 Cloudflare Pages receives only public build-time settings:
 
@@ -106,9 +114,11 @@ The API and `cmd/migrate` both read this same `DATABASE_URL` value.
 
 The API reads Cloud Run's `PORT` automatically when `HTTP_ADDR` is unset. Production configuration requires HTTPS and secure cookies.
 
-### Storage prerequisite
+### Cloudflare R2 storage
 
-The current backend stores files on a local filesystem. Cloud Run's filesystem is ephemeral and cannot safely support multiple instances. Do not deploy file-upload workloads to Cloud Run until a tested Cloudflare R2 implementation replaces the local production backend. The local implementation remains appropriate for development.
+Set `STORAGE_PROVIDER=r2` for Cloud Run. Production startup rejects local storage. Browser uploads use short-lived presigned PUT URLs and private downloads use short-lived presigned GET URLs, so file bytes do not pass through Cloud Run. Configure the bucket CORS policy and public media domain described in [Object storage](storage.md).
+
+Before enabling R2 for an environment with existing local files, apply migration `000025_object_storage`, run `make migrate-storage-dry-run`, and then run `make migrate-storage`. The migration utility verifies each object before marking its database metadata as R2 and does not delete local copies.
 
 ## Cloudflare Pages
 
@@ -130,6 +140,8 @@ Migrations remain under `migrations/` and are owned by the backend:
 make migrate-up
 make migrate-down
 make migration name=description
+make migrate-storage-dry-run
+make migrate-storage
 ```
 
 Never rewrite or rename an applied migration. Do not apply migrations during normal API startup. Review destructive down migrations before use; production rollback usually requires restoring compatible data rather than automatically migrating down.

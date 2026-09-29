@@ -3,7 +3,7 @@ include .env
 export
 endif
 
-.PHONY: run dev build test test-race audit fmt db-up migrate-up migrate-down migration seed docs jobs frontend dev-all init test-integration frontend-install frontend-lint frontend-typecheck frontend-build check
+.PHONY: run dev build test test-race audit fmt db-up migrate-up migrate-down migrate-storage migrate-storage-dry-run migration seed docs jobs frontend dev-all init test-integration frontend-install frontend-lint frontend-typecheck frontend-build check
 run:
 	go run ./cmd/api
 dev:
@@ -30,6 +30,10 @@ migrate-up:
 	go run ./cmd/migrate up
 migrate-down:
 	go run ./cmd/migrate down
+migrate-storage-dry-run:
+	go run ./cmd/migrate-storage --dry-run
+migrate-storage:
+	go run ./cmd/migrate-storage
 migration:
 	python3 scripts/migration.py "$(name)"
 seed:

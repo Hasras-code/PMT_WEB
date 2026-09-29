@@ -105,6 +105,7 @@ Additional documentation:
 - [Security and permissions](docs/security.md)
 - [Fund management](docs/funds.md)
 - [Kuppi recordings](docs/kuppis.md)
+- [Object storage](docs/storage.md)
 
 Migrations remain under `migrations/` and are applied explicitly. Normal API startup never applies database migrations.
 
@@ -115,9 +116,7 @@ The intended production topology is:
 - Go API: Google Cloud Run
 - PostgreSQL: Supabase, using its shared Transaction Pooler for API traffic
 - Frontend: Cloudflare Pages, using `frontend` as its root and `dist` as its output
-- Object storage: Cloudflare R2 through a backend-only storage adapter
-
-The current file-storage implementation is local and suitable for development. It must be replaced by the R2 implementation before running file-upload workloads on ephemeral or horizontally scaled Cloud Run instances.
+- Object storage: Cloudflare R2 through a backend-only storage adapter, with local storage retained for development and controlled data migration
 
 The root Dockerfile builds the API independently from the frontend. Cloudflare Pages builds entirely from `frontend/`. See [deployment and operations](docs/deployment.md) for environment ownership, migrations, rollback, and release checks.
 

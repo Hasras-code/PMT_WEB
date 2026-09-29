@@ -67,6 +67,7 @@ func (a *API) ReadyHandler() http.HandlerFunc {
 func (a *API) SwaggerRoutes(r chi.Router)            { a.swaggerRoutes(r) }
 func (a *API) AuthRoutes(r chi.Router)               { a.authRoutes(r) }
 func (a *API) FileRoutes(r chi.Router)               { a.fileRoutes(r) }
+func (a *API) AuthenticatedFileRoutes(r chi.Router)  { a.authenticatedFileRoutes(r) }
 func (a *API) GalleryPublicRoutes(r chi.Router)      { a.galleryPublicRoutes(r) }
 func (a *API) PublicBatchRoutes(r chi.Router)        { a.publicBatchRoutes(r) }
 func (a *API) PublicImageRoutes(r chi.Router)        { a.publicImageRoutes(r) }

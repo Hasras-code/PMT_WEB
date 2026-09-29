@@ -59,7 +59,7 @@ type fixture struct {
 	as                  *auth.Service
 	mail                *mailbox
 	h                   http.Handler
-	store               *storage.Local
+	store               *storage.Manager
 	registrationBatchID string
 }
 
@@ -118,7 +118,7 @@ func setup(t *testing.T) *fixture {
 		t.Fatal(e)
 	}
 	secret := strings.Repeat("s", 48)
-	store, e := storage.Open(t.TempDir(), secret)
+	store, e := storage.OpenManager(ctx, storage.Settings{Provider: "local", LocalDir: t.TempDir(), Secret: secret, BaseURL: "http://api.test"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -227,6 +227,7 @@ func (f *fixture) upload(path, token, name, mime string, b []byte) string {
 	if w.Code != 204 {
 		f.t.Fatalf("upload %d %s", w.Code, w.Body.String())
 	}
+	f.request("POST", v["confirm_url"].(string), token, nil, 204)
 	return v["upload_id"].(string)
 }
 

@@ -31,7 +31,7 @@ import (
 type API struct {
 	Pool               *pgxpool.Pool
 	Auth               *auth.Service
-	Files              *storage.Local
+	Files              *storage.Manager
 	Uploads            upload.Service
 	Version            string
 	Config             config.Config

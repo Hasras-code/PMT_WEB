@@ -280,7 +280,8 @@ func Generate(r chi.Routes) (M, error) {
 			}
 			params = append(params, M{"name": m[1], "in": "path", "required": true, "schema": s})
 		}
-		public := strings.HasPrefix(path, "/health/") || strings.Contains(path, "/public/") || strings.Contains(path, "/files/") || (strings.HasPrefix(path, "/v1/auth/") && path != "/v1/auth/logout-all")
+		fileCapability := (method == "PUT" && strings.HasPrefix(path, "/v1/files/uploads/")) || (method == "GET" && strings.HasPrefix(path, "/v1/files/downloads/"))
+		public := strings.HasPrefix(path, "/health/") || strings.Contains(path, "/public/") || fileCapability || (strings.HasPrefix(path, "/v1/auth/") && path != "/v1/auth/logout-all")
 		if !public {
 			op["security"] = []any{M{"bearerAuth": []string{}}}
 		}
@@ -388,7 +389,7 @@ func Generate(r chi.Routes) (M, error) {
 			}
 			resp["content"] = M{"application/json": M{"schema": rs}}
 		}
-		if strings.Contains(path, "/files/uploads/") {
+		if method == "PUT" && strings.Contains(path, "/files/uploads/") {
 			op["requestBody"] = M{"required": true, "content": M{"application/pdf": M{"schema": M{"type": "string", "format": "binary"}}, "image/png": M{"schema": M{"type": "string", "format": "binary"}}, "image/jpeg": M{"schema": M{"type": "string", "format": "binary"}}, "image/webp": M{"schema": M{"type": "string", "format": "binary"}}}}
 		}
 		if method == "GET" && (strings.Contains(path, "/files/") || (strings.Contains(path, "/public/") && strings.HasSuffix(path, "/image"))) {

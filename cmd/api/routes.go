@@ -39,6 +39,7 @@ func (a *app) mount() *chi.Mux {
 
 		r.Group(func(r chi.Router) {
 			r.Use(api.Authenticated)
+			api.AuthenticatedFileRoutes(r)
 			api.MeRoutes(r)
 			api.ProfileImageRoutes(r)
 			api.NotificationRoutes(r)

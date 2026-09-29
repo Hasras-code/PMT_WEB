@@ -106,7 +106,7 @@ export default function Assessments() {
         mime_type: 'application/pdf',
         size_bytes: file.size,
       });
-      await uploadFile(init.data.upload_url, file);
+		await uploadFile(init.data, file);
       const body: Record<string, unknown> = {
         module_id: form.module_id,
         upload_id: init.data.upload_id,
@@ -180,7 +180,7 @@ export default function Assessments() {
         mime_type: 'application/pdf',
         size_bytes: nextFile.size,
       });
-      await uploadFile(init.data.upload_url, nextFile);
+		await uploadFile(init.data, nextFile);
       await api.post(`/v1/batches/${currentBatchID}/resources/${resourceID}/versions`, {
         upload_id: init.data.upload_id,
         original_size_bytes: nextFile.size,

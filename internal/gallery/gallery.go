@@ -10,6 +10,7 @@ import (
 	"github.com/Hasras-code/PMT_WEB.git/internal/audit"
 	"github.com/Hasras-code/PMT_WEB.git/internal/authorization"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
+	"github.com/Hasras-code/PMT_WEB.git/internal/platform/storage"
 	"github.com/Hasras-code/PMT_WEB.git/internal/upload"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -20,7 +21,7 @@ import (
 
 type Service struct {
 	Pool    *pgxpool.Pool
-	Store   upload.Store
+	Store   *storage.Manager
 	BaseURL string
 	Secret  []byte
 }
@@ -38,17 +39,20 @@ type Update struct {
 	AltText *string `json:"alt_text"`
 }
 type Image struct {
-	ID           string     `json:"id"`
-	Title        string     `json:"title"`
-	Caption      string     `json:"caption"`
-	AltText      string     `json:"alt_text"`
-	Width        int        `json:"width"`
-	Height       int        `json:"height"`
-	TakenAt      *time.Time `json:"taken_at"`
-	PublishedAt  *time.Time `json:"published_at"`
-	DisplayURL   string     `json:"display_url"`
-	ThumbnailURL string     `json:"thumbnail_url"`
-	Status       string     `json:"status,omitempty"`
+	ID                                 string     `json:"id"`
+	Title                              string     `json:"title"`
+	Caption                            string     `json:"caption"`
+	AltText                            string     `json:"alt_text"`
+	Width                              int        `json:"width"`
+	Height                             int        `json:"height"`
+	TakenAt                            *time.Time `json:"taken_at"`
+	PublishedAt                        *time.Time `json:"published_at"`
+	DisplayURL                         string     `json:"display_url"`
+	ThumbnailURL                       string     `json:"thumbnail_url"`
+	Status                             string     `json:"status,omitempty"`
+	displayKey, thumbnailKey           string
+	displayProvider, thumbnailProvider string
+	displayClass, thumbnailClass       string
 }
 type Page struct {
 	Data       []Image `json:"data"`
@@ -74,12 +78,13 @@ func (s Service) Create(ctx context.Context, user string, in Input) (string, err
 		return "", apperror.ErrInvalid
 	}
 	// Inspect immutable files before opening a transaction.
-	var key, mime string
-	e := s.Pool.QueryRow(ctx, `SELECT storage_key,mime_type FROM upload_intents WHERE id=$1 AND owner_id=$2 AND purpose='gallery' AND state='UPLOADED'`, in.DisplayUploadID, user).Scan(&key, &mime)
+	var key, mime, provider, class string
+	var size int64
+	e := s.Pool.QueryRow(ctx, `SELECT storage_key,mime_type,size_bytes,storage_provider,storage_class FROM upload_intents WHERE id=$1 AND owner_id=$2 AND purpose='gallery' AND state='UPLOADED'`, in.DisplayUploadID, user).Scan(&key, &mime, &size, &provider, &class)
 	if e != nil {
 		return "", db.Error(e)
 	}
-	meta, e := s.Store.Inspect(key, mime)
+	meta, e := s.Store.Confirm(ctx, storage.Object{Provider: provider, Class: class, Key: key, MIME: mime, Size: size})
 	if e != nil {
 		return "", e
 	}
@@ -172,7 +177,7 @@ func (s Service) List(ctx context.Context, month, raw string, limit int) (Page, 
 		}
 		at, id = &c.At, &c.ID
 	}
-	rows, e := s.Pool.Query(ctx, `SELECT id,title,caption,alt_text,width,height,taken_at,published_at,COALESCE(taken_at,published_at) FROM gallery_images WHERE status='PUBLISHED' AND ($1::timestamptz IS NULL OR COALESCE(taken_at,published_at)>=$1) AND ($2::timestamptz IS NULL OR COALESCE(taken_at,published_at)<$2) AND ($3::timestamptz IS NULL OR (COALESCE(taken_at,published_at),id)<($3,$4::uuid)) ORDER BY COALESCE(taken_at,published_at) DESC,id DESC LIMIT $5`, start, end, at, id, limit+1)
+	rows, e := s.Pool.Query(ctx, `SELECT g.id,g.title,g.caption,g.alt_text,g.width,g.height,g.taken_at,g.published_at,COALESCE(g.taken_at,g.published_at),g.display_key,g.thumbnail_key,d.storage_provider,d.storage_class,t.storage_provider,t.storage_class FROM gallery_images g JOIN upload_intents d ON d.storage_key=g.display_key JOIN upload_intents t ON t.storage_key=g.thumbnail_key WHERE g.status='PUBLISHED' AND ($1::timestamptz IS NULL OR COALESCE(g.taken_at,g.published_at)>=$1) AND ($2::timestamptz IS NULL OR COALESCE(g.taken_at,g.published_at)<$2) AND ($3::timestamptz IS NULL OR (COALESCE(g.taken_at,g.published_at),g.id)<($3,$4::uuid)) ORDER BY COALESCE(g.taken_at,g.published_at) DESC,g.id DESC LIMIT $5`, start, end, at, id, limit+1)
 	if e != nil {
 		return p, e
 	}
@@ -181,7 +186,7 @@ func (s Service) List(ctx context.Context, month, raw string, limit int) (Page, 
 	for rows.Next() {
 		var i Image
 		var date time.Time
-		if e = rows.Scan(&i.ID, &i.Title, &i.Caption, &i.AltText, &i.Width, &i.Height, &i.TakenAt, &i.PublishedAt, &date); e != nil {
+		if e = rows.Scan(&i.ID, &i.Title, &i.Caption, &i.AltText, &i.Width, &i.Height, &i.TakenAt, &i.PublishedAt, &date, &i.displayKey, &i.thumbnailKey, &i.displayProvider, &i.displayClass, &i.thumbnailProvider, &i.thumbnailClass); e != nil {
 			return p, e
 		}
 		if len(p.Data) == limit {
@@ -195,12 +200,17 @@ func (s Service) List(ctx context.Context, month, raw string, limit int) (Page, 
 	return p, rows.Err()
 }
 func (s Service) urls(i *Image) {
+	if i.displayProvider == storage.ProviderR2 && i.displayClass == storage.ClassPublic && i.thumbnailProvider == storage.ProviderR2 && i.thumbnailClass == storage.ClassPublic {
+		i.DisplayURL, _ = s.Store.PublicURL(storage.Object{Provider: i.displayProvider, Class: i.displayClass, Key: i.displayKey})
+		i.ThumbnailURL, _ = s.Store.PublicURL(storage.Object{Provider: i.thumbnailProvider, Class: i.thumbnailClass, Key: i.thumbnailKey})
+		return
+	}
 	i.DisplayURL = s.BaseURL + "/v1/public/gallery/" + i.ID + "/files/display"
 	i.ThumbnailURL = s.BaseURL + "/v1/public/gallery/" + i.ID + "/files/thumbnail"
 }
 func (s Service) Get(ctx context.Context, id string) (Image, error) {
 	var i Image
-	e := s.Pool.QueryRow(ctx, `SELECT id,title,caption,alt_text,width,height,taken_at,published_at FROM gallery_images WHERE id=$1 AND status='PUBLISHED'`, id).Scan(&i.ID, &i.Title, &i.Caption, &i.AltText, &i.Width, &i.Height, &i.TakenAt, &i.PublishedAt)
+	e := s.Pool.QueryRow(ctx, `SELECT g.id,g.title,g.caption,g.alt_text,g.width,g.height,g.taken_at,g.published_at,g.display_key,g.thumbnail_key,d.storage_provider,d.storage_class,t.storage_provider,t.storage_class FROM gallery_images g JOIN upload_intents d ON d.storage_key=g.display_key JOIN upload_intents t ON t.storage_key=g.thumbnail_key WHERE g.id=$1 AND g.status='PUBLISHED'`, id).Scan(&i.ID, &i.Title, &i.Caption, &i.AltText, &i.Width, &i.Height, &i.TakenAt, &i.PublishedAt, &i.displayKey, &i.thumbnailKey, &i.displayProvider, &i.displayClass, &i.thumbnailProvider, &i.thumbnailClass)
 	s.urls(&i)
 	return i, db.Error(e)
 }
@@ -209,7 +219,7 @@ func (s Service) File(ctx context.Context, id, variant string) (upload.Object, e
 	if variant != "display" && variant != "thumbnail" {
 		return o, apperror.ErrNotFound
 	}
-	e := s.Pool.QueryRow(ctx, `SELECT CASE WHEN $2='display' THEN g.display_key ELSE g.thumbnail_key END,i.mime_type FROM gallery_images g JOIN upload_intents i ON i.storage_key=CASE WHEN $2='display' THEN g.display_key ELSE g.thumbnail_key END WHERE g.id=$1 AND g.status='PUBLISHED'`, id, variant).Scan(&o.Key, &o.MIME)
+	e := s.Pool.QueryRow(ctx, `SELECT i.storage_key,i.file_name,i.mime_type,i.size_bytes,i.storage_provider,i.storage_class FROM gallery_images g JOIN upload_intents i ON i.storage_key=CASE WHEN $2='display' THEN g.display_key ELSE g.thumbnail_key END WHERE g.id=$1 AND g.status='PUBLISHED'`, id, variant).Scan(&o.Key, &o.Name, &o.MIME, &o.Size, &o.Provider, &o.Class)
 	return o, db.Error(e)
 }
 func (s Service) AdminList(ctx context.Context, user, id string, limit, offset int) (json.RawMessage, error) {
