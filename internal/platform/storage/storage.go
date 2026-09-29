@@ -98,6 +98,18 @@ func (m *Manager) NewObject(prefix, fileName, mime string, size int64, class str
 	return Object{Provider: provider, Class: class, Key: key, Name: fileName, MIME: mime, Size: size}, nil
 }
 
+// Check verifies that the selected production provider is reachable without
+// making local development depend on an external service.
+func (m *Manager) Check(ctx context.Context) error {
+	if m.Provider != ProviderR2 {
+		return nil
+	}
+	if m.R2 == nil {
+		return fmt.Errorf("R2 storage is not configured")
+	}
+	return m.R2.Check(ctx)
+}
+
 func (m *Manager) CreateUpload(ctx context.Context, object Object, uploadID string) (UploadAuthorization, error) {
 	switch object.Provider {
 	case ProviderLocal:

@@ -43,7 +43,8 @@ Google Cloud Secret Manager should provide sensitive backend values such as:
 - `AUTH_BASIC_PASS`
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
-- Production mail credentials
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
 
 Cloud Run may provide non-secret configuration directly:
 
@@ -62,6 +63,10 @@ Cloud Run may provide non-secret configuration directly:
 - `R2_PUBLIC_BASE_URL`
 - `UPLOAD_URL_TTL_SECONDS`
 - `DOWNLOAD_URL_TTL_SECONDS`
+- `SMTP_ADDR`
+- `SMTP_TLS_MODE=starttls` or `implicit`
+- `MAIL_FROM`
+- `AUTH_BASIC_USER`
 
 Cloudflare Pages receives only public build-time settings:
 
@@ -73,18 +78,21 @@ The frontend currently includes `/v1` in each API path, so `VITE_API_URL` must b
 
 ## Backend image
 
-Build the Cloud Run API image from the repository root:
+Build the Cloud Run API image for Cloud Run's required Linux amd64 platform from the repository root:
 
 ```sh
-docker build --target api -t university-lms-api .
+make docker-cloud-run
+# Or, when publishing directly:
+docker buildx build --platform linux/amd64 --target api \
+  -t REGION-docker.pkg.dev/PROJECT/REPOSITORY/university-lms-api:GIT_SHA --push .
 ```
 
-The default final stage is also `api`, so `docker build -t university-lms-api .` is equivalent. The image contains the API binary and does not contain Node, frontend source, or frontend build output.
+The default final stage is also `api`. The image contains the API binary and does not contain Node, frontend source, or frontend build output. Always verify that the published manifest contains `linux/amd64`; a plain local build on an Apple Silicon host produces an arm64 image that Cloud Run cannot start.
 
 Operational commands use the separate tools target:
 
 ```sh
-docker build --target tools -t university-lms-tools .
+make docker-tools-cloud-run
 ```
 
 ## Cloud Run and Supabase PostgreSQL
@@ -100,7 +108,9 @@ The recommended backend release flow is:
 
 Use GitHub OIDC and Google Workload Identity Federation for deployment. Do not store a service-account JSON key in the repository or GitHub secrets.
 
-Store the complete runtime connection string in Google Secret Manager and expose it to the API as `DATABASE_URL`. The configured Supabase shared Transaction Pooler endpoint is:
+Store separate runtime and migration connection strings in Google Secret Manager. Both are exposed to their own workload with the existing variable name `DATABASE_URL`; the API never receives the migration secret.
+
+The API uses the shared Transaction Pooler:
 
 ```text
 postgresql://postgres.bcwmnprcgemkgioiocum:PERCENT_ENCODED_PASSWORD@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require
@@ -110,13 +120,19 @@ The password placeholder must be replaced inside Secret Manager, not committed. 
 
 Port 6543 is for API runtime traffic. The Go pool uses `pgx.QueryExecModeExec`, so it does not create named prepared statements that depend on a persistent PostgreSQL server session. Start with `DB_MAX_CONNS=5` and cap the Cloud Run service at three instances.
 
-The API and `cmd/migrate` both read this same `DATABASE_URL` value.
+The controlled migration job must use the shared Session Pooler because `golang-migrate` holds a session advisory lock:
+
+```text
+postgresql://postgres.bcwmnprcgemkgioiocum:PERCENT_ENCODED_PASSWORD@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+`cmd/migrate` rejects the transaction-pooler endpoint to prevent an unsafe production migration. Apply migration `000025_object_storage` before deploying the R2-enabled API and require migration version 25 with `dirty=false` before shifting traffic.
 
 The API reads Cloud Run's `PORT` automatically when `HTTP_ADDR` is unset. Production configuration requires HTTPS and secure cookies.
 
 ### Cloudflare R2 storage
 
-Set `STORAGE_PROVIDER=r2` for Cloud Run. Production startup rejects local storage. Browser uploads use short-lived presigned PUT URLs and private downloads use short-lived presigned GET URLs, so file bytes do not pass through Cloud Run. Configure the bucket CORS policy and public media domain described in [Object storage](storage.md).
+Set `STORAGE_PROVIDER=r2` for Cloud Run. Production startup rejects local storage and performs a bounded availability check against both configured buckets. Browser uploads use short-lived presigned PUT URLs and private downloads use short-lived presigned GET URLs, so file bytes do not pass through Cloud Run. Configure the bucket CORS policy and a production custom public media domain described in [Object storage](storage.md).
 
 Before enabling R2 for an environment with existing local files, apply migration `000025_object_storage`, run `make migrate-storage-dry-run`, and then run `make migrate-storage`. The migration utility verifies each object before marking its database metadata as R2 and does not delete local copies.
 
@@ -131,6 +147,16 @@ Build output: dist
 ```
 
 Set `VITE_API_URL` in Pages for each environment. Add the exact Pages origin to the API's `CORS_ALLOWED_ORIGINS`. Cloudflare Pages can deploy through its Git integration independently of backend releases.
+
+## Production mail
+
+Registration verification and password reset require authenticated SMTP. Configure `SMTP_ADDR`, `MAIL_FROM`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_TLS_MODE`. Use `starttls` for providers on port 587 or `implicit` for providers on port 465. Production startup rejects plaintext SMTP, localhost, missing credentials, and placeholder values.
+
+## Initial Cloud Run service settings
+
+Use region `asia-south1`, public ingress, and allow unauthenticated infrastructure access; application JWT and permission middleware protect private routes. Start with 1 vCPU, 512 MiB, concurrency 20, request timeout 120 seconds, minimum instances 0, and maximum instances 3. Use a dedicated service account with access only to the required Secret Manager secrets. Leave `HTTP_ADDR` unset so Cloud Run's injected `PORT` is authoritative.
+
+Use the default TCP startup probe initially. `/health/live` and `/health/ready` remain Basic-authenticated operational endpoints; `/health/ready` checks PostgreSQL with a two-second deadline.
 
 ## Migrations
 
@@ -172,15 +198,15 @@ make frontend-typecheck
 make frontend-build
 make docs
 git diff --exit-code docs/openapi.json
-docker build --target api -t university-lms-api .
-docker build --target tools -t university-lms-tools .
+make docker-cloud-run
+make docker-tools-cloud-run
 ```
 
 Also verify migrations against a fresh PostgreSQL database and review `git status`, deleted files, environment files, generated output, and the lock file before committing.
 
 ## Troubleshooting
 
-- Configuration failure: check the required database URL, a non-placeholder JWT secret, secure production URLs, CORS origins, and Basic-auth credentials.
+- Configuration failure: check the TLS-required `postgres` database URL, a non-placeholder JWT secret, secure production URLs, CORS origins, Basic-auth credentials, authenticated TLS SMTP, and R2 settings.
 - Database unavailable: inspect the Supabase pooler endpoint, TLS settings, credentials, and database readiness before restarting the API.
 - Verification email missing: inspect Mailpit locally or the production mail provider logs.
 - Refresh unexpectedly revoked: check whether concurrent requests reused the same rotating refresh token.

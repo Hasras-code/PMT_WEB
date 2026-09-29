@@ -6,6 +6,9 @@ import (
 	"net/netip"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/Hasras-code/PMT_WEB.git/internal/platform/config"
 )
 
 func TestJSONValidation(t *testing.T) {
@@ -43,5 +46,27 @@ func TestProxyTrust(t *testing.T) {
 	r.Header.Set("X-Forwarded-For", "garbage")
 	if got := clientIP(r, trusted); got != "192.0.2.1" {
 		t.Fatal("malformed chain accepted")
+	}
+}
+
+func TestRefreshCookieSameSiteMatchesDeployment(t *testing.T) {
+	for _, tc := range []struct {
+		env      string
+		secure   bool
+		sameSite http.SameSite
+	}{
+		{"development", false, http.SameSiteLaxMode},
+		{"production", true, http.SameSiteNoneMode},
+	} {
+		t.Run(tc.env, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			api := API{Config: config.Config{Env: tc.env, CookieSecure: tc.secure}}
+			api.cookie(recorder, "token", time.Now().Add(time.Hour), 3600)
+			response := recorder.Result()
+			cookies := response.Cookies()
+			if len(cookies) != 1 || cookies[0].SameSite != tc.sameSite || cookies[0].Secure != tc.secure || !cookies[0].HttpOnly {
+				t.Fatalf("cookie = %+v", cookies)
+			}
+		})
 	}
 }

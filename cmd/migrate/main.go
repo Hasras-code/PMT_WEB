@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
@@ -56,6 +57,17 @@ func migrationURL(dsn string) (string, error) {
 	}
 	if u.Scheme != "postgres" && u.Scheme != "postgresql" {
 		return "", fmt.Errorf("unsupported scheme %q", u.Scheme)
+	}
+	host := strings.ToLower(u.Hostname())
+	if strings.HasSuffix(host, ".pooler.supabase.com") && u.Port() == "6543" {
+		return "", fmt.Errorf("supabase transaction pooler port 6543 is unsafe for migration advisory locks; use the session pooler on port 5432 or a direct connection")
+	}
+	if strings.HasSuffix(host, ".supabase.co") || strings.HasSuffix(host, ".pooler.supabase.com") {
+		switch strings.ToLower(u.Query().Get("sslmode")) {
+		case "require", "verify-ca", "verify-full":
+		default:
+			return "", fmt.Errorf("supabase migrations require sslmode=require or stronger")
+		}
 	}
 
 	u.Scheme = "pgx5"

@@ -4,9 +4,11 @@ The API supports local storage for development and Cloudflare R2 for production.
 
 ## Buckets and configuration
 
-R2 uses its S3-compatible API through AWS SDK for Go v2. The backend requires `R2_ENDPOINT`, `R2_REGION` (normally `auto`), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PRIVATE_BUCKET`, `R2_PUBLIC_BUCKET`, and `R2_PUBLIC_BASE_URL`. The public base URL must be a Cloudflare public or custom domain; it is not the authenticated R2 S3 endpoint.
+R2 uses its S3-compatible API through AWS SDK for Go v2. The backend requires `R2_ENDPOINT`, `R2_REGION` (normally `auto`), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PRIVATE_BUCKET`, `R2_PUBLIC_BUCKET`, and `R2_PUBLIC_BASE_URL`. The public base URL must be a Cloudflare public or custom domain; it is not the authenticated R2 S3 endpoint. Use `r2.dev` only for development and a custom media domain for production.
 
 Keep `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` in Google Secret Manager. Never add them to frontend or `VITE_*` configuration.
+
+Production startup checks both buckets with a ten-second startup deadline. Individual R2 data operations are bounded to fifteen seconds or the request's earlier deadline.
 
 Private storage contains resource PDFs, announcement attachments, fund receipts, profile images, and event covers. Event covers remain private even for public events; the public event route verifies that the event is published and public before returning a short-lived signed URL. The public bucket contains batch hero images and published gallery variants.
 

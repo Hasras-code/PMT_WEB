@@ -34,3 +34,18 @@ func TestMigrationURLRejectsUnsupportedScheme(t *testing.T) {
 		t.Fatal("migrationURL accepted an unsupported scheme")
 	}
 }
+
+func TestMigrationURLRejectsSupabaseTransactionPooler(t *testing.T) {
+	if _, err := migrationURL("postgresql://user:password@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require"); err == nil {
+		t.Fatal("migrationURL accepted the Supabase transaction pooler")
+	}
+}
+
+func TestMigrationURLRequiresTLSForSupabase(t *testing.T) {
+	if _, err := migrationURL("postgresql://user:password@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"); err == nil {
+		t.Fatal("migrationURL accepted a Supabase connection without required TLS")
+	}
+	if _, err := migrationURL("postgresql://user:password@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require"); err != nil {
+		t.Fatalf("migrationURL rejected the Supabase session pooler: %v", err)
+	}
+}

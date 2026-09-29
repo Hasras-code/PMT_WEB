@@ -60,6 +60,17 @@ func newApp(ctx context.Context, logger *slog.Logger) (*app, error) {
 		pool.Close()
 		return nil, err
 	}
+	if cfg.StorageProvider == "r2" {
+		checkCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		err = files.Check(checkCtx)
+		cancel()
+		if err != nil {
+			_ = files.Close()
+			pool.Close()
+			return nil, err
+		}
+		logger.Info("object storage connection established")
+	}
 
 	store := store.NewStorage(pool)
 	as := &auth.Service{
@@ -70,8 +81,11 @@ func newApp(ctx context.Context, logger *slog.Logger) (*app, error) {
 			Issuer:   cfg.Issuer,
 			Audience: cfg.Audience,
 		},
-		Mail: mail.SMTP{Addr: cfg.SMTP, From: cfg.MailFrom},
-		Log:  logger,
+		Mail: mail.SMTP{
+			Addr: cfg.SMTP, From: cfg.MailFrom,
+			Username: cfg.SMTPUsername, Password: cfg.SMTPPassword, TLSMode: cfg.SMTPTLSMode,
+		},
+		Log: logger,
 	}
 
 	return &app{

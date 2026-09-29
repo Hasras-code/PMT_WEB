@@ -33,7 +33,18 @@ type R2 struct {
 	publicBaseURL string
 }
 
+const r2OperationTimeout = 15 * time.Second
+
+func r2Context(ctx context.Context) (context.Context, context.CancelFunc) {
+	if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) <= r2OperationTimeout {
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, r2OperationTimeout)
+}
+
 func (r *R2) Check(ctx context.Context) error {
+	ctx, cancel := r2Context(ctx)
+	defer cancel()
 	for _, bucket := range []string{r.privateBucket, r.publicBucket} {
 		if _, err := r.client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String(bucket)}); err != nil {
 			return fmt.Errorf("object storage bucket is unavailable")
@@ -95,6 +106,8 @@ func (r *R2) CreateUploadURL(ctx context.Context, object Object, ttl time.Durati
 }
 
 func (r *R2) Inspect(ctx context.Context, object Object) (Metadata, error) {
+	ctx, cancel := r2Context(ctx)
+	defer cancel()
 	bucket, err := r.bucket(object.Class)
 	if err != nil {
 		return Metadata{}, err
@@ -135,6 +148,8 @@ func (r *R2) CreateDownloadURL(ctx context.Context, object Object, ttl time.Dura
 func (r *R2) PublicURL(key string) (string, error) { return joinPublicURL(r.publicBaseURL, key) }
 
 func (r *R2) Delete(ctx context.Context, object Object) error {
+	ctx, cancel := r2Context(ctx)
+	defer cancel()
 	bucket, err := r.bucket(object.Class)
 	if err != nil {
 		return err
@@ -144,6 +159,8 @@ func (r *R2) Delete(ctx context.Context, object Object) error {
 }
 
 func (r *R2) Put(ctx context.Context, object Object, reader io.Reader) (Metadata, error) {
+	ctx, cancel := r2Context(ctx)
+	defer cancel()
 	bucket, err := r.bucket(object.Class)
 	if err != nil {
 		return Metadata{}, err
