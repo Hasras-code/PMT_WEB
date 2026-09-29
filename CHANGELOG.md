@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.2.0...v1.3.0) (2026-09-29)
+
+
+### Features
+
+* migrate uploads to cloudflare r2 ([7f30946](https://github.com/Hasras-code/PMT_WEB/commit/7f30946a720a6f5c42e4fd853ff4f90dce300322))
+
+
+### Bug Fixes
+
+* disable prepared statements for migrations ([174529d](https://github.com/Hasras-code/PMT_WEB/commit/174529d6c5ad4f84cc7866c2fb3ed26fd14a242a))
+* harden production deployment configuration ([0c5fcbf](https://github.com/Hasras-code/PMT_WEB/commit/0c5fcbfd73ed18225131db27ec22737c0d5f6df0))
+* make pgx compatible with transaction pooling ([89b224e](https://github.com/Hasras-code/PMT_WEB/commit/89b224ea1e461a9aabf4e2cc237901c95abd9076))
+
 ## [1.2.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.1.0...v1.2.0) (2026-09-28)
 
 
