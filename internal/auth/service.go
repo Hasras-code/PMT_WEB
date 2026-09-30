@@ -24,6 +24,9 @@ import (
 type Mailer interface {
 	Send(context.Context, string, string, string) error
 }
+
+const emailVerificationTokenTTL = 48 * time.Hour
+
 type Service struct {
 	Pool   *pgxpool.Pool
 	Store  store.Storage
@@ -112,7 +115,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) error {
 		if e != nil {
 			return e
 		}
-		_, e = tx.Exec(ctx, `INSERT INTO verification_tokens(user_id,purpose,token_hash,expires_at) VALUES($1,'EMAIL_VERIFY',$2,now()+interval '24 hours')`, id, digest)
+		_, e = tx.Exec(ctx, `INSERT INTO verification_tokens(user_id,purpose,token_hash,expires_at) VALUES($1,'EMAIL_VERIFY',$2,$3)`, id, digest, time.Now().Add(emailVerificationTokenTTL))
 		return e
 	})
 	if errors.Is(e, apperror.ErrConflict) {
@@ -155,7 +158,7 @@ func (s *Service) RequestToken(ctx context.Context, email, purpose string) error
 		if e != nil {
 			return e
 		}
-		ttl := time.Hour * 24
+		ttl := emailVerificationTokenTTL
 		if purpose == "PASSWORD_RESET" {
 			ttl = 30 * time.Minute
 		}
