@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	_ "embed"
 	"fmt"
 	"html"
+	"html/template"
 	"mime/multipart"
 	"net"
 	stdmail "net/mail"
@@ -21,6 +23,16 @@ type SMTP struct {
 	Username, Password string
 	TLSMode            string
 	FrontendURL        string
+}
+
+//go:embed user_invitation.tmpl
+var userInvitationTemplateSource string
+
+var userInvitationTemplate = template.Must(template.New("user_invitation.tmpl").Parse(userInvitationTemplateSource))
+
+type userInvitationData struct {
+	VerificationURL string
+	Token           string
 }
 
 func (m SMTP) Send(ctx context.Context, to, purpose, token string) error {
@@ -131,7 +143,11 @@ func (m SMTP) message(from, to, purpose, token string) ([]byte, error) {
 		link := frontend + "/verify#token=" + url.QueryEscape(token)
 		subject = "Verify your PMT Family email"
 		textBody = "Welcome to PMT Family.\r\n\r\nOpen this link to verify your email address:\r\n" + link + "\r\n\r\nIf the link does not open, paste this one-time token on the verification page:\r\n" + token + "\r\n"
-		htmlBody = "<p>Welcome to PMT Family.</p><p><a href=\"" + html.EscapeString(link) + "\">Verify your email address</a></p><p>If the link does not open, paste this one-time token on the verification page:</p><p><code>" + html.EscapeString(token) + "</code></p>"
+		var invitation bytes.Buffer
+		if err := userInvitationTemplate.Execute(&invitation, userInvitationData{VerificationURL: link, Token: token}); err != nil {
+			return nil, fmt.Errorf("render user invitation email: %w", err)
+		}
+		htmlBody = invitation.String()
 	}
 
 	var body bytes.Buffer
