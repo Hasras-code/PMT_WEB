@@ -56,7 +56,7 @@ export default function Register() {
           <h2 className="text-4xl font-bold leading-tight text-ink">Join your cohort.</h2>
           <p className="mt-4 text-muted text-lg">Register with your student number to get started.</p>
         </div>
-        <p className="text-muted text-sm relative z-10">PMT Batch Trip</p>
+        <p className="text-muted text-sm relative z-10">©  All Rights Reserved. Designed and developed by 24/25 PMT Batch</p>
       </div>
       <div className="flex-1 flex items-center justify-center p-8 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 blur-[100px] pointer-events-none rounded-full" />
