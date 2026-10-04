@@ -50,6 +50,7 @@ Cloud Run may provide non-secret configuration directly:
 
 - `APP_ENV=production`
 - `PUBLIC_API_URL`
+- `FRONTEND_URL`
 - `CORS_ALLOWED_ORIGINS`
 - `COOKIE_SECURE=true`
 - `DB_MAX_CONNS`
@@ -150,7 +151,9 @@ Set `VITE_API_URL` in Pages for each environment. Add the exact Pages origin to 
 
 ## Production mail
 
-Registration verification and password reset require authenticated SMTP. Configure `SMTP_ADDR`, `MAIL_FROM`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_TLS_MODE`. Use `starttls` for providers on port 587 or `implicit` for providers on port 465. Production startup rejects plaintext SMTP, localhost, missing credentials, and placeholder values.
+Registration verification and password reset use authenticated SMTP. Mailtrap Email Sending works with the existing SMTP adapter: configure `SMTP_ADDR=live.smtp.mailtrap.io:587`, `SMTP_TLS_MODE=starttls`, `SMTP_USERNAME=api`, and `SMTP_PASSWORD` with the Mailtrap SMTP token from the verified sending domain's Transactional Stream integration. Set `MAIL_FROM` to a sender address on that verified domain. Keep the token in Secret Manager.
+
+Set `FRONTEND_URL` to the exact browser app origin and include that same origin in `CORS_ALLOWED_ORIGINS`. Verification messages contain a link to `/verify#token=…`; the page fills the one-time token and asks the user to confirm. The token is in the URL fragment, so the browser does not send it to the web server, and the page removes it from the address bar before confirmation. Production startup rejects HTTP frontend URLs, missing SMTP credentials, plaintext SMTP, and localhost mail servers.
 
 ## Initial Cloud Run service settings
 

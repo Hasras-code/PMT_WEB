@@ -1,14 +1,22 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { api, errMsg } from '../api/client';
 import toast from 'react-hot-toast';
 import { Field, inputCls, PrimaryButton } from '../components/ui';
 
 export default function Verify() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [token, setToken] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const linkToken = searchParams.get('token') || new URLSearchParams(window.location.hash.slice(1)).get('token');
+    if (!linkToken) return;
+    setToken(linkToken);
+    navigate('/verify', { replace: true });
+  }, [navigate, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +51,7 @@ export default function Verify() {
       <div className="w-full max-w-md bg-charcoal-card backdrop-blur-xl rounded-2xl border border-line p-8 shadow-2xl relative z-10">
         <p className="text-[28px] tracking-tight font-bold text-gold-gradient">PMT Family</p>
         <h1 className="mt-3 text-2xl font-semibold text-ink">Verify your email</h1>
-        <p className="mt-1 text-sm text-muted">Paste the one-time token from your email.</p>
+        <p className="mt-1 text-sm text-muted">Open the verification link from your email or enter its one-time token below.</p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <Field label="Verification token">
             <input required autoComplete="one-time-code" placeholder="Token from email" className={inputCls} value={token} onChange={(e) => setToken(e.target.value)} />

@@ -84,6 +84,7 @@ func newApp(ctx context.Context, logger *slog.Logger) (*app, error) {
 		Mail: mail.SMTP{
 			Addr: cfg.SMTP, From: cfg.MailFrom,
 			Username: cfg.SMTPUsername, Password: cfg.SMTPPassword, TLSMode: cfg.SMTPTLSMode,
+			FrontendURL: cfg.FrontendURL,
 		},
 		Log: logger,
 	}

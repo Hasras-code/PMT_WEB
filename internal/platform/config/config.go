@@ -16,6 +16,7 @@ type Config struct {
 	TrustedProxies  []netip.Prefix
 	Env, Addr       string
 	BaseURL         string
+	FrontendURL     string
 	DatabaseURL     string
 	Secret          string
 	Issuer          string
@@ -47,6 +48,7 @@ func Load() (Config, error) {
 		Env:             strings.ToLower(get("APP_ENV", "development")),
 		Addr:            get("HTTP_ADDR", ":"+get("PORT", "8080")),
 		BaseURL:         get("PUBLIC_API_URL", "http://localhost:8080"),
+		FrontendURL:     strings.TrimRight(get("FRONTEND_URL", "http://localhost:5173"), "/"),
 		DatabaseURL:     os.Getenv("DATABASE_URL"),
 		Secret:          os.Getenv("JWT_SECRET"),
 		Issuer:          get("JWT_ISSUER", "pmt-api"),
@@ -102,6 +104,13 @@ func Load() (Config, error) {
 		return c, fmt.Errorf("invalid PUBLIC_API_URL")
 	}
 	c.BaseURL = strings.TrimRight(c.BaseURL, "/")
+	frontendURL, err := url.Parse(c.FrontendURL)
+	if err != nil || frontendURL.Host == "" || (frontendURL.Scheme != "http" && frontendURL.Scheme != "https") || frontendURL.Path != "" || frontendURL.RawQuery != "" || frontendURL.Fragment != "" {
+		return c, fmt.Errorf("invalid FRONTEND_URL")
+	}
+	if c.Env == "production" && frontendURL.Scheme != "https" {
+		return c, fmt.Errorf("production FRONTEND_URL must use HTTPS")
+	}
 	if c.StorageProvider != "local" && c.StorageProvider != "r2" {
 		return c, fmt.Errorf("STORAGE_PROVIDER must be local or r2")
 	}
@@ -151,6 +160,13 @@ func Load() (Config, error) {
 		}
 		if len(c.Origins) == 0 {
 			return c, fmt.Errorf("production requires CORS_ALLOWED_ORIGINS")
+		}
+		frontendAllowed := false
+		for _, origin := range c.Origins {
+			frontendAllowed = frontendAllowed || origin == c.FrontendURL
+		}
+		if !frontendAllowed {
+			return c, fmt.Errorf("FRONTEND_URL must be included in CORS_ALLOWED_ORIGINS")
 		}
 		basic := strings.ToLower(strings.TrimSpace(c.BasicPass))
 		if strings.TrimSpace(c.BasicUser) == "" || len(c.BasicPass) < 16 || basic == "admin123" || strings.Contains(basic, "change-") || strings.Contains(basic, "replace-") {

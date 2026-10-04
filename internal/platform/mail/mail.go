@@ -1,12 +1,19 @@
 package mail
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	_ "embed"
 	"fmt"
+	"html"
+	"html/template"
+	"mime/multipart"
 	"net"
 	stdmail "net/mail"
 	"net/smtp"
+	"net/textproto"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -15,6 +22,17 @@ type SMTP struct {
 	Addr, From         string
 	Username, Password string
 	TLSMode            string
+	FrontendURL        string
+}
+
+//go:embed user_invitation.tmpl
+var userInvitationTemplateSource string
+
+var userInvitationTemplate = template.Must(template.New("user_invitation.tmpl").Parse(userInvitationTemplateSource))
+
+type userInvitationData struct {
+	VerificationURL string
+	Token           string
 }
 
 func (m SMTP) Send(ctx context.Context, to, purpose, token string) error {
@@ -98,7 +116,12 @@ func (m SMTP) Send(ctx context.Context, to, purpose, token string) error {
 	if e != nil {
 		return e
 	}
-	_, e = fmt.Fprintf(w, "From: %s\r\nTo: %s\r\nSubject: LMS %s\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nUse this one-time token for %s:\r\n%s\r\n", m.From, recipient.Address, purpose, purpose, token)
+	message, e := m.message(from.Address, recipient.Address, purpose, token)
+	if e != nil {
+		_ = w.Close()
+		return e
+	}
+	_, e = w.Write(message)
 	if e != nil {
 		return e
 	}
@@ -106,4 +129,48 @@ func (m SMTP) Send(ctx context.Context, to, purpose, token string) error {
 		return e
 	}
 	return c.Quit()
+}
+
+func (m SMTP) message(from, to, purpose, token string) ([]byte, error) {
+	subject := "PMT Family notification"
+	textBody := fmt.Sprintf("Use this one-time token for %s:\r\n%s\r\n", purpose, token)
+	htmlBody := fmt.Sprintf("<p>Use this one-time token for %s:</p><p><code>%s</code></p>", html.EscapeString(purpose), html.EscapeString(token))
+	if purpose == "EMAIL_VERIFY" {
+		frontend := strings.TrimRight(m.FrontendURL, "/")
+		if frontend == "" {
+			frontend = "http://localhost:5173"
+		}
+		link := frontend + "/verify#token=" + url.QueryEscape(token)
+		subject = "Verify your PMT Family email"
+		textBody = "Welcome to PMT Family.\r\n\r\nOpen this link to verify your email address:\r\n" + link + "\r\n\r\nIf the link does not open, paste this one-time token on the verification page:\r\n" + token + "\r\n"
+		var invitation bytes.Buffer
+		if err := userInvitationTemplate.Execute(&invitation, userInvitationData{VerificationURL: link, Token: token}); err != nil {
+			return nil, fmt.Errorf("render user invitation email: %w", err)
+		}
+		htmlBody = invitation.String()
+	}
+
+	var body bytes.Buffer
+	parts := multipart.NewWriter(&body)
+	textPart, err := parts.CreatePart(textproto.MIMEHeader{"Content-Type": {"text/plain; charset=utf-8"}, "Content-Transfer-Encoding": {"8bit"}})
+	if err != nil {
+		return nil, err
+	}
+	if _, err = textPart.Write([]byte(textBody)); err != nil {
+		return nil, err
+	}
+	htmlPart, err := parts.CreatePart(textproto.MIMEHeader{"Content-Type": {"text/html; charset=utf-8"}, "Content-Transfer-Encoding": {"8bit"}})
+	if err != nil {
+		return nil, err
+	}
+	if _, err = htmlPart.Write([]byte(htmlBody)); err != nil {
+		return nil, err
+	}
+	if err = parts.Close(); err != nil {
+		return nil, err
+	}
+	var message bytes.Buffer
+	fmt.Fprintf(&message, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=%q\r\n\r\n", from, to, subject, parts.Boundary())
+	_, err = message.Write(body.Bytes())
+	return message.Bytes(), err
 }
