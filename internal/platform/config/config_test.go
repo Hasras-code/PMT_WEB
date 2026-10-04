@@ -74,7 +74,7 @@ func TestProductionConfigurationRejectsUnsafeDependencies(t *testing.T) {
 		name, key, value string
 	}{
 		{"database without TLS", "DATABASE_URL", "postgres://db.example.com/postgres"},
-		{"wrong database", "DATABASE_URL", "postgres://db.example.com/pmtdb?sslmode=require"},
+		{"missing database name", "DATABASE_URL", "postgres://db.example.com/?sslmode=require"},
 		{"default health password", "AUTH_BASIC_PASS", "admin123"},
 		{"plaintext SMTP", "SMTP_TLS_MODE", "none"},
 		{"missing SMTP password", "SMTP_PASSWORD", ""},
@@ -92,7 +92,7 @@ func TestProductionConfigurationRejectsUnsafeDependencies(t *testing.T) {
 
 func setValidProductionEnvironment(t *testing.T) {
 	t.Helper()
-	t.Setenv("DATABASE_URL", "postgres://db.example.com/postgres?sslmode=require")
+	t.Setenv("DATABASE_URL", "postgres://db.example.com/pmtdb?sslmode=require")
 	t.Setenv("JWT_SECRET", strings.Repeat("s", 48))
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("COOKIE_SECURE", "true")

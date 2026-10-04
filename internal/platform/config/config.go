@@ -195,8 +195,12 @@ func Load() (Config, error) {
 
 func validateProductionDatabaseURL(raw string) error {
 	u, err := url.Parse(raw)
-	if err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") || u.Hostname() == "" || strings.Trim(u.Path, "/") != "postgres" {
-		return fmt.Errorf("production DATABASE_URL must target the postgres database")
+	if err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") || u.Hostname() == "" {
+		return fmt.Errorf("production DATABASE_URL must be a valid PostgreSQL URL")
+	}
+	databaseName := strings.Trim(u.Path, "/")
+	if databaseName == "" || strings.Contains(databaseName, "/") {
+		return fmt.Errorf("production DATABASE_URL must include one database name")
 	}
 	switch strings.ToLower(u.Query().Get("sslmode")) {
 	case "require", "verify-ca", "verify-full":

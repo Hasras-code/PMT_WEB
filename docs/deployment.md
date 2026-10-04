@@ -111,6 +111,8 @@ Use GitHub OIDC and Google Workload Identity Federation for deployment. Do not s
 
 Store separate runtime and migration connection strings in Google Secret Manager. Both are exposed to their own workload with the existing variable name `DATABASE_URL`; the API never receives the migration secret.
 
+The database name in the URL path is configurable. Point both the API and migration job at the same database that contains the application schema; use `/pmtdb` if that is the database you migrated. The sample below uses `/postgres` from the supplied Supabase connection details.
+
 The API uses the shared Transaction Pooler:
 
 ```text
@@ -209,7 +211,7 @@ Also verify migrations against a fresh PostgreSQL database and review `git statu
 
 ## Troubleshooting
 
-- Configuration failure: check the TLS-required `postgres` database URL, a non-placeholder JWT secret, secure production URLs, CORS origins, Basic-auth credentials, authenticated TLS SMTP, and R2 settings.
+- Configuration failure: check that `DATABASE_URL` is a TLS-required PostgreSQL URL with a database name matching the migrated schema, a non-placeholder JWT secret, secure production URLs, CORS origins, Basic-auth credentials, authenticated TLS SMTP, and R2 settings.
 - Database unavailable: inspect the Supabase pooler endpoint, TLS settings, credentials, and database readiness before restarting the API.
 - Verification email missing: inspect Mailpit locally or the production mail provider logs.
 - Refresh unexpectedly revoked: check whether concurrent requests reused the same rotating refresh token.
