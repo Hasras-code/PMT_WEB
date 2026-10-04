@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.3.0...v1.4.0) (2026-10-04)
+
+
+### Features
+
+* add STORAGE_DIR environment variable to Dockerfile ([88ee8bf](https://github.com/Hasras-code/PMT_WEB/commit/88ee8bf1a98baa4348319f6b0f42444030e6238b))
+* update footer text with copyright and batch attribution in Register page ([a593fe4](https://github.com/Hasras-code/PMT_WEB/commit/a593fe4cd92d8d9a190df433ef3b79a0b993648d))
+
+
+### Bug Fixes
+
+* allow configured production database names ([77c0450](https://github.com/Hasras-code/PMT_WEB/commit/77c045085ae61296bd489c2b2e19c6aa1ad404bc))
+
 ## [1.3.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.2.0...v1.3.0) (2026-09-29)
 
 
