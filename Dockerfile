@@ -1,22 +1,24 @@
 # syntax=docker/dockerfile:1.7
-FROM --platform=$BUILDPLATFORM golang:1.26.8-alpine AS source
+FROM golang:1.26.8-alpine AS source
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
 FROM source AS build-api
-ARG TARGETOS TARGETARCH
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /out/api ./cmd/api
 
 FROM source AS build-tools
-ARG TARGETOS TARGETARCH
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /out/migrate ./cmd/migrate && \
 	CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /out/migrate-storage ./cmd/migrate-storage && \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /out/admin ./cmd/admin && \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /out/jobs ./cmd/jobs
 
-FROM --platform=$TARGETPLATFORM alpine:3.23 AS runtime
+FROM alpine:3.23 AS runtime
 RUN apk add --no-cache ca-certificates && addgroup -S lms && adduser -S -G lms lms && mkdir -p /data/files && chown -R lms:lms /data && chmod 700 /data/files
 WORKDIR /app
 USER lms
