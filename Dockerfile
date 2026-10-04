@@ -22,6 +22,7 @@ FROM alpine:3.23 AS runtime
 RUN apk add --no-cache ca-certificates && addgroup -S lms && adduser -S -G lms lms && mkdir -p /data/files && chown -R lms:lms /data && chmod 700 /data/files
 WORKDIR /app
 USER lms
+ENV STORAGE_DIR=/data/files
 
 # Operational commands share the same source build but are excluded from the
 # default production API image. Compose selects this target for migrations.
