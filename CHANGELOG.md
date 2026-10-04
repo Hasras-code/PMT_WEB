@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.4.0...v1.5.0) (2026-10-04)
+
+
+### Features
+
+* add Vercel routing configuration and update Instagram icon SVG in PublicHome ([2f7c83a](https://github.com/Hasras-code/PMT_WEB/commit/2f7c83adc1d25747a0f49748a9f54117f30b9f6d))
+
 ## [1.4.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.3.0...v1.4.0) (2026-10-04)
 
 
