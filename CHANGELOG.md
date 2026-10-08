@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.6.0...v1.7.0) (2026-10-08)
+
+
+### Features
+
+* add GET handler and documentation for email verification redirect ([7596ef6](https://github.com/Hasras-code/PMT_WEB/commit/7596ef6dc60b575fba74876d86d99d16d6933d01))
+
 ## [1.6.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.5.0...v1.6.0) (2026-10-08)
 
 
