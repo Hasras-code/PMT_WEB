@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const version = "1.6.0"
+const version = "1.7.0"
 
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
