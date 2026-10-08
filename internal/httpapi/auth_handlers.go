@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
@@ -13,6 +15,7 @@ import (
 func (a *API) authRoutes(r chi.Router) {
 	r.Post("/auth/register", a.wrap(a.registerHandler))
 	r.Post("/auth/verify-email", a.wrap(a.verifyEmailHandler))
+	r.Get("/auth/verify-email", a.wrap(a.verifyEmailGetHandler))
 	r.Post("/auth/reset-password", a.wrap(a.resetPasswordHandler))
 	r.Post("/auth/resend-verification", a.wrap(a.resendVerificationHandler))
 	r.Post("/auth/forgot-password", a.wrap(a.forgotPasswordHandler))
@@ -56,6 +59,20 @@ func (a *API) registerHandler(w http.ResponseWriter, r *http.Request) error {
 //	@Router			/v1/auth/verify-email [post]
 func (a *API) verifyEmailHandler(w http.ResponseWriter, r *http.Request) error {
 	return a.consumeTokenHandler(w, r, "EMAIL_VERIFY")
+}
+
+func (a *API) verifyEmailGetHandler(w http.ResponseWriter, r *http.Request) error {
+	frontend := strings.TrimRight(a.Config.FrontendURL, "/")
+	if frontend == "" {
+		frontend = "http://localhost:5173"
+	}
+	token := strings.TrimSpace(r.URL.Query().Get("token"))
+	target := frontend + "/verify"
+	if token != "" {
+		target += "#token=" + url.QueryEscape(token)
+	}
+	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+	return nil
 }
 
 // resetPasswordHandler godoc

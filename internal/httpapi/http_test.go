@@ -70,3 +70,33 @@ func TestRefreshCookieSameSiteMatchesDeployment(t *testing.T) {
 		})
 	}
 }
+
+func TestVerifyEmailGetRedirect(t *testing.T) {
+	api := API{Config: config.Config{FrontendURL: "https://www.example.com"}}
+
+	// Without token query parameter
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/v1/auth/verify-email", nil)
+	if err := api.verifyEmailGetHandler(rec, req); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusTemporaryRedirect)
+	}
+	if loc := rec.Header().Get("Location"); loc != "https://www.example.com/verify" {
+		t.Fatalf("location = %s, want https://www.example.com/verify", loc)
+	}
+
+	// With token query parameter
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/v1/auth/verify-email?token=my-secret-token", nil)
+	if err := api.verifyEmailGetHandler(rec, req); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusTemporaryRedirect)
+	}
+	if loc := rec.Header().Get("Location"); loc != "https://www.example.com/verify#token=my-secret-token" {
+		t.Fatalf("location = %s, want https://www.example.com/verify#token=my-secret-token", loc)
+	}
+}
