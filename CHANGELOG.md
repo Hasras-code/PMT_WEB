@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.5.0...v1.6.0) (2026-10-08)
+
+
+### Features
+
+* add detailed error messages and token validation for auth flows ([e3e3d5d](https://github.com/Hasras-code/PMT_WEB/commit/e3e3d5d2dd9ced67ce792394a032aab9a53c57d4))
+
 ## [1.5.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.4.0...v1.5.0) (2026-10-04)
 
 
