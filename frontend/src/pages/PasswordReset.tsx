@@ -12,9 +12,11 @@ export default function PasswordReset() {
 
   const request = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = email.trim();
+    if (!cleanEmail) return;
     setLoading(true);
     try {
-      await api.post('/v1/auth/forgot-password', { email });
+      await api.post('/v1/auth/forgot-password', { email: cleanEmail });
       toast.success('If eligible, a reset email was sent.');
     } catch (err) {
       toast.error(errMsg(err, 'Request failed'));
@@ -25,9 +27,14 @@ export default function PasswordReset() {
 
   const reset = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanToken = token.trim();
+    if (!cleanToken) {
+      toast.error('Please enter your reset token');
+      return;
+    }
     setLoading(true);
     try {
-      await api.post('/v1/auth/reset-password', { token, password });
+      await api.post('/v1/auth/reset-password', { token: cleanToken, password });
       toast.success('Password changed! Sign in with your new password.');
     } catch (err) {
       toast.error(errMsg(err, 'Reset failed'));

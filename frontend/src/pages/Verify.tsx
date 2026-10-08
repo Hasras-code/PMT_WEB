@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { api, errMsg } from '../api/client';
 import toast from 'react-hot-toast';
@@ -10,33 +10,51 @@ export default function Verify() {
   const [token, setToken] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
-    const linkToken = searchParams.get('token') || new URLSearchParams(window.location.hash.slice(1)).get('token');
-    if (!linkToken) return;
+    const rawLinkToken = searchParams.get('token') || new URLSearchParams(window.location.hash.slice(1)).get('token');
+    if (!rawLinkToken) return;
+    const linkToken = rawLinkToken.trim();
     setToken(linkToken);
     navigate('/verify', { replace: true });
   }, [navigate, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanToken = token.trim();
+    if (!cleanToken) {
+      toast.error('Please enter your verification token');
+      return;
+    }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     try {
-      await api.post('/v1/auth/verify-email', { token });
+      await api.post('/v1/auth/verify-email', { token: cleanToken });
       toast.success('Email verified! You can sign in now.');
-      navigate('/');
-    } catch (err) {
-      toast.error(errMsg(err, 'Verification failed'));
+      navigate('/login');
+    } catch (err: unknown) {
+      const respData = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data;
+      const code = respData?.error?.code;
+      if (code === 'account_already_verified') {
+        toast.success('Your email is already verified! You can sign in now.');
+        navigate('/login');
+      } else {
+        toast.error(errMsg(err, 'Verification failed'));
+      }
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
   const resend = async () => {
-    if (!email) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail) return;
     setLoading(true);
     try {
-      await api.post('/v1/auth/resend-verification', { email });
+      await api.post('/v1/auth/resend-verification', { email: cleanEmail });
       toast.success('If eligible, a new verification email was sent.');
     } catch (err) {
       toast.error(errMsg(err, 'Could not request another email'));

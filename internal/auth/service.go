@@ -172,8 +172,9 @@ func (s *Service) RequestToken(ctx context.Context, email, purpose string) error
 	return e
 }
 func (s *Service) ConsumeToken(ctx context.Context, raw, purpose, password string) error {
+	raw = strings.TrimSpace(raw)
 	if len(raw) != 43 {
-		return apperror.ErrInvalid
+		return apperror.WithCodeAndMessage(apperror.ErrInvalid, "invalid_token", "Invalid verification token format")
 	}
 	var passwordHash string
 	var e error
@@ -184,22 +185,29 @@ func (s *Service) ConsumeToken(ctx context.Context, raw, purpose, password strin
 		}
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		var uid string
-		if e := tx.QueryRow(ctx, `SELECT user_id FROM verification_tokens WHERE token_hash=$1 AND purpose=$2`, Hash(raw), purpose).Scan(&uid); e != nil {
-			return apperror.ErrInvalid
+		var id, uid string
+		var usedAt *time.Time
+		var expiresAt time.Time
+		if e := tx.QueryRow(ctx, `SELECT id, user_id, used_at, expires_at FROM verification_tokens WHERE token_hash=$1 AND purpose=$2 FOR UPDATE`, Hash(raw), purpose).Scan(&id, &uid, &usedAt, &expiresAt); e != nil {
+			return apperror.WithCodeAndMessage(apperror.ErrInvalid, "invalid_token", "Invalid or unrecognized verification token")
 		}
 		var status string
 		var registrationBatchID *string
 		if e := tx.QueryRow(ctx, `SELECT status,registration_batch_id FROM users WHERE id=$1 FOR UPDATE`, uid).Scan(&status, &registrationBatchID); e != nil {
 			return e
 		}
-		var id string
-		if e := tx.QueryRow(ctx, `SELECT id FROM verification_tokens WHERE token_hash=$1 AND purpose=$2 AND used_at IS NULL AND expires_at>now() FOR UPDATE`, Hash(raw), purpose).Scan(&id); e != nil {
-			return apperror.ErrInvalid
+		if purpose == "EMAIL_VERIFY" && status == "ACTIVE" {
+			return apperror.WithCodeAndMessage(apperror.ErrInvalid, "account_already_verified", "Your email is already verified. You can sign in now.")
+		}
+		if usedAt != nil {
+			return apperror.WithCodeAndMessage(apperror.ErrInvalid, "token_already_used", "This verification link has already been used. Please log in or request a new one.")
+		}
+		if expiresAt.Before(time.Now()) {
+			return apperror.WithCodeAndMessage(apperror.ErrInvalid, "token_expired", "This verification link has expired. Please request a new one.")
 		}
 		if purpose == "EMAIL_VERIFY" {
 			if status != "PENDING_VERIFICATION" {
-				return apperror.ErrInvalid
+				return apperror.WithCodeAndMessage(apperror.ErrInvalid, "invalid_account_status", "Account is not awaiting email verification")
 			}
 			if registrationBatchID == nil {
 				return apperror.ErrConflict
@@ -227,7 +235,7 @@ func (s *Service) ConsumeToken(ctx context.Context, raw, purpose, password strin
 			}
 		} else {
 			if status != "ACTIVE" {
-				return apperror.ErrInvalid
+				return apperror.WithCodeAndMessage(apperror.ErrInvalid, "invalid_account_status", "Account is not active")
 			}
 			_, e = tx.Exec(ctx, `UPDATE users SET password_hash=$2,updated_at=now() WHERE id=$1`, uid, passwordHash)
 			if e != nil {

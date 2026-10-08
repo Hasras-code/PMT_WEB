@@ -150,8 +150,13 @@ func (a *API) fail(w http.ResponseWriter, r *http.Request, e error) {
 	if domainCode := apperror.Code(e); domainCode != "" {
 		code = domainCode
 	}
+	if domainMessage := apperror.Message(e); domainMessage != "" {
+		message = domainMessage
+	}
 	if status == 500 {
 		a.Log.Error("request failed", "request_id", r.Context().Value(requestIDKey))
+	} else if status == 422 {
+		a.Log.Warn("request validation failed", "code", code, "message", message, "path", r.URL.Path, "request_id", r.Context().Value(requestIDKey))
 	}
 	_ = send(w, status, map[string]any{"error": map[string]any{"code": code, "message": message, "request_id": r.Context().Value(requestIDKey)}})
 }
