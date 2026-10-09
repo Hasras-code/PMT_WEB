@@ -2,7 +2,7 @@
 
 ## Local development
 
-Requirements are Go 1.26.8 or newer, Node.js 22, npm, Docker Compose, and Python 3 for the setup and migration-name scripts.
+Requirements are Go 1.26.9 or newer, Node.js 22, npm, Docker Compose, and Python 3 for the setup and migration-name scripts.
 
 From the repository root:
 

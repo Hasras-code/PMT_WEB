@@ -30,7 +30,7 @@ See [architecture](docs/architecture.md) for package and deployment boundaries.
 
 ## Local setup
 
-Requirements are Go 1.26.8 or newer, Node.js 22, npm, Docker Compose, and Python 3.
+Requirements are Go 1.26.9 or newer, Node.js 22, npm, Docker Compose, and Python 3.
 
 Start the database, mail service, migrations, and API:
 
