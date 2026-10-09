@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.8.0...v1.9.0) (2026-10-09)
+
+
+### Features
+
+* Add safe diagnostics for email verification failures ([424af68](https://github.com/Hasras-code/PMT_WEB/commit/424af6809f05fc34e0156f734711c7de3df31454))
+
 ## [1.8.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.7.0...v1.8.0) (2026-10-09)
 
 
