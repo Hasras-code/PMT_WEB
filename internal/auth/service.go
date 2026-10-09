@@ -184,15 +184,18 @@ func (s *Service) ConsumeToken(ctx context.Context, raw, purpose, password strin
 			return e
 		}
 	}
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	operation := "begin_transaction"
+	e = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var id, uid string
 		var usedAt *time.Time
 		var expiresAt time.Time
+		operation = "lookup_token"
 		if e := tx.QueryRow(ctx, `SELECT id, user_id, used_at, expires_at FROM verification_tokens WHERE token_hash=$1 AND purpose=$2 FOR UPDATE`, Hash(raw), purpose).Scan(&id, &uid, &usedAt, &expiresAt); e != nil {
 			return apperror.WithCodeAndMessage(apperror.ErrInvalid, "invalid_token", "Invalid or unrecognized verification token")
 		}
 		var status string
 		var registrationBatchID *string
+		operation = "lookup_user"
 		if e := tx.QueryRow(ctx, `SELECT status,registration_batch_id FROM users WHERE id=$1 FOR UPDATE`, uid).Scan(&status, &registrationBatchID); e != nil {
 			return e
 		}
@@ -213,23 +216,28 @@ func (s *Service) ConsumeToken(ctx context.Context, raw, purpose, password strin
 				return apperror.ErrConflict
 			}
 			var batchID string
+			operation = "check_registration_batch"
 			if e := tx.QueryRow(ctx, `SELECT id FROM batches WHERE id=$1 AND status='ACTIVE' FOR SHARE`, *registrationBatchID).Scan(&batchID); e != nil {
 				if errors.Is(e, pgx.ErrNoRows) {
 					return apperror.ErrConflict
 				}
 				return e
 			}
+			operation = "activate_user"
 			_, e = tx.Exec(ctx, `UPDATE users SET status='ACTIVE',email_verified_at=now(),updated_at=now() WHERE id=$1`, uid)
 			if e != nil {
 				return e
 			}
 			var membershipID string
+			operation = "create_membership"
 			if e = tx.QueryRow(ctx, `INSERT INTO batch_memberships(batch_id,user_id) VALUES($1,$2) ON CONFLICT(batch_id,user_id) DO UPDATE SET status='ACTIVE',ended_at=NULL,updated_at=now() RETURNING id`, batchID, uid).Scan(&membershipID); e != nil {
 				return e
 			}
+			operation = "assign_student_role"
 			if _, e = tx.Exec(ctx, `INSERT INTO membership_roles(membership_id,role_id,scope,assigned_by) SELECT $1,id,'BATCH',NULL FROM roles WHERE code='STUDENT' AND scope='BATCH' ON CONFLICT DO NOTHING`, membershipID); e != nil {
 				return e
 			}
+			operation = "write_registration_audit"
 			if e = audit.Record(ctx, tx, batchID, "", "REGISTRATION_MEMBERSHIP_CREATED", "membership", membershipID, map[string]string{"role": "STUDENT"}); e != nil {
 				return e
 			}
@@ -237,18 +245,29 @@ func (s *Service) ConsumeToken(ctx context.Context, raw, purpose, password strin
 			if status != "ACTIVE" {
 				return apperror.WithCodeAndMessage(apperror.ErrInvalid, "invalid_account_status", "Account is not active")
 			}
+			operation = "reset_password"
 			_, e = tx.Exec(ctx, `UPDATE users SET password_hash=$2,updated_at=now() WHERE id=$1`, uid, passwordHash)
 			if e != nil {
 				return e
 			}
+			operation = "revoke_sessions"
 			_, e = tx.Exec(ctx, `UPDATE auth_sessions SET revoked_at=COALESCE(revoked_at,now()) WHERE user_id=$1`, uid)
 		}
 		if e != nil {
 			return e
 		}
+		operation = "consume_token"
 		_, e = tx.Exec(ctx, `UPDATE verification_tokens SET used_at=now() WHERE user_id=$1 AND purpose=$2 AND used_at IS NULL`, uid, purpose)
-		return e
+		if e != nil {
+			return e
+		}
+		operation = "commit_transaction"
+		return nil
 	})
+	if e != nil {
+		return db.WithOperation(e, operation)
+	}
+	return nil
 }
 
 // This valid hash makes unknown-user login perform a bcrypt comparison too.
