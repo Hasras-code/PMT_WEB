@@ -69,8 +69,9 @@ func created(w http.ResponseWriter, id string) error {
 }
 func decode[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 	var v T
-	if strings.Split(r.Header.Get("Content-Type"), ";")[0] != "application/json" {
-		return v, apperror.ErrInvalid
+	ct := strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])
+	if ct != "application/json" && ct != "text/plain" && ct != "" {
+		return v, apperror.WithCodeAndMessage(apperror.ErrInvalid, "invalid_content_type", "Content-Type must be application/json")
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	raw, e := io.ReadAll(r.Body)
@@ -154,9 +155,9 @@ func (a *API) fail(w http.ResponseWriter, r *http.Request, e error) {
 		message = domainMessage
 	}
 	if status == 500 {
-		a.Log.Error("request failed", "request_id", r.Context().Value(requestIDKey))
+		a.Log.Error("request failed", "err", e.Error(), "request_id", r.Context().Value(requestIDKey))
 	} else if status == 422 {
-		a.Log.Warn("request validation failed", "code", code, "message", message, "path", r.URL.Path, "request_id", r.Context().Value(requestIDKey))
+		a.Log.Warn("request validation failed", "code", code, "message", message, "path", r.URL.Path, "err", e.Error(), "request_id", r.Context().Value(requestIDKey))
 	}
 	_ = send(w, status, map[string]any{"error": map[string]any{"code": code, "message": message, "request_id": r.Context().Value(requestIDKey)}})
 }

@@ -91,11 +91,37 @@ func (a *API) resetPasswordHandler(w http.ResponseWriter, r *http.Request) error
 }
 
 func (a *API) consumeTokenHandler(w http.ResponseWriter, r *http.Request, purpose string) error {
-	in, e := decode[resetPasswordInput](w, r)
-	if e != nil {
-		return e
+	var token, password string
+	ct := strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])
+
+	if ct == "application/json" || ct == "text/plain" || ct == "" {
+		in, e := decode[resetPasswordInput](w, r)
+		if e == nil {
+			token = in.Token
+			password = in.Password
+		}
 	}
-	if e = a.Auth.ConsumeToken(r.Context(), in.Token, purpose, in.Password); e != nil {
+	if token == "" {
+		if err := r.ParseForm(); err == nil {
+			token = r.FormValue("token")
+			password = r.FormValue("password")
+		}
+	}
+	if token == "" {
+		token = r.URL.Query().Get("token")
+	}
+	if token == "" {
+		in, err := decode[resetPasswordInput](w, r)
+		if err != nil {
+			return err
+		}
+		token = in.Token
+		password = in.Password
+	}
+	if strings.TrimSpace(token) == "" {
+		return apperror.WithCodeAndMessage(apperror.ErrInvalid, "missing_token", "Verification token is required")
+	}
+	if e := a.Auth.ConsumeToken(r.Context(), token, purpose, password); e != nil {
 		return e
 	}
 	return send(w, 204, nil)
