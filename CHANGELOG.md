@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.7.0...v1.8.0) (2026-10-09)
+
+
+### Features
+
+* Flexible Content-Type in, Multi-Format Support in, Detailed Log Reporting in ([8e4b60d](https://github.com/Hasras-code/PMT_WEB/commit/8e4b60da8220d83dab7241e06848d1295e3aba6a))
+
+
+### Bug Fixes
+
+* go version update ([13a3cba](https://github.com/Hasras-code/PMT_WEB/commit/13a3cba3aa4c71422a045330504b5af70c1297c2))
+
 ## [1.7.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.6.0...v1.7.0) (2026-10-08)
 
 
