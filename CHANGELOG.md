@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.10.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.9.0...v1.10.0) (2026-10-10)
+
+
+### Features
+
+* validate and parse UUID parameters with proper null handling in audit logger and add tests ([96296b0](https://github.com/Hasras-code/PMT_WEB/commit/96296b04b67d72391d8a395be119ae5545e8c0e2))
+
+
+### Bug Fixes
+
+* **auth:** prevent audit UUID cast failure during email verification ([84d6374](https://github.com/Hasras-code/PMT_WEB/commit/84d63740c4c938ae99f897bf97fd3adaff0190b6))
+
 ## [1.9.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.8.0...v1.9.0) (2026-10-09)
 
 
