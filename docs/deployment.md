@@ -123,6 +123,61 @@ The password placeholder must be replaced inside Secret Manager, not committed. 
 
 Port 6543 is for API runtime traffic. The Go pool uses `pgx.QueryExecModeExec`, so it does not create named prepared statements that depend on a persistent PostgreSQL server session. Start with `DB_MAX_CONNS=5` and cap the Cloud Run service at three instances.
 
+## Initial platform administrator
+
+The current schema already contains the global `PLATFORM_ADMIN` role, platform-scoped permissions, `user_platform_roles`, and append-only audit logging. No schema migration is required for initial provisioning. Do not insert a password-bearing account or add a public setup endpoint.
+
+Use this sequence for the first administrator:
+
+1. In the intended production database, confirm the database name and inspect existing platform administrators. The `000011_seed_platform_admin` migration contains a legacy conditional assignment for `as123123` / `test@example.com`, so confirm whether that exact legacy assignment exists before proceeding:
+
+   ```sql
+   SELECT current_database();
+
+   SELECT u.id, u.email, u.status, u.email_verified_at,
+          r.code AS role, upr.assigned_at,
+          latest.new_values->>'source' AS assignment_source
+   FROM user_platform_roles upr
+   JOIN users u ON u.id = upr.user_id
+   JOIN roles r ON r.id = upr.role_id AND r.scope = upr.scope
+   LEFT JOIN LATERAL (
+       SELECT a.new_values
+       FROM audit_logs a
+       WHERE a.entity_type = 'user'
+         AND a.entity_id = u.id
+         AND a.action = 'PLATFORM_ROLE_ASSIGNED'
+         AND a.new_values->>'role' = r.code
+       ORDER BY a.created_at DESC, a.id DESC
+       LIMIT 1
+   ) latest ON true
+   WHERE r.code = 'PLATFORM_ADMIN'
+   ORDER BY upr.assigned_at;
+   ```
+
+   If an administrator is already assigned, do not run the one-time command. Confirm the account is intended and usable, or use the existing admin UI to appoint a replacement before removing an obsolete administrator. Do not remove the legacy assignment based only on its email; confirm who controls the account first.
+
+2. If there is no platform administrator, register the intended administrator through the normal frontend registration flow using an active cohort, then complete email verification. This creates the ordinary student account and preserves the existing hashed password and verification flow.
+
+3. Deploy the backend revision containing the updated `cmd/admin` binary. The operational tools image is built separately with `make docker-tools-cloud-run`; do not put the tools binary into the public API image. No migration step is needed for this feature.
+
+4. From a controlled operator environment with the production `DATABASE_URL` supplied from Secret Manager (do not print or paste the URL into logs), run:
+
+   ```sh
+   go run ./cmd/admin bootstrap-platform-admin \
+     --database postgres \
+     --confirm-database postgres \
+     --email 'admin@example.edu' \
+     --confirm-email 'admin@example.edu'
+   ```
+
+   Replace the email with the exact verified account. The command confirms `current_database()` is `postgres`, refuses any existing platform-admin assignment, uses a transaction-scoped lock to prevent concurrent attempts, and writes the role plus audit event in one transaction. It never changes a password. If your production database has another name, use that exact name in both database arguments. A mismatch or prior admin assignment is a hard failure.
+
+5. Sign in through the existing LMS login with the account’s existing email and password. Confirm the platform admin area is visible and that `/v1/me/access` reports `PLATFORM_ADMIN`; then test one permitted platform operation. Platform permissions are loaded from PostgreSQL for each operation, not trusted from JWT role claims.
+
+6. There are no platform-admin username/password environment variables to remove. Keep `AUTH_BASIC_USER` and `AUTH_BASIC_PASS`: they protect the separate health endpoints and are not LMS credentials.
+
+7. If the wrong account was promoted, restore access through the account’s normal password-reset flow, sign in, assign the intended account `PLATFORM_ADMIN`, then remove the incorrect assignment using the admin UI. Keep at least one known-good administrator during the handoff. If the only admin account cannot be recovered through its verified email, stop and use a separately reviewed database recovery procedure with a backup and an audit record; do not roll back the authorization migration or reset its password through this bootstrap command.
+
 The controlled migration job must use the shared Session Pooler because `golang-migrate` holds a session advisory lock:
 
 ```text

@@ -37,7 +37,7 @@ migrate-storage:
 migration:
 	python3 scripts/migration.py "$(name)"
 seed:
-	@echo 'System roles are seeded by migrations. Use cmd/admin to bootstrap real verified users; see README.'
+	@echo 'System roles are seeded by migrations. For first platform-admin provisioning, see docs/deployment.md.'
 docs:
 	go run ./cmd/api openapi > docs/openapi.json
 jobs:

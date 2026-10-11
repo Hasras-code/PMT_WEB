@@ -4,14 +4,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/Hasras-code/PMT_WEB.git/internal/audit"
+	"os"
+	"time"
+
 	"github.com/Hasras-code/PMT_WEB.git/internal/batch"
 	"github.com/Hasras-code/PMT_WEB.git/internal/membership"
 	"github.com/Hasras-code/PMT_WEB.git/internal/platform/db"
+	"github.com/Hasras-code/PMT_WEB.git/internal/user"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"os"
-	"time"
 )
 
 func main() {
@@ -22,9 +22,12 @@ func main() {
 }
 func run() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("usage: admin create-batch|create-membership|assign-role|assign-first-batch-rep|assign-platform-admin --actor USER_UUID [--batch SLUG --student NUMBER --role CODE --name NAME --year YEAR]")
+		return fmt.Errorf("%s", usage())
 	}
 	command := os.Args[1]
+	if command == "bootstrap-platform-admin" {
+		return runBootstrap(os.Args[2:])
+	}
 	f := flag.NewFlagSet(command, flag.ContinueOnError)
 	actor := f.String("actor", "", "account UUID of the operator (required)")
 	slug := f.String("batch", "", "batch slug")
@@ -42,15 +45,26 @@ func run() error {
 	defer cancel()
 	p, e := db.Open(ctx, os.Getenv("DATABASE_URL"), 2)
 	if e != nil {
-		return e
+		return fmt.Errorf("could not connect to DATABASE_URL")
 	}
 	defer p.Close()
-	var active bool
-	if e = p.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id=$1 AND status='ACTIVE')`, *actor).Scan(&active); e != nil {
+	var operator bool
+	if e = p.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM users u
+			WHERE u.id=$1 AND u.status='ACTIVE' AND u.email_verified_at IS NOT NULL
+			AND EXISTS (
+				SELECT 1 FROM user_platform_roles upr
+				JOIN role_permissions rp ON rp.role_id=upr.role_id
+				JOIN permissions p ON p.id=rp.permission_id AND p.scope='PLATFORM'
+				WHERE upr.user_id=u.id AND p.code='platform_user.manage'
+			)
+		)
+	`, *actor).Scan(&operator); e != nil {
 		return e
 	}
-	if !active {
-		return fmt.Errorf("operator account is not active")
+	if !operator {
+		return fmt.Errorf("operator must be an active, verified platform administrator")
 	}
 	if command == "create-batch" {
 		id, e := (batch.Service{Pool: p}).Create(ctx, *actor, batch.Input{Name: *name, Slug: *slug, EntryYear: *year}, true)
@@ -64,16 +78,7 @@ func run() error {
 		return fmt.Errorf("resolve active student: %w", e)
 	}
 	if command == "assign-platform-admin" {
-		return db.Tx(ctx, p, func(tx pgx.Tx) error {
-			tag, e := tx.Exec(ctx, `INSERT INTO user_platform_roles(user_id,role_id,assigned_by) SELECT $1,id,$2 FROM roles WHERE code='PLATFORM_ADMIN' ON CONFLICT DO NOTHING`, uid, *actor)
-			if e != nil {
-				return e
-			}
-			if tag.RowsAffected() == 0 {
-				return nil
-			}
-			return audit.Record(ctx, tx, "", *actor, "PLATFORM_ROLE_ASSIGNED", "user", uid, map[string]string{"role": "PLATFORM_ADMIN", "source": "operator_cli"})
-		})
+		return (user.Service{Pool: p}).Role(ctx, *actor, uid, "PLATFORM_ADMIN", "", false)
 	}
 	var bid string
 	if e = p.QueryRow(ctx, `SELECT id FROM batches WHERE slug=$1 AND status='ACTIVE'`, *slug).Scan(&bid); e != nil {
@@ -98,4 +103,36 @@ func run() error {
 		*role = "BATCH_REP"
 	}
 	return m.Role(ctx, *actor, bid, mid, *role, false, true)
+}
+
+func runBootstrap(args []string) error {
+	f := flag.NewFlagSet("bootstrap-platform-admin", flag.ContinueOnError)
+	database := f.String("database", "", "expected PostgreSQL database name (required)")
+	confirmDatabase := f.String("confirm-database", "", "repeat the expected database name (required)")
+	email := f.String("email", "", "email of an existing verified user (required)")
+	confirmEmail := f.String("confirm-email", "", "repeat the target email (required)")
+	if err := f.Parse(args); err != nil {
+		return err
+	}
+	if f.NArg() != 0 || validateBootstrapConfirmation(*database, *confirmDatabase, *email, *confirmEmail) != nil {
+		return fmt.Errorf("usage: %s", usage())
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	p, err := db.Open(ctx, os.Getenv("DATABASE_URL"), 2)
+	if err != nil {
+		return fmt.Errorf("could not connect to DATABASE_URL")
+	}
+	defer p.Close()
+	userID, err := bootstrapPlatformAdmin(ctx, p, *database, *email)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Platform administrator assigned to existing verified account %s. No password was changed.\n", userID)
+	return nil
+}
+
+func usage() string {
+	return "usage: admin create-batch|create-membership|assign-role|assign-first-batch-rep|assign-platform-admin --actor USER_UUID [--batch SLUG --student NUMBER --role CODE --name NAME --year YEAR]\n       admin bootstrap-platform-admin --database DB --confirm-database DB --email EMAIL --confirm-email EMAIL"
 }

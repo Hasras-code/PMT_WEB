@@ -495,7 +495,7 @@ func TestRoleAssignmentHierarchy(t *testing.T) {
 	academicID, academicToken, _ := f.newUser("ACADEMIC01")
 	contentID, contentToken, _ := f.newUser("CONTENT01")
 	targetID, _, _ := f.newUser("TARGET01")
-	secondAdminID, _, _ := f.newUser("PLATFORM02")
+	secondAdminID, secondAdminToken, _ := f.newUser("PLATFORM02")
 
 	f.sql(`INSERT INTO user_platform_roles(user_id,role_id,scope,assigned_by) SELECT $1,id,'PLATFORM',NULL FROM roles WHERE code='PLATFORM_ADMIN'`, platformID)
 	batchID := f.newBatch(platformID, "role-hierarchy")
@@ -504,6 +504,10 @@ func TestRoleAssignmentHierarchy(t *testing.T) {
 	f.member(platformID, batchID, contentID, "CONTENT_MANAGER")
 	targetMembershipID := f.member(platformID, batchID, targetID, "")
 	base := "/v1/batches/" + batchID + "/members/" + targetMembershipID + "/roles"
+	// A platform administrator may inspect the selected cohort even without a
+	// batch membership of their own. The role table needs both reads to render.
+	f.request("GET", "/v1/batches/"+batchID+"/members?limit=100", platformToken, nil, 200)
+	f.request("GET", "/v1/batches/"+batchID+"/roles", platformToken, nil, 200)
 
 	f.request("POST", base, academicToken, map[string]any{"role": "COMPLAINT_MANAGER"}, 200)
 	f.request("POST", base, academicToken, map[string]any{"role": "BATCH_REP"}, 403)
@@ -513,7 +517,11 @@ func TestRoleAssignmentHierarchy(t *testing.T) {
 	f.request("POST", "/v1/admin/users/"+targetID+"/roles", platformToken, map[string]any{"role": "BATCH_REP", "batch_id": batchID}, 204)
 
 	f.request("POST", "/v1/admin/users/"+secondAdminID+"/roles", repToken, map[string]any{"role": "PLATFORM_ADMIN"}, 403)
+	f.request("GET", "/v1/admin/stats", repToken, nil, 403)
 	f.request("POST", "/v1/admin/users/"+secondAdminID+"/roles", platformToken, map[string]any{"role": "PLATFORM_ADMIN"}, 204)
+	f.request("GET", "/v1/admin/stats", secondAdminToken, nil, 200)
+	f.request("DELETE", "/v1/admin/users/"+secondAdminID+"/roles/PLATFORM_ADMIN", platformToken, nil, 204)
+	f.request("GET", "/v1/admin/stats", secondAdminToken, nil, 403)
 	f.request("POST", "/v1/admin/users/"+platformID+"/roles", platformToken, map[string]any{"role": "PLATFORM_ADMIN"}, 409)
 }
 

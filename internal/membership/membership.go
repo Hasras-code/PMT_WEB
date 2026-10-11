@@ -193,7 +193,7 @@ func (s Service) SetStatus(ctx context.Context, actor, batch, member, status str
 	})
 }
 func (s Service) List(ctx context.Context, actor, batch, id string, limit, offset int) (json.RawMessage, error) {
-	if e := authorization.Require(ctx, s.Pool, actor, batch, "membership.view"); e != nil {
+	if e := authorization.RequireWithPlatform(ctx, s.Pool, actor, batch, "membership.view", "platform_user.manage"); e != nil {
 		return nil, e
 	}
 	var b []byte
@@ -205,7 +205,7 @@ func (s Service) List(ctx context.Context, actor, batch, id string, limit, offse
 }
 
 func (s Service) Catalog(ctx context.Context, user, batch string) (json.RawMessage, error) {
-	if e := authorization.Require(ctx, s.Pool, user, batch, "membership.view"); e != nil {
+	if e := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "membership.view", "platform_user.manage"); e != nil {
 		return nil, e
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM(SELECT code,name FROM roles WHERE scope='BATCH' ORDER BY code)t`))

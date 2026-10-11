@@ -2,6 +2,14 @@
 
 Identity, membership, permissions, public position and platform administration are separate concepts. JWTs authenticate a user/session; database lookups authorize current operations. Account/session revocation is checked on every authenticated request. Membership and role changes therefore apply without waiting for JWT expiry.
 
+## Initial platform administrator
+
+The first platform administrator is promoted from an existing account only after normal registration and email verification. `cmd/admin bootstrap-platform-admin` requires the expected database name twice and the target email twice, verifies the connected PostgreSQL database name, and serializes attempts with a transaction-scoped advisory lock. It refuses to run once any `PLATFORM_ADMIN` assignment exists. The role grant and its audit event commit together. The command never creates a user or reads, replaces, or logs a password.
+
+Every other `cmd/admin` operation requires an active, email-verified platform administrator as its actor. Additional global role grants use the same service authorization as the HTTP administration feature. The legacy migration `000011_seed_platform_admin` still contains a conditional grant for a fixed test identity; inspect the production assignment and its audit marker before bootstrapping. Do not remove or replace that assignment until its owner is confirmed.
+
+`AUTH_BASIC_USER` and `AUTH_BASIC_PASS` are separate credentials for the Basic-authenticated `/health/live` and `/health/ready` endpoints. They are not LMS administrator credentials and must remain configured while those health routes use Basic authentication.
+
 ## Permission bundles
 
 All active members receive STUDENT. Additional columns below describe additive bundles; a representative remains a student.
