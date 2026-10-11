@@ -59,20 +59,20 @@ func (in Input) Validate(create bool) error {
 	return nil
 }
 func (s Service) List(ctx context.Context, user, batch string, limit, offset int) (json.RawMessage, error) {
-	if e := authorization.Require(ctx, s.Pool, user, batch, "event.view"); e != nil {
+	if e := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "event.view", "platform_user.manage"); e != nil {
 		return nil, e
 	}
-	manage, e := authorization.Can(ctx, s.Pool, user, batch, "event.manage")
+	manage, e := authorization.CanWithPlatform(ctx, s.Pool, user, batch, "event.manage", "platform_user.manage")
 	if e != nil {
 		return nil, e
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(t),'[]') FROM (SELECT id,batch_id,title,description,location,starts_at,ends_at,visibility,status,published_at,created_at,updated_at FROM events WHERE batch_id=$1  AND (status='PUBLISHED' OR ($3 AND status='DRAFT')) ORDER BY created_at DESC,id DESC LIMIT $2 OFFSET $4)t`, batch, limit, manage, offset))
 }
 func (s Service) Get(ctx context.Context, user, batch, id string) (json.RawMessage, error) {
-	if e := authorization.Require(ctx, s.Pool, user, batch, "event.view"); e != nil {
+	if e := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "event.view", "platform_user.manage"); e != nil {
 		return nil, e
 	}
-	manage, e := authorization.Can(ctx, s.Pool, user, batch, "event.manage")
+	manage, e := authorization.CanWithPlatform(ctx, s.Pool, user, batch, "event.manage", "platform_user.manage")
 	if e != nil {
 		return nil, e
 	}
@@ -98,7 +98,7 @@ func CreateTx(ctx context.Context, tx pgx.Tx, user, batch string, in Input) (str
 	if e := in.Validate(true); e != nil {
 		return "", e
 	}
-	if e := authorization.Write(ctx, tx, user, batch, "event.manage"); e != nil {
+	if e := authorization.WriteWithPlatform(ctx, tx, user, batch, "event.manage", "platform_user.manage"); e != nil {
 		return "", e
 	}
 	var id string

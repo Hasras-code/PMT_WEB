@@ -61,7 +61,7 @@ func (s Service) Attach(ctx context.Context, user, batch, fundID, transactionID 
 }
 
 func (s Service) Attachments(ctx context.Context, user, batch, fundID, transactionID string) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	if err := ensureFund(ctx, s.Pool, batch, fundID); err != nil {
@@ -76,7 +76,7 @@ func (s Service) Attachments(ctx context.Context, user, batch, fundID, transacti
 
 func (s Service) Attachment(ctx context.Context, user, batch, fundID, transactionID, id string) (upload.Object, error) {
 	var o upload.Object
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return o, err
 	}
 	manage, err := canManage(ctx, s.Pool, user, batch, fundID, "fund.transaction.create")

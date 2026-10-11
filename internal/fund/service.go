@@ -41,7 +41,7 @@ func (s Service) Create(ctx context.Context, user, batch string, in FundInput) (
 	}
 	var id string
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := authorization.Write(ctx, tx, user, batch, "fund.create"); err != nil {
+		if err := authorization.WriteWithPlatform(ctx, tx, user, batch, "fund.create", "platform_user.manage"); err != nil {
 			return err
 		}
 		eventID := stringValue(in.EventID)
@@ -70,7 +70,7 @@ func stringValue(v *string) string {
 const balanceSQL = `COALESCE(sum(CASE WHEN t.type IN ('CASH_IN','TRANSFER_IN','REVERSAL_IN') THEN t.amount_minor WHEN t.type IN ('EXPENSE','TRANSFER_OUT','REVERSAL_OUT') THEN -t.amount_minor ELSE 0 END) FILTER(WHERE t.status='POSTED'),0)`
 
 func (s Service) List(ctx context.Context, user, batch string, limit, offset int) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(x),'[]') FROM(SELECT f.id,f.batch_id,f.name,f.description,f.type,f.event_id,f.currency,f.status,f.created_at,f.closed_at,`+balanceSQL+` AS balance_minor,
@@ -83,7 +83,7 @@ func (s Service) List(ctx context.Context, user, batch string, limit, offset int
 }
 
 func (s Service) Get(ctx context.Context, user, batch, id string) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(x) FROM(SELECT f.id,f.batch_id,f.name,f.description,f.type,f.event_id,f.currency,f.status,f.created_at,f.updated_at,f.closed_at,`+balanceSQL+` AS balance_minor FROM funds f LEFT JOIN fund_transactions t ON t.fund_id=f.id WHERE f.batch_id=$1 AND f.id=$2 GROUP BY f.id)x`, batch, id))
@@ -94,7 +94,7 @@ func (s Service) Update(ctx context.Context, user, batch, id string, in FundUpda
 		return apperror.ErrInvalid
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := authorization.Write(ctx, tx, user, batch, "fund.update"); err != nil {
+		if err := authorization.WriteWithPlatform(ctx, tx, user, batch, "fund.update", "platform_user.manage"); err != nil {
 			return err
 		}
 		tag, err := tx.Exec(ctx, `UPDATE funds SET name=COALESCE($3,name),description=COALESCE($4,description),updated_at=now() WHERE batch_id=$1 AND id=$2 AND status='ACTIVE'`, batch, id, in.Name, in.Description)
@@ -113,7 +113,7 @@ func (s Service) Transition(ctx context.Context, user, batch, id, target string)
 		return apperror.ErrInvalid
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := authorization.Write(ctx, tx, user, batch, "fund.close"); err != nil {
+		if err := authorization.WriteWithPlatform(ctx, tx, user, batch, "fund.close", "platform_user.manage"); err != nil {
 			return err
 		}
 		var old string
@@ -135,6 +135,10 @@ func (s Service) Transition(ctx context.Context, user, batch, id, target string)
 }
 
 func canManage(ctx context.Context, q authorization.Querier, user, batch, fundID, permission string) (bool, error) {
+	platformAdmin, err := authorization.Platform(ctx, q, user, "platform_user.manage")
+	if err != nil || platformAdmin {
+		return platformAdmin, err
+	}
 	ok, err := authorization.Can(ctx, q, user, batch, permission)
 	if err != nil || ok {
 		return ok, err

@@ -11,7 +11,7 @@ import (
 )
 
 func (s Service) Managers(ctx context.Context, user, batch, fundID string) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	if err := ensureFund(ctx, s.Pool, batch, fundID); err != nil {
@@ -23,7 +23,7 @@ func (s Service) Managers(ctx context.Context, user, batch, fundID string) (json
 func (s Service) AssignManager(ctx context.Context, user, batch, fundID, membershipID string) (string, error) {
 	var id string
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := authorization.Write(ctx, tx, user, batch, "fund.manager.assign"); err != nil {
+		if err := authorization.WriteWithPlatform(ctx, tx, user, batch, "fund.manager.assign", "platform_user.manage"); err != nil {
 			return err
 		}
 		if _, err := lockFund(ctx, tx, batch, fundID); err != nil {
@@ -47,7 +47,7 @@ func (s Service) AssignManager(ctx context.Context, user, batch, fundID, members
 
 func (s Service) RemoveManager(ctx context.Context, user, batch, fundID, membershipID string) error {
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := authorization.Write(ctx, tx, user, batch, "fund.manager.remove"); err != nil {
+		if err := authorization.WriteWithPlatform(ctx, tx, user, batch, "fund.manager.remove", "platform_user.manage"); err != nil {
 			return err
 		}
 		tag, err := tx.Exec(ctx, `UPDATE fund_managers SET revoked_at=now(),revoked_by=$4 WHERE batch_id=$1 AND fund_id=$2 AND membership_id=$3 AND revoked_at IS NULL`, batch, fundID, membershipID, user)

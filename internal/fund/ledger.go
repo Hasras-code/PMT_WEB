@@ -133,7 +133,7 @@ func (s Service) PostTransaction(ctx context.Context, user, batch, fundID, id st
 }
 
 func (s Service) Transactions(ctx context.Context, user, batch, fundID, typ, source, dateFrom, dateTo string, includeDraft bool, limit, offset int) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	if err := ensureFund(ctx, s.Pool, batch, fundID); err != nil {
@@ -172,7 +172,7 @@ func (s Service) Transactions(ctx context.Context, user, batch, fundID, typ, sou
 }
 
 func (s Service) Transaction(ctx context.Context, user, batch, fundID, id string) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	manage, err := canManage(ctx, s.Pool, user, batch, fundID, "fund.transaction.create")

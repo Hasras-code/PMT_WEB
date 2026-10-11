@@ -13,14 +13,14 @@ import (
 )
 
 func (s Service) BirthdaySummary(ctx context.Context, user, batch string) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(x) FROM(SELECT f.id fund_id,f.name,f.currency,`+balanceSQL+` balance_minor,COALESCE((SELECT sum(c.expected_minor) FROM birthday_contributions c WHERE c.batch_id=f.batch_id),0) total_expected_minor,COALESCE((SELECT sum(p.amount_minor) FROM birthday_contribution_payments p WHERE p.batch_id=f.batch_id),0) total_collected_minor,COALESCE((SELECT sum(c.expected_minor) FROM birthday_contributions c WHERE c.batch_id=f.batch_id),0)-COALESCE((SELECT sum(p.amount_minor) FROM birthday_contribution_payments p WHERE p.batch_id=f.batch_id),0) outstanding_minor FROM funds f LEFT JOIN fund_transactions t ON t.fund_id=f.id WHERE f.batch_id=$1 AND f.type='BIRTHDAY' GROUP BY f.id)x`, batch))
 }
 
 func (s Service) Periods(ctx context.Context, user, batch string, limit, offset int) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(x),'[]') FROM(SELECT p.id,p.year,p.month,p.amount_minor,p.status,p.created_at,p.closed_at,count(c.id) member_count,COALESCE(sum(c.expected_minor),0) expected_minor,COALESCE((SELECT sum(bp.amount_minor) FROM birthday_contribution_payments bp JOIN birthday_contributions bc ON bc.id=bp.contribution_id WHERE bc.period_id=p.id),0) collected_minor FROM birthday_contribution_periods p LEFT JOIN birthday_contributions c ON c.period_id=p.id WHERE p.batch_id=$1 GROUP BY p.id ORDER BY p.year DESC,p.month DESC LIMIT $2 OFFSET $3)x`, batch, limit, offset))
@@ -32,7 +32,7 @@ func (s Service) CreatePeriod(ctx context.Context, user, batch string, in Period
 	}
 	var id string
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := authorization.Write(ctx, tx, user, batch, "birthday_fund.manage"); err != nil {
+		if err := authorization.WriteWithPlatform(ctx, tx, user, batch, "birthday_fund.manage", "platform_user.manage"); err != nil {
 			return err
 		}
 		var fundID, status string
@@ -54,7 +54,7 @@ func (s Service) CreatePeriod(ctx context.Context, user, batch string, in Period
 }
 
 func (s Service) Period(ctx context.Context, user, batch, id string) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(x) FROM(SELECT p.id,p.year,p.month,p.amount_minor,p.status,p.created_at,p.closed_at,count(c.id) member_count,COALESCE(sum(c.expected_minor),0) expected_minor,COALESCE((SELECT sum(bp.amount_minor) FROM birthday_contribution_payments bp JOIN birthday_contributions bc ON bc.id=bp.contribution_id WHERE bc.period_id=p.id),0) collected_minor FROM birthday_contribution_periods p LEFT JOIN birthday_contributions c ON c.period_id=p.id WHERE p.batch_id=$1 AND p.id=$2 GROUP BY p.id)x`, batch, id))
@@ -62,7 +62,7 @@ func (s Service) Period(ctx context.Context, user, batch, id string) (json.RawMe
 
 func (s Service) ClosePeriod(ctx context.Context, user, batch, id string) error {
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := authorization.Write(ctx, tx, user, batch, "birthday_fund.manage"); err != nil {
+		if err := authorization.WriteWithPlatform(ctx, tx, user, batch, "birthday_fund.manage", "platform_user.manage"); err != nil {
 			return err
 		}
 		tag, err := tx.Exec(ctx, `UPDATE birthday_contribution_periods SET status='CLOSED',closed_at=now(),closed_by=$3 WHERE batch_id=$1 AND id=$2 AND status='OPEN'`, batch, id, user)
@@ -77,14 +77,14 @@ func (s Service) ClosePeriod(ctx context.Context, user, batch, id string) error 
 }
 
 func (s Service) Contributions(ctx context.Context, user, batch, period string, limit, offset int) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "birthday_fund.manage"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "birthday_fund.manage", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(x),'[]') FROM(SELECT c.id,c.membership_id,m.user_id,u.display_name,c.expected_minor,COALESCE(sum(p.amount_minor),0) paid_minor,c.expected_minor-COALESCE(sum(p.amount_minor),0) outstanding_minor,CASE WHEN COALESCE(sum(p.amount_minor),0)>=c.expected_minor THEN 'PAID' WHEN COALESCE(sum(p.amount_minor),0)>0 THEN 'PARTIAL' ELSE 'UNPAID' END status FROM birthday_contributions c JOIN batch_memberships m ON m.id=c.membership_id AND m.batch_id=c.batch_id JOIN users u ON u.id=m.user_id LEFT JOIN birthday_contribution_payments p ON p.contribution_id=c.id WHERE c.batch_id=$1 AND c.period_id=$2 GROUP BY c.id,m.user_id,u.display_name ORDER BY u.display_name,c.id LIMIT $3 OFFSET $4)x`, batch, period, limit, offset))
 }
 
 func (s Service) MyContribution(ctx context.Context, user, batch, period string) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(x) FROM(SELECT c.id,c.expected_minor,COALESCE(sum(p.amount_minor),0) paid_minor,c.expected_minor-COALESCE(sum(p.amount_minor),0) outstanding_minor,CASE WHEN COALESCE(sum(p.amount_minor),0)>=c.expected_minor THEN 'PAID' WHEN COALESCE(sum(p.amount_minor),0)>0 THEN 'PARTIAL' ELSE 'UNPAID' END status FROM birthday_contributions c JOIN batch_memberships m ON m.id=c.membership_id AND m.batch_id=c.batch_id LEFT JOIN birthday_contribution_payments p ON p.contribution_id=c.id WHERE c.batch_id=$1 AND c.period_id=$2 AND m.user_id=$3 GROUP BY c.id)x`, batch, period, user))
@@ -96,7 +96,7 @@ func (s Service) RecordPayment(ctx context.Context, user, batch, period, members
 	}
 	var paymentID string
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := authorization.Write(ctx, tx, user, batch, "birthday_contribution.record"); err != nil {
+		if err := authorization.WriteWithPlatform(ctx, tx, user, batch, "birthday_contribution.record", "platform_user.manage"); err != nil {
 			return err
 		}
 		var contribution, fundID, periodStatus, display string

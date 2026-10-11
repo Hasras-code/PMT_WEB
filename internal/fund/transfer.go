@@ -181,14 +181,14 @@ func (s Service) ReverseTransfer(ctx context.Context, user, batch, originalID st
 }
 
 func (s Service) Transfers(ctx context.Context, user, batch string, limit, offset int) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT COALESCE(json_agg(x),'[]') FROM(SELECT t.id,t.from_fund_id,ff.name from_fund_name,t.to_fund_id,tf.name to_fund_name,t.type,t.amount_minor,t.description,t.parent_transfer_id,t.reversal_of_transfer_id,t.reversed_by_transfer_id,t.created_at,CASE WHEN t.type='LOAN' THEN t.amount_minor-COALESCE((SELECT sum(r.amount_minor) FROM fund_transfers r WHERE r.parent_transfer_id=t.id AND r.type='LOAN_REPAYMENT' AND r.reversed_by_transfer_id IS NULL),0) END outstanding_minor FROM fund_transfers t JOIN funds ff ON ff.id=t.from_fund_id AND ff.batch_id=t.batch_id JOIN funds tf ON tf.id=t.to_fund_id AND tf.batch_id=t.batch_id WHERE t.batch_id=$1 ORDER BY t.created_at DESC,t.id DESC LIMIT $2 OFFSET $3)x`, batch, limit, offset))
 }
 
 func (s Service) Transfer(ctx context.Context, user, batch, id string) (json.RawMessage, error) {
-	if err := authorization.Require(ctx, s.Pool, user, batch, "fund.view"); err != nil {
+	if err := authorization.RequireWithPlatform(ctx, s.Pool, user, batch, "fund.view", "platform_user.manage"); err != nil {
 		return nil, err
 	}
 	return db.JSON(s.Pool.QueryRow(ctx, `SELECT row_to_json(x) FROM(SELECT t.id,t.from_fund_id,ff.name from_fund_name,t.to_fund_id,tf.name to_fund_name,t.type,t.amount_minor,t.description,t.parent_transfer_id,t.reversal_of_transfer_id,t.reversed_by_transfer_id,t.created_at,CASE WHEN t.type='LOAN' THEN t.amount_minor-COALESCE((SELECT sum(r.amount_minor) FROM fund_transfers r WHERE r.parent_transfer_id=t.id AND r.type='LOAN_REPAYMENT' AND r.reversed_by_transfer_id IS NULL),0) END outstanding_minor FROM fund_transfers t JOIN funds ff ON ff.id=t.from_fund_id AND ff.batch_id=t.batch_id JOIN funds tf ON tf.id=t.to_fund_id AND tf.batch_id=t.batch_id WHERE t.batch_id=$1 AND t.id=$2)x`, batch, id))

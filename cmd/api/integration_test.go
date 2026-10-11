@@ -233,8 +233,10 @@ func (f *fixture) upload(path, token, name, mime string, b []byte) string {
 
 func TestFundManagement(t *testing.T) {
 	f := setup(t)
+	platformAdmin, platformAdminToken, _ := f.newUser("FUND-ADMIN")
 	rep, repToken, _ := f.newUser("FUND-REP")
 	student, studentToken, _ := f.newUser("FUND-STUDENT")
+	f.sql(`INSERT INTO user_platform_roles(user_id,role_id,scope,assigned_by) SELECT $1,id,'PLATFORM',NULL FROM roles WHERE code='PLATFORM_ADMIN'`, platformAdmin)
 	batchID := f.newBatch(rep, "fund-cohort")
 	f.member(rep, batchID, rep, "BATCH_REP")
 	studentMembership := f.member(rep, batchID, student, "")
@@ -244,7 +246,20 @@ func TestFundManagement(t *testing.T) {
 	if !bytes.Contains(funds, []byte("Birthday Fund")) {
 		t.Fatal("batch was not initialized with a Birthday Fund")
 	}
+	// A platform admin does not need cohort membership to use its fund tools.
+	f.request("GET", base+"/funds", platformAdminToken, nil, 200)
+	f.request("GET", base+"/fund-transfers", platformAdminToken, nil, 200)
+	f.request("GET", base+"/birthday-fund", platformAdminToken, nil, 200)
+	f.request("GET", base+"/birthday-fund/periods", platformAdminToken, nil, 200)
+	f.request("GET", base+"/events", platformAdminToken, nil, 200)
 	f.request("POST", base+"/funds", studentToken, map[string]any{"name": "Denied", "type": "OTHER"}, 403)
+	adminFund := idOf(t, f.request("POST", base+"/funds", platformAdminToken, map[string]any{"name": "Admin Fund", "type": "OTHER"}, 201))
+	f.request("POST", base+"/funds/"+adminFund+"/managers", platformAdminToken, map[string]any{"membership_id": studentMembership}, 201)
+	f.request("POST", base+"/funds/"+adminFund+"/transactions", platformAdminToken, map[string]any{"type": "CASH_IN", "amount_minor": 1000, "description": "Platform admin entry"}, 201)
+	f.request("POST", base+"/funds", platformAdminToken, map[string]any{
+		"name": "Admin Event Fund", "type": "EVENT",
+		"event": map[string]any{"title": "Admin Funding Event", "starts_at": "2026-10-10T18:00:00Z", "visibility": "MEMBERS_ONLY"},
+	}, 201)
 	mainFund := idOf(t, f.request("POST", base+"/funds", repToken, map[string]any{"name": "Main Fund", "type": "OTHER"}, 201))
 	eventFund := idOf(t, f.request("POST", base+"/funds", repToken, map[string]any{"name": "Event Fund", "type": "OTHER"}, 201))
 	linkedFund := idOf(t, f.request("POST", base+"/funds", repToken, map[string]any{

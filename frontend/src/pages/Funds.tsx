@@ -15,7 +15,7 @@ import { api, errMsg, toList, uploadFile } from '../api/client';
 import { Badge, Card, CardTitle, Empty, Field, fmtDate, fmtDateTime, inputCls, statusTone } from '../components/ui';
 import { useAppStore } from '../store/app';
 import { useAuthStore } from '../store/auth';
-import { useCan } from '../hooks/useRole';
+import { useAccess, useCan } from '../hooks/useRole';
 import type {
   BirthdayContribution,
   BirthdayPeriod,
@@ -60,15 +60,26 @@ export default function Funds() {
   const { currentBatchID, currentBatch } = useAppStore();
   const user = useAuthStore((state) => state.user);
   const setAccess = useAuthStore((state) => state.setAccess);
-  const canCreateFund = useCan('fund.create', currentBatchID) === true;
-  const canManageEvents = useCan('event.manage', currentBatchID) === true;
-  const canCreateTransaction = useCan('fund.transaction.create', currentBatchID) === true;
-  const canCloseFund = useCan('fund.close', currentBatchID) === true;
-  const canAssignManager = useCan('fund.manager.assign', currentBatchID) === true;
-  const canTransfer = useCan('fund.transfer.create', currentBatchID) === true;
-  const canReverseTransfer = useCan('fund.transfer.reverse', currentBatchID) === true;
-  const canManageBirthday = useCan('birthday_fund.manage', currentBatchID) === true;
-  const canRecordContribution = useCan('birthday_contribution.record', currentBatchID) === true;
+  const access = useAccess();
+  const platformAdmin = access?.platform_roles.includes('PLATFORM_ADMIN') === true;
+  const hasFundCreate = useCan('fund.create', currentBatchID) === true;
+  const hasEventManage = useCan('event.manage', currentBatchID) === true;
+  const hasFundTransaction = useCan('fund.transaction.create', currentBatchID) === true;
+  const hasFundClose = useCan('fund.close', currentBatchID) === true;
+  const hasFundManagerAssign = useCan('fund.manager.assign', currentBatchID) === true;
+  const hasFundTransfer = useCan('fund.transfer.create', currentBatchID) === true;
+  const hasFundTransferReverse = useCan('fund.transfer.reverse', currentBatchID) === true;
+  const hasBirthdayManage = useCan('birthday_fund.manage', currentBatchID) === true;
+  const hasBirthdayContribution = useCan('birthday_contribution.record', currentBatchID) === true;
+  const canCreateFund = platformAdmin || hasFundCreate;
+  const canManageEvents = platformAdmin || hasEventManage;
+  const canCreateTransaction = platformAdmin || hasFundTransaction;
+  const canCloseFund = platformAdmin || hasFundClose;
+  const canAssignManager = platformAdmin || hasFundManagerAssign;
+  const canTransfer = platformAdmin || hasFundTransfer;
+  const canReverseTransfer = platformAdmin || hasFundTransferReverse;
+  const canManageBirthday = platformAdmin || hasBirthdayManage;
+  const canRecordContribution = platformAdmin || hasBirthdayContribution;
 
   const [tab, setTab] = useState<Tab>('funds');
   const [funds, setFunds] = useState<FundSummary[]>([]);
