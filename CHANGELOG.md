@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.11.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.10.0...v1.11.0) (2026-10-13)
+
+
+### Features
+
+* add bootstrap command for initial platform administrator promotion ([21e5943](https://github.com/Hasras-code/PMT_WEB/commit/21e59436224b177752c8bc9aff39b22e083512d3))
+* add platform-level authorization checks to fund and event operations ([94f2d1a](https://github.com/Hasras-code/PMT_WEB/commit/94f2d1af858a7a1d300401d4829b233ee018baf6))
+* add server-side pagination and search for admin user management ([dc1ab6d](https://github.com/Hasras-code/PMT_WEB/commit/dc1ab6d61980f28cff8fdc3f5608a9a0cfcd93bf))
+
 ## [1.10.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.9.0...v1.10.0) (2026-10-10)
 
 
