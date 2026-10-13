@@ -5817,7 +5817,10 @@
                   "combination": {
                     "enum": [
                       "PMT-ICT",
-                      "PMT-CS"
+                      "PMT-CS",
+                      "PMT-STAT",
+                      "PMT-MAN",
+                      "PMT-CHEM"
                     ],
                     "type": "string"
                   },
@@ -25908,7 +25911,10 @@
                     "combination": {
                       "enum": [
                         "PMT-ICT",
-                        "PMT-CS"
+                        "PMT-CS",
+                        "PMT-STAT",
+                        "PMT-MAN",
+                        "PMT-CHEM"
                       ],
                       "type": "string"
                     },

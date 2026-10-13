@@ -75,6 +75,9 @@ export default function Register() {
                 <select className={inputCls} value={form.combination} onChange={(e) => setForm({ ...form, combination: e.target.value })}>
                   <option value="PMT-ICT">PMT-ICT</option>
                   <option value="PMT-CS">PMT-CS</option>
+                  <option value="PMT-STAT">PMT-STAT</option>
+                  <option value="PMT-MAN">PMT-MAN</option>
+                  <option value="PMT-CHEM">PMT-CHEM</option>
                 </select>
               </Field>
             </div>
