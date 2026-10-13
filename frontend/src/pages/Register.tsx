@@ -47,6 +47,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex bg-obsidian-dark">
+      {/* Left decorative panel — visible only on large screens */}
       <div className="hidden lg:flex w-[42%] bg-charcoal-card border-r border-line flex-col justify-between p-12 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-amber-500/10 to-transparent pointer-events-none" />
         <p className="text-[40px] tracking-tight leading-tight font-bold text-gold-gradient relative z-10">
@@ -58,18 +59,30 @@ export default function Register() {
         </div>
         <p className="text-muted text-sm relative z-10">©  All Rights Reserved. Designed and developed by 24/25 PMT Batch</p>
       </div>
-      <div className="flex-1 flex items-center justify-center p-8 relative">
+
+      {/* Right form panel */}
+      <div className="flex-1 flex items-start sm:items-center justify-center p-4 sm:p-8 relative overflow-y-auto">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 blur-[100px] pointer-events-none rounded-full" />
-        <div className="w-full max-w-lg bg-charcoal-card backdrop-blur-xl rounded-2xl border border-line p-8 shadow-2xl relative z-10">
+        <div className="w-full max-w-lg bg-charcoal-card backdrop-blur-xl rounded-2xl border border-line p-5 sm:p-8 shadow-2xl relative z-10 my-6 sm:my-0">
           <h1 className="text-2xl font-semibold text-ink">Create account</h1>
           <p className="mt-1 text-sm text-muted">Takes less than a minute.</p>
-          <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Student number">
-              <input required placeholder="AS2025..." className={inputCls} value={form.student_number} onChange={set('student_number')} />
-            </Field>
-            <Field label="Display name">
-              <input required placeholder="John Doe" className={inputCls} value={form.display_name} onChange={set('display_name')} />
-            </Field>
+
+          <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
+            {/* Student number — always left column */}
+            <div className="col-span-1">
+              <Field label="Student number">
+                <input required placeholder="AS2025..." className={inputCls} value={form.student_number} onChange={set('student_number')} />
+              </Field>
+            </div>
+
+            {/* Display name — always right column */}
+            <div className="col-span-1">
+              <Field label="Display name">
+                <input required placeholder="John Doe" className={inputCls} value={form.display_name} onChange={set('display_name')} />
+              </Field>
+            </div>
+
+            {/* Combination — full width */}
             <div className="col-span-2">
               <Field label="Combination">
                 <select className={inputCls} value={form.combination} onChange={(e) => setForm({ ...form, combination: e.target.value })}>
@@ -81,6 +94,8 @@ export default function Register() {
                 </select>
               </Field>
             </div>
+
+            {/* Cohort — full width */}
             <div className="col-span-2">
               <Field label="Cohort">
                 <select required disabled={cohortsLoading || cohorts.length === 0} className={inputCls} value={form.batch_id} onChange={(e) => setForm({ ...form, batch_id: e.target.value })}>
@@ -94,28 +109,43 @@ export default function Register() {
               </Field>
               {!cohortsLoading && cohorts.length === 0 && <p className="mt-2 text-sm text-red-600">No active cohort is available for registration.</p>}
             </div>
-            <Field label="First name">
-              <input required autoComplete="given-name" className={inputCls} value={form.first_name} onChange={set('first_name')} />
-            </Field>
-            <Field label="Last name">
-              <input required autoComplete="family-name" className={inputCls} value={form.last_name} onChange={set('last_name')} />
-            </Field>
+
+            {/* First name — always left column */}
+            <div className="col-span-1">
+              <Field label="First name">
+                <input required autoComplete="given-name" className={inputCls} value={form.first_name} onChange={set('first_name')} />
+              </Field>
+            </div>
+
+            {/* Last name — always right column */}
+            <div className="col-span-1">
+              <Field label="Last name">
+                <input required autoComplete="family-name" className={inputCls} value={form.last_name} onChange={set('last_name')} />
+              </Field>
+            </div>
+
+            {/* Email — full width */}
             <div className="col-span-2">
               <Field label="Email">
                 <input type="email" required autoComplete="email" placeholder="you@example.com" className={inputCls} value={form.email} onChange={set('email')} />
               </Field>
             </div>
+
+            {/* Password — full width */}
             <div className="col-span-2">
               <Field label="Password (min 12 characters)">
                 <input type="password" required minLength={12} autoComplete="new-password" className={inputCls} value={form.password} onChange={set('password')} />
               </Field>
             </div>
+
+            {/* Submit — full width */}
             <div className="col-span-2">
               <PrimaryButton type="submit" disabled={loading || cohortsLoading || cohorts.length === 0}>
                 {loading ? 'Creating…' : 'Create account'}
               </PrimaryButton>
             </div>
           </form>
+
           <p className="mt-5 text-sm text-muted">
             Already have an account?{' '}
             <Link to="/login" className="text-primary font-medium hover:underline">

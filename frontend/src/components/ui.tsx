@@ -339,7 +339,7 @@ export function Field({
 }
 
 export const inputCls =
-  'w-full px-3.5 py-2.5 rounded-xl border border-line bg-slate-950/80 text-[15px] text-ink placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500';
+  'w-full min-w-0 px-3 py-2.5 rounded-xl border border-line bg-slate-950/80 text-[14px] sm:text-[15px] text-ink placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500';
 
 export function timeAgo(iso: string | null | undefined): string {
   if (!iso) return '';
