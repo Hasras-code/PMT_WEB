@@ -311,6 +311,9 @@ func Generate(r chi.Routes) (M, error) {
 				M{"name": "query", "in": "query", "schema": M{"type": "string", "maxLength": 200}},
 			)
 		}
+		if method == "GET" && path == "/v1/admin/users" {
+			params = append(params, M{"name": "query", "in": "query", "schema": M{"type": "string", "maxLength": 100}})
+		}
 		if method == "GET" && path == "/v1/batches/{batchID}/kuppis" {
 			params = append(params,
 				M{"name": "module_id", "in": "query", "schema": M{"type": "string", "format": "uuid"}},
@@ -377,6 +380,12 @@ func Generate(r chi.Routes) (M, error) {
 			}
 			if path == "/v1/me" {
 				rs = schema(reflect.TypeFor[auth.User]())
+			}
+			if path == "/v1/admin/users" {
+				rs = M{"type": "object", "required": []string{"items", "total", "limit", "offset"}, "properties": M{
+					"items": M{"type": "array", "items": M{"type": "object"}},
+					"total": M{"type": "integer"}, "limit": M{"type": "integer"}, "offset": M{"type": "integer"},
+				}}
 			}
 			if path == "/v1/auth/login" || path == "/v1/auth/refresh" {
 				rs = schema(reflect.TypeFor[auth.Tokens]())

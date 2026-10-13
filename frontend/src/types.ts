@@ -224,6 +224,13 @@ export interface AdminUser {
   batch_roles: AdminBatchRole[];
 }
 
+export interface AdminUserPage {
+  items: AdminUser[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface AdminBatchRole {
   batch_id: string;
   batch_name: string;

@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/Hasras-code/PMT_WEB.git/internal/apperror"
 	"github.com/Hasras-code/PMT_WEB.git/internal/audit"
@@ -92,6 +93,38 @@ func (s Service) AdminList(ctx context.Context, actor, id string, limit, offset 
 		return db.One(b, e)
 	}
 	return b, e
+}
+
+// AdminSearchList returns a searchable, offset-paginated user list for the
+// platform administration screen. Each page includes the total number of
+// matching users so clients can render accurate navigation controls.
+func (s Service) AdminSearchList(ctx context.Context, actor, query string, limit, offset int) (json.RawMessage, error) {
+	if e := authorization.RequirePlatform(ctx, s.Pool, actor, "platform_user.manage"); e != nil {
+		return nil, e
+	}
+	query = strings.TrimSpace(query)
+	if len(query) > 100 {
+		return nil, apperror.ErrInvalid
+	}
+	return db.JSON(s.Pool.QueryRow(ctx, `WITH matching AS MATERIALIZED (
+		SELECT u.id,u.created_at
+		FROM users u
+		WHERE $1='' OR u.student_number ILIKE '%'||$1||'%' OR u.first_name ILIKE '%'||$1||'%' OR u.last_name ILIKE '%'||$1||'%' OR u.display_name ILIKE '%'||$1||'%' OR u.email ILIKE '%'||$1||'%' OR u.id::text ILIKE '%'||$1||'%'
+	)
+	SELECT json_build_object(
+		'items', COALESCE((
+			SELECT json_agg(t) FROM (
+				SELECT u.id,u.student_number,u.combination,u.first_name,u.last_name,u.display_name,u.email,u.status,u.created_at,
+					COALESCE((SELECT json_agg(r.code ORDER BY r.code) FROM user_platform_roles upr JOIN roles r ON r.id=upr.role_id WHERE upr.user_id=u.id AND upr.scope='PLATFORM'),'[]') AS platform_roles,
+					COALESCE((SELECT json_agg(json_build_object('batch_id',m.batch_id,'batch_name',b.name,'code',r.code) ORDER BY b.entry_year DESC,r.code) FROM batch_memberships m JOIN batches b ON b.id=m.batch_id JOIN membership_roles mr ON mr.membership_id=m.id JOIN roles r ON r.id=mr.role_id WHERE m.user_id=u.id AND m.status='ACTIVE' AND r.code<>'STUDENT'),'[]') AS batch_roles
+				FROM matching x JOIN users u ON u.id=x.id
+				ORDER BY x.created_at DESC,x.id DESC LIMIT $2 OFFSET $3
+			) t
+		), '[]'::json),
+		'total', (SELECT count(*) FROM matching),
+		'limit', $2,
+		'offset', $3
+	)`, query, limit, offset))
 }
 
 func (s Service) AdminStats(ctx context.Context, actor string) (json.RawMessage, error) {

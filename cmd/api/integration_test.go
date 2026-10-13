@@ -523,6 +523,31 @@ func TestRoleAssignmentHierarchy(t *testing.T) {
 	// batch membership of their own. The role table needs both reads to render.
 	f.request("GET", "/v1/batches/"+batchID+"/members?limit=100", platformToken, nil, 200)
 	f.request("GET", "/v1/batches/"+batchID+"/roles", platformToken, nil, 200)
+	searched := f.request("GET", "/v1/admin/users?query=TARGET01&limit=20&offset=0", platformToken, nil, 200)
+	var searchPage struct {
+		Items  []map[string]any `json:"items"`
+		Total  int              `json:"total"`
+		Limit  int              `json:"limit"`
+		Offset int              `json:"offset"`
+	}
+	if err := json.Unmarshal(searched, &searchPage); err != nil {
+		t.Fatal(err)
+	}
+	if searchPage.Total != 1 || len(searchPage.Items) != 1 || searchPage.Items[0]["id"] != targetID {
+		t.Fatalf("search returned unexpected users: %s", searched)
+	}
+	page := f.request("GET", "/v1/admin/users?limit=2&offset=1", platformToken, nil, 200)
+	var pageResult struct {
+		Items []json.RawMessage `json:"items"`
+		Total int               `json:"total"`
+	}
+	if err := json.Unmarshal(page, &pageResult); err != nil {
+		t.Fatal(err)
+	}
+	if len(pageResult.Items) != 2 || pageResult.Total < 6 {
+		t.Fatalf("pagination returned unexpected page: %s", page)
+	}
+	f.request("GET", "/v1/admin/users?query=TARGET01", repToken, nil, 403)
 
 	f.request("POST", base, academicToken, map[string]any{"role": "COMPLAINT_MANAGER"}, 200)
 	f.request("POST", base, academicToken, map[string]any{"role": "BATCH_REP"}, 403)

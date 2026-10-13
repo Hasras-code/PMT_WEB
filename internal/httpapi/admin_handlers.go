@@ -69,10 +69,10 @@ func (a *API) adminArchiveBatchHandler(w http.ResponseWriter, r *http.Request) e
 //	@Summary List users
 //	@Tags admin
 //	@Produce json
-//	@Param userID path string false "User ID"
+//	@Param query query string false "Search users by name, email, student number, or ID"
 //	@Param limit query int false "Limit"
 //	@Param offset query int false "Offset"
-//	@Success 200 {array} map[string]any
+//	@Success 200 {object} map[string]any
 //	@Security bearerAuth
 //	@Router /v1/admin/users [get]
 func (a *API) adminListUsersHandler(w http.ResponseWriter, r *http.Request) error {
@@ -81,7 +81,7 @@ func (a *API) adminListUsersHandler(w http.ResponseWriter, r *http.Request) erro
 	if e != nil {
 		return e
 	}
-	v, e := u.AdminList(r.Context(), userID(r), param(r, "userID"), l, o)
+	v, e := u.AdminSearchList(r.Context(), userID(r), r.URL.Query().Get("query"), l, o)
 	if e != nil {
 		return e
 	}

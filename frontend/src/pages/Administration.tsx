@@ -1,15 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api, toList, errMsg, uploadFile } from '../api/client';
 import toast from 'react-hot-toast';
-import type { AdminBatch, AdminUser, GalleryImage, PlatformRole } from '../types';
+import type { AdminBatch, AdminUser, AdminUserPage, GalleryImage, PlatformRole } from '../types';
 import { Card, Badge, statusTone, Empty, Field, inputCls, fmtDate, Tabs } from '../components/ui';
 import { useCan } from '../hooks/useRole';
 import { usePatchEditor } from '../hooks/usePatchEditor';
+
+const USER_PAGE_SIZE = 20;
 
 export default function Administration() {
   const canUsers = useCan('platform_user.manage');
   const canGallery = useCan('gallery.manage');
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersPage, setUsersPage] = useState(0);
+  const [userSearch, setUserSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [usersLoading, setUsersLoading] = useState(false);
   const [platformRoles, setPlatformRoles] = useState<PlatformRole[]>([]);
   const [batches, setBatches] = useState<AdminBatch[]>([]);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
@@ -24,7 +31,22 @@ export default function Administration() {
   const [busy, setBusy] = useState(false);
   const [actingID, setActingID] = useState('');
 
-  const loadUsers = () => api.get('/v1/admin/users', { limit: 100 }).then((res) => setUsers(toList<AdminUser>(res.data))).catch(() => {});
+  const loadUsers = useCallback(async (query = userSearch, page = usersPage) => {
+    setUsersLoading(true);
+    try {
+      const response = await api.get('/v1/admin/users', { query, limit: USER_PAGE_SIZE, offset: page * USER_PAGE_SIZE });
+      const result = response.data as AdminUserPage;
+      const items = toList<AdminUser>(result.items);
+      setUsers(items);
+      setUsersTotal(Number(result.total) || 0);
+      return items;
+    } catch (err) {
+      toast.error(errMsg(err, 'Could not load users'));
+      return [];
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [userSearch, usersPage]);
   const loadPlatformRoles = () => api.get('/v1/admin/roles').then((res) => setPlatformRoles(toList<PlatformRole>(res.data))).catch((e) => toast.error(errMsg(e, 'Could not load platform roles')));
   const loadBatches = () => api.get('/v1/admin/batches').then((res) => setBatches(toList<AdminBatch>(res.data))).catch((e) => toast.error(errMsg(e, 'Could not load cohorts')));
   const loadGallery = () => api.get('/v1/admin/gallery', { limit: 100 }).then((res) => setGallery(toList<GalleryImage>(res.data))).catch(() => {});
@@ -32,6 +54,11 @@ export default function Administration() {
   useEffect(() => {
     if (canUsers) {
       loadUsers();
+    }
+  }, [canUsers, loadUsers]);
+
+  useEffect(() => {
+    if (canUsers) {
       loadPlatformRoles();
       loadBatches();
     }
@@ -61,9 +88,7 @@ export default function Administration() {
         await api.post(`/v1/admin/users/${editingUser.id}/roles`, { role, batch_id: batchID || undefined });
       }
       toast.success(remove ? 'Role removed' : 'Role assigned');
-      const response = await api.get('/v1/admin/users', { limit: 100 });
-      const updatedUsers = toList<AdminUser>(response.data);
-      setUsers(updatedUsers);
+      const updatedUsers = await loadUsers();
       setEditingUser(updatedUsers.find((user) => user.id === editingUser.id) || null);
       setSelectedRole('');
       setSelectedBatch('');
@@ -120,9 +145,18 @@ export default function Administration() {
 
       {tab === 'users' && (
         <Card className="p-7">
-          <h2 className="text-lg font-semibold text-ink">Platform users {users.length > 0 && `(${users.length})`}</h2>
-          {users.length === 0 ? (
-            <Empty message="Requires the platform_user.manage permission." />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-semibold text-ink">Platform users ({usersTotal})</h2>
+            <form onSubmit={(event) => { event.preventDefault(); setUsersPage(0); setUserSearch(searchInput.trim()); }} className="flex w-full gap-2 sm:max-w-xl">
+              <input aria-label="Search platform users" className={inputCls} placeholder="Search name, email, or student number…" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
+              <button type="submit" className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark">Search</button>
+              {(searchInput || userSearch) && <button type="button" onClick={() => { setSearchInput(''); setUserSearch(''); setUsersPage(0); }} className="shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm text-muted hover:text-ink">Clear</button>}
+            </form>
+          </div>
+          {usersLoading ? (
+            <p className="py-8 text-sm text-muted" role="status">Loading users…</p>
+          ) : users.length === 0 ? (
+            <div className="py-6"><Empty message={userSearch ? 'No users match your search.' : 'No users found.'} /></div>
           ) : (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left text-[15px]">
@@ -159,6 +193,14 @@ export default function Administration() {
               </table>
             </div>
           )}
+          <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted">{usersTotal === 0 ? 'No users to show' : `Showing ${usersPage * USER_PAGE_SIZE + 1}–${Math.min((usersPage + 1) * USER_PAGE_SIZE, usersTotal)} of ${usersTotal}`}</p>
+            <div className="flex items-center gap-2">
+              <button type="button" disabled={usersLoading || usersPage === 0} onClick={() => setUsersPage((page) => Math.max(0, page - 1))} className="rounded-lg border border-line px-3 py-2 text-sm text-ink disabled:opacity-40">Previous</button>
+              <span className="px-2 text-sm text-muted">Page {usersTotal === 0 ? 0 : usersPage + 1} of {Math.max(1, Math.ceil(usersTotal / USER_PAGE_SIZE))}</span>
+              <button type="button" disabled={usersLoading || (usersPage + 1) * USER_PAGE_SIZE >= usersTotal} onClick={() => setUsersPage((page) => page + 1)} className="rounded-lg border border-line px-3 py-2 text-sm text-ink disabled:opacity-40">Next</button>
+            </div>
+          </div>
         </Card>
       )}
 
@@ -220,7 +262,7 @@ export default function Administration() {
             <div className="flex items-center justify-between border-b border-line px-6 py-5">
               <div>
                 <h2 id="edit-user-title" className="text-xl font-semibold text-ink">Edit User: {editingUser.display_name}</h2>
-                <p className="mt-1 text-sm text-muted">Manage this user&apos;s platform administration roles.</p>
+                <p className="mt-1 text-sm text-muted">Manage this user&apos;s platform and cohort roles.</p>
               </div>
               <button onClick={() => setEditingUser(null)} className="text-2xl leading-none text-muted hover:text-ink" aria-label="Close user editor"><span aria-hidden="true">×</span></button>
             </div>
@@ -230,11 +272,14 @@ export default function Administration() {
               <Field label="Email"><input className={inputCls} value={editingUser.email} readOnly /></Field>
               <Field label="Account Status"><input className={inputCls} value={editingUser.status.toLowerCase()} readOnly /></Field>
               <div className="sm:col-span-2">
-                <Field label="Platform Role">
+                <Field label="Assign role">
                   <div className="flex gap-3">
                     <select className={inputCls} value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>
                       <option value="">Select role…</option>
-                      {platformRoles.filter((role) => !editingUser.platform_roles.includes(role.code)).map((role) => (
+                      {platformRoles.filter((role) => role.scope === 'PLATFORM'
+                        ? !editingUser.platform_roles.includes(role.code)
+                        : !selectedBatch || !editingUser.batch_roles.some((assigned) => assigned.batch_id === selectedBatch && assigned.code === role.code))
+                        .map((role) => (
                         <option key={`${role.scope}-${role.code}`} value={role.code}>
                           {role.name} ({role.scope.toLowerCase()})
                         </option>
