@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.11.0...v1.12.0) (2026-10-13)
+
+
+### Features
+
+* add additional student subject combinations (PMT-STAT, PMT-MAN, PMT-CHEM) ([b603ef6](https://github.com/Hasras-code/PMT_WEB/commit/b603ef61289b70bbb65abb387c1df2876da91b5e))
+
 ## [1.11.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.10.0...v1.11.0) (2026-10-13)
 
 
