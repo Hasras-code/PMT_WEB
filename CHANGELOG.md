@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.12.0...v1.13.0) (2026-11-23)
+
+
+### Features
+
+* add view functionality for PDF resources and versions ([81d034c](https://github.com/Hasras-code/PMT_WEB/commit/81d034cad0ef8233167d5c970270929fa03284ee))
+
+
+### Bug Fixes
+
+* add IF EXISTS to DROP CONSTRAINT for user combinations in migration scripts ([c1e91a0](https://github.com/Hasras-code/PMT_WEB/commit/c1e91a017f27f6ce03c28549d5ecd6a70d26c377))
+
 ## [1.12.0](https://github.com/Hasras-code/PMT_WEB/compare/v1.11.0...v1.12.0) (2026-10-13)
 
 
