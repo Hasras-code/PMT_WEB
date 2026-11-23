@@ -30,6 +30,7 @@ type Grant struct {
 	Purpose string `json:"purpose"`
 	Name    string `json:"name,omitempty"`
 	MIME    string `json:"mime,omitempty"`
+	Inline  bool   `json:"inline,omitempty"`
 	Expiry  int64  `json:"exp"`
 }
 type Metadata struct {
@@ -193,6 +194,14 @@ func (c *contextReader) Read(b []byte) (int, error) {
 }
 func (s *Local) DownloadURL(base, key, name, mime string) (string, error) {
 	t, e := s.Sign(Grant{Key: key, Name: name, MIME: mime, Purpose: "download", Expiry: time.Now().Add(5 * time.Minute).Unix()})
+	if e != nil {
+		return "", e
+	}
+	return fmt.Sprintf("%s/v1/files/downloads/%s", base, t), nil
+}
+
+func (s *Local) ViewURL(base, key, name, mime string) (string, error) {
+	t, e := s.Sign(Grant{Key: key, Name: name, MIME: mime, Purpose: "download", Inline: true, Expiry: time.Now().Add(5 * time.Minute).Unix()})
 	if e != nil {
 		return "", e
 	}

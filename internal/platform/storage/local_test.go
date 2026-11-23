@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/png"
 	"io"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -68,6 +69,19 @@ func TestLocalSecurity(t *testing.T) {
 	}
 	if _, e = s.Verify(token, "upload"); e == nil {
 		t.Fatal("wrong purpose accepted")
+	}
+	viewURL, e := s.ViewURL("https://api.example.test", key, "lecture.pdf", "application/pdf")
+	if e != nil {
+		t.Fatal(e)
+	}
+	parsedViewURL, e := url.Parse(viewURL)
+	if e != nil {
+		t.Fatal(e)
+	}
+	viewToken := strings.TrimPrefix(parsedViewURL.Path, "/v1/files/downloads/")
+	viewGrant, e := s.Verify(viewToken, "download")
+	if e != nil || !viewGrant.Inline {
+		t.Fatalf("view grant = %+v, error %v; want signed inline grant", viewGrant, e)
 	}
 	if _, e = s.Verify(token+"x", "download"); e == nil {
 		t.Fatal("tamper accepted")

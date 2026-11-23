@@ -156,6 +156,25 @@ func (m *Manager) DownloadURL(ctx context.Context, object Object) (string, error
 	}
 }
 
+// ViewURL returns a short-lived URL that asks the browser to render a PDF inline.
+// Other file types continue to use DownloadURL so active content is not embedded.
+func (m *Manager) ViewURL(ctx context.Context, object Object) (string, error) {
+	if object.MIME != "application/pdf" || !strings.EqualFold(filepath.Ext(object.Name), ".pdf") {
+		return "", apperror.ErrInvalid
+	}
+	switch object.Provider {
+	case ProviderLocal:
+		return m.Local.ViewURL(m.BaseURL, object.Key, object.Name, object.MIME)
+	case ProviderR2:
+		if m.R2 == nil {
+			return "", fmt.Errorf("R2 storage is not configured")
+		}
+		return m.R2.CreateViewURL(ctx, object, m.DownloadTTL)
+	default:
+		return "", fmt.Errorf("unsupported storage provider")
+	}
+}
+
 func (m *Manager) PublicURL(object Object) (string, error) {
 	if object.Provider != ProviderR2 || object.Class != ClassPublic {
 		return "", apperror.ErrInvalid

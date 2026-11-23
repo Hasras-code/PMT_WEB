@@ -83,6 +83,44 @@ func TestR2PresignedUploadUsesConfiguredBucketAndContentType(t *testing.T) {
 	}
 }
 
+func TestR2ResourceViewURLRequestsInlinePDF(t *testing.T) {
+	r2, err := OpenR2(context.Background(), R2Config{
+		Endpoint: "https://account.r2.cloudflarestorage.com", Region: "auto",
+		AccessKeyID: "test-access", SecretKey: "test-secret",
+		PrivateBucket: "private", PublicBucket: "public", PublicBaseURL: "https://media.example.com",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	object := Object{Provider: ProviderR2, Class: ClassPrivate, Key: "batches/a/resources/notes.pdf", Name: "lecture notes.pdf", MIME: "application/pdf", Size: 100}
+	viewURL, err := r2.CreateViewURL(context.Background(), object, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, err := url.Parse(viewURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if disposition := view.Query().Get("response-content-disposition"); !strings.HasPrefix(disposition, "inline;") {
+		t.Fatalf("view content disposition = %q, want inline", disposition)
+	}
+	if got := view.Query().Get("response-content-type"); got != "application/pdf" {
+		t.Fatalf("view content type = %q, want application/pdf", got)
+	}
+
+	downloadURL, err := r2.CreateDownloadURL(context.Background(), object, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	download, err := url.Parse(downloadURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if disposition := download.Query().Get("response-content-disposition"); !strings.HasPrefix(disposition, "attachment;") {
+		t.Fatalf("download content disposition = %q, want attachment", disposition)
+	}
+}
+
 func TestPublicURLRejectsUnsafeKey(t *testing.T) {
 	if _, err := joinPublicURL("https://media.example.com", "../private/file.pdf"); err == nil {
 		t.Fatal("accepted unsafe key")

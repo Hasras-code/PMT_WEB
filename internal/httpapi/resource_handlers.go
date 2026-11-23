@@ -13,12 +13,14 @@ func (a *API) resourceRoutes(r chi.Router) {
 	r.Post("/resources/uploads", a.wrap(a.authorizeResourceUploadHandler))
 	r.Post("/resources", a.wrap(a.createResourceHandler))
 	r.Get("/resources/{resourceID}", a.wrap(a.getResourceHandler))
+	r.Get("/resources/{resourceID}/view", a.wrap(a.viewResourceHandler))
 	r.Patch("/resources/{resourceID}", a.wrap(a.updateResourceHandler))
 	r.Delete("/resources/{resourceID}", a.wrap(a.deleteResourceHandler))
 	r.Post("/resources/{resourceID}/publish", a.wrap(a.publishResourceHandler))
 	r.Post("/resources/{resourceID}/versions/uploads", a.wrap(a.authorizeResourceVersionUploadHandler))
 	r.Post("/resources/{resourceID}/versions", a.wrap(a.addResourceVersionHandler))
 	r.Get("/resources/{resourceID}/versions", a.wrap(a.listResourceVersionsHandler))
+	r.Get("/resources/{resourceID}/versions/{versionID}/view", a.wrap(a.viewResourceVersionHandler))
 	r.Get("/resources/{resourceID}/download", a.wrap(a.downloadResourceHandler))
 	r.Get("/resources/{resourceID}/versions/{versionID}/download", a.wrap(a.downloadResourceVersionHandler))
 	r.Put("/resources/{resourceID}/bookmark", a.wrap(a.bookmarkResourceHandler))
@@ -211,6 +213,47 @@ func (a *API) downloadResource(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	return send(w, 200, map[string]any{"url": url, "expires_in": int64(a.Config.DownloadURLTTL.Seconds())})
+}
+
+func (a *API) viewResource(w http.ResponseWriter, r *http.Request) error {
+	o, e := (resource.Service{Pool: a.Pool}).Download(r.Context(), userID(r), batchID(r), param(r, "resourceID"), param(r, "versionID"))
+	if e != nil {
+		return e
+	}
+	url, e := a.Files.ViewURL(r.Context(), o.StoredObject())
+	if e != nil {
+		return e
+	}
+	return send(w, 200, map[string]any{"url": url, "expires_in": int64(a.Config.DownloadURLTTL.Seconds())})
+}
+
+// viewResourceHandler godoc
+//
+//	@Summary Get an inline resource PDF URL
+//	@Tags resources
+//	@Produce json
+//	@Param batchID path string true "Batch ID"
+//	@Param resourceID path string true "Resource ID"
+//	@Success 200 {object} map[string]any
+//	@Security bearerAuth
+//	@Router /v1/batches/{batchID}/resources/{resourceID}/view [get]
+func (a *API) viewResourceHandler(w http.ResponseWriter, r *http.Request) error {
+	return a.viewResource(w, r)
+}
+
+// viewResourceVersionHandler godoc
+//
+//	@Summary Get an inline resource version PDF URL
+//	@Tags resources
+//	@Produce json
+//	@Param batchID path string true "Batch ID"
+//	@Param resourceID path string true "Resource ID"
+//	@Param versionID path string true "Version ID"
+//	@Success 200 {object} map[string]any
+//	@Security bearerAuth
+//	@Router /v1/batches/{batchID}/resources/{resourceID}/versions/{versionID}/view [get]
+func (a *API) viewResourceVersionHandler(w http.ResponseWriter, r *http.Request) error {
+	return a.viewResource(w, r)
 }
 
 // downloadResourceHandler godoc

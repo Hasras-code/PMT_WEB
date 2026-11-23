@@ -188,7 +188,7 @@ func (a *API) downloadFileHandler(w http.ResponseWriter, r *http.Request) error 
 	if e != nil {
 		return e
 	}
-	return a.serveFile(w, r, g.Key, g.MIME, g.Name, false)
+	return a.serveFile(w, r, g.Key, g.MIME, g.Name, g.Inline)
 }
 func (a *API) serveFile(w http.ResponseWriter, r *http.Request, key, contentType, name string, inline bool) error {
 	f, e := a.Files.Local.Read(key)

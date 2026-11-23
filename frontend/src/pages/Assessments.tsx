@@ -4,6 +4,7 @@ import {
   BookmarkIcon,
   CloudArrowUpIcon,
   DocumentTextIcon,
+  EyeIcon,
   MagnifyingGlassIcon,
   PencilSquareIcon,
   TrashIcon,
@@ -135,6 +136,31 @@ export default function Assessments() {
       window.open(response.data.url, '_blank', 'noopener,noreferrer');
     } catch (err) {
       toast.error(errMsg(err, 'Download failed'));
+    }
+  };
+
+  const viewPDF = async (item: Resource, versionID?: string) => {
+    // Open synchronously from the user click so mobile browsers do not block
+    // the viewer tab while the authenticated API request is in flight.
+    const viewer = window.open('about:blank', '_blank');
+    if (!viewer) {
+      toast.error('Allow pop-ups to open the PDF viewer');
+      return;
+    }
+    viewer.opener = null;
+    try {
+      const path = versionID
+        ? `/v1/batches/${currentBatchID}/resources/${item.id}/versions/${versionID}/view`
+        : `/v1/batches/${currentBatchID}/resources/${item.id}/view`;
+      const response = await api.get(path);
+      const target = new URL(response.data.url, window.location.origin);
+      if (target.protocol !== 'https:' && target.hostname !== 'localhost') {
+        throw new Error('The PDF viewer returned an invalid URL');
+      }
+      viewer.location.replace(target.toString());
+    } catch (err) {
+      viewer.close();
+      toast.error(errMsg(err, 'Could not open PDF'));
     }
   };
 
@@ -279,7 +305,8 @@ export default function Assessments() {
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate font-semibold text-ink">{item.title}</h3><p className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-muted">{item.description || 'No description provided.'}</p></div>{canUpdate && <Badge tone={statusTone(item.status)}>{item.status}</Badge>}</div>
                   <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted"><span className="rounded-md bg-primary-light px-2 py-1 font-medium text-primary">{typeLabel(item.type)}</span><span>{fmtSize(item.size_bytes)}</span><span>v{item.version_number}</span><span>{fmtDate(item.created_at)}</span></div>
                   <div className="mt-5 flex items-center gap-1 border-t border-line pt-4">
-                    <button onClick={() => download(item)} className="rounded-lg p-2 text-primary hover:bg-primary-light" title="Download" aria-label={`Download ${item.title}`}><ArrowDownTrayIcon className="h-5 w-5" aria-hidden="true" /></button>
+                    <button onClick={() => viewPDF(item)} className="rounded-lg p-2 text-primary hover:bg-primary-light" title="View PDF" aria-label={`View ${item.title} PDF in a new tab`}><EyeIcon className="h-5 w-5" aria-hidden="true" /></button>
+                    <button onClick={() => download(item)} className="rounded-lg p-2 text-muted hover:bg-primary-light hover:text-primary" title="Download PDF" aria-label={`Download ${item.title}`}><ArrowDownTrayIcon className="h-5 w-5" aria-hidden="true" /></button>
                     <button onClick={() => toggleBookmark(item)} className={`rounded-lg p-2 hover:bg-primary-light ${saved.has(item.id) ? 'text-primary' : 'text-muted hover:text-primary'}`} title={saved.has(item.id) ? 'Remove bookmark' : 'Bookmark'} aria-label={saved.has(item.id) ? `Remove bookmark for ${item.title}` : `Bookmark ${item.title}`} aria-pressed={saved.has(item.id)}><BookmarkIcon className="h-5 w-5" aria-hidden="true" /></button>
                     <button onClick={() => toggleVersions(item)} aria-expanded={!!versions[item.id]} className="rounded-lg px-2 py-1.5 text-xs font-medium text-muted hover:bg-surface hover:text-ink">Versions</button><div className="flex-1" />
                     {canUpdate && <label className="cursor-pointer rounded-lg p-2 text-muted hover:bg-primary-light hover:text-primary" title="Upload new version"><span className="sr-only">Upload new version of {item.title}</span><CloudArrowUpIcon className="h-5 w-5" aria-hidden="true" /><input type="file" accept="application/pdf,.pdf" disabled={busy} className="hidden" onChange={(event) => addVersion(item.id, event.target.files?.[0])} /></label>}
@@ -287,7 +314,7 @@ export default function Assessments() {
                     {canCreate && item.status !== 'PUBLISHED' && <button onClick={() => publish(item)} className="rounded-lg px-2 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50">Publish</button>}
                     {canCreate && <button onClick={() => archive(item)} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600" title="Archive" aria-label={`Archive ${item.title}`}><TrashIcon className="h-5 w-5" aria-hidden="true" /></button>}
                   </div>
-                  {versions[item.id] && <div className="mt-4 space-y-2 rounded-xl bg-surface p-3 text-xs">{(versions[item.id] ?? []).map((value) => { const version = value as Record<string, unknown>; return <div key={String(version.id)} className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-0 last:pb-0"><span className="truncate text-ink">v{String(version.version_number)} · {String(version.file_name)}</span><button onClick={() => downloadVersion(item.id, String(version.id))} className="font-medium text-primary hover:underline">Download</button></div>; })}</div>}
+                  {versions[item.id] && <div className="mt-4 space-y-2 rounded-xl bg-surface p-3 text-xs">{(versions[item.id] ?? []).map((value) => { const version = value as Record<string, unknown>; return <div key={String(version.id)} className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-0 last:pb-0"><span className="truncate text-ink">v{String(version.version_number)} · {String(version.file_name)}</span><div className="flex shrink-0 gap-3"><button onClick={() => viewPDF(item, String(version.id))} className="font-medium text-primary hover:underline">View</button><button onClick={() => downloadVersion(item.id, String(version.id))} className="font-medium text-muted hover:text-primary hover:underline">Download</button></div></div>; })}</div>}
                 </div>
               </Card>
             ))}

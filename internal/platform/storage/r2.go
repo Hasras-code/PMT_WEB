@@ -128,11 +128,22 @@ func (r *R2) Inspect(ctx context.Context, object Object) (Metadata, error) {
 }
 
 func (r *R2) CreateDownloadURL(ctx context.Context, object Object, ttl time.Duration) (string, error) {
+	return r.createGetURL(ctx, object, ttl, "attachment")
+}
+
+func (r *R2) CreateViewURL(ctx context.Context, object Object, ttl time.Duration) (string, error) {
+	if object.MIME != "application/pdf" || !strings.EqualFold(pathExtension(object.Name), ".pdf") {
+		return "", apperror.ErrInvalid
+	}
+	return r.createGetURL(ctx, object, ttl, "inline")
+}
+
+func (r *R2) createGetURL(ctx context.Context, object Object, ttl time.Duration, dispositionType string) (string, error) {
 	bucket, err := r.bucket(object.Class)
 	if err != nil {
 		return "", err
 	}
-	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": object.Name})
+	disposition := mime.FormatMediaType(dispositionType, map[string]string{"filename": object.Name})
 	result, err := r.presign.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket:                     aws.String(bucket),
 		Key:                        aws.String(object.Key),
